@@ -1,0 +1,92 @@
+# -*- python -*-
+
+load(
+    "@drake//tools/skylark:drake_cc.bzl",
+    "drake_cc_binary",
+    "drake_cc_googletest",
+    "drake_cc_library",
+    "drake_cc_test",
+)
+#load("//tools/skylark:test_tags.bzl", "gurobi_test_tags", "mosek_test_tags")
+#load("//tools/lint:lint.bzl", "add_lint_tests")
+
+package(default_visibility = ["//visibility:public"])
+
+# C++ library example
+drake_cc_library(
+    name = "transpose_cxx",
+    srcs = ["transpose_cxx.h",
+            "transpose_cxx_impl.h",
+    ],
+    hdrs = ["transpose_cxx.h"],
+    # If you need to modify compilation flags, do so here
+    #copts = ["-std=c++14"],
+)
+
+# C library example
+drake_cc_library(
+    name = "transpose",
+    srcs = ["transpose.c",
+            "transpose.h",
+    ],
+    hdrs = ["transpose.h"],
+    # Put dependencies here if you have any
+    deps = [
+    ],
+    # If you need to modify compilation flags, do so here
+    #copts = ["-std=c11"],
+)
+
+# C++ program example (depends on both transpose_cxx and transpose)
+drake_cc_binary(
+    name = "example_cc",
+    srcs = ["example.cc"],
+    deps = [
+        "@eigen",
+        ":transpose",
+        ":transpose_cxx",
+    ],
+    # If you need to modify compilation flags, do so here
+    #copts = ["-std=c++14"],
+)
+
+# C program example (depends on only transpose)
+drake_cc_binary(
+    name = "example_c",
+    srcs = ["example.c"],
+    deps = [
+        ":transpose",
+    ],
+)
+
+# Googletest example (testing C++ code, can also depend on a C library)
+drake_cc_googletest(
+    name = "transpose_cxx_test",
+    srcs = [
+        "test/transpose_cxx_test.cc",
+    ],
+    deps = [
+        ":transpose_cxx",
+    ],
+    # If you need to implement your own test main() for some reason,
+    # uncomment below and main() to test/transpose_cxx_test.cc; for more information
+    # see:
+    # https://github.com/google/googletest/blob/master/googletest/docs/primer.md#writing-the-main-function
+    #use_default_main = False,
+)
+
+# Googletest example (testing C code)
+drake_cc_googletest(
+    name = "transpose_test",
+    srcs = [
+        "test/transpose_test.cc",
+    ],
+    deps = [
+        ":transpose",
+    ],
+    # If you need to implement your own test main() for some reason,
+    # uncomment below and main() to test/bar_test.cc; for more information
+    # see:
+    # https://github.com/google/googletest/blob/master/googletest/docs/primer.md#writing-the-main-function
+    #use_default_main = False,
+)
