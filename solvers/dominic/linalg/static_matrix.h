@@ -61,9 +61,11 @@ public:
 	// 1D (vector) indexing
 	double& operator()(int i) const;
 	// assignment -> shallow copy
-	StaticMatrix &operator=(const StaticMatrix& A);
+	StaticMatrix& operator=(const StaticMatrix& A);
 	// y <- a*y
 	StaticMatrix& operator*=(double a);
+	// y <- y + x
+	StaticMatrix& operator+=(const StaticMatrix& x);
 
 	// Slicing and mapping *************************************
 	// used to map a StaticMatrix on top of existing memory

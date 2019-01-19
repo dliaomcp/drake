@@ -109,7 +109,7 @@ namespace fbstab {
 				double Eo = rk->Norm();
 				if( (Ei <= inner_tol && Eo < Ekpen) 
 					|| (Ei <= inner_tol_min) ){
-					// TODO: print 
+					// TODO: add print statements
 					break;
 				}
 

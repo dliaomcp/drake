@@ -240,6 +240,13 @@ StaticMatrix& StaticMatrix::operator*=(double a){
 	return *this;
 }
 
+// y <- y + x
+StaticMatrix& StaticMatrix::operator+=(const StaticMatrix &x){
+	StaticMatrix y(*this);
+	y.axpy(x,1.0);
+	return *this;
+}
+
 // y <- a*x + y
 void StaticMatrix::axpy(const StaticMatrix &x, double a){
 	StaticMatrix y(*this);

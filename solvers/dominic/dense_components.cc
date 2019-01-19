@@ -103,6 +103,8 @@ void DenseVariable::ProjectDuals(){
 
 // DenseResidual *************************************
 
+// TODO: throw an error if anything is done before
+// linking a data object?
 DenseResidual::DenseResidual(QPsize size){
 	n = size.n;
 	q = size.q;
@@ -132,7 +134,7 @@ void DenseResidual::Negate(){
 void DenseResidual::NaturalResidual(const DenseVariable& x){
 	// rz = H*z + f + A'*v
 	rz.fill(0.0);
-	rz.axpy(data->f,0.0); // += f 
+	rz += data->f;
 	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
 	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
 
@@ -143,11 +145,37 @@ void DenseResidual::NaturalResidual(const DenseVariable& x){
 }
 
 void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
+	// rz = H*z + f + A'*v
+	rz.fill(0.0);
+	rz += data->f;
+	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
+	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
+
+	// rv = min(y,v)
+	for(int i = 0;i<q;i++){
+		rv(i) = StaticMatrix::min(x.y(i),x.v(i));
+		rv(i) = alpha*rv(i) + 
+			(1.0-alpha)*max(0.0,x.y(i))*max(0.0,x.v(i));
+	}
 
 }
 
 void DenseResidual::FBresidual(const DenseVariable& x, 
 		const DenseVariable& xbar, double sigma){
+
+	// rz = Hz + f + A'v + sigma(z - zbar)
+	rz.fill(0.0);
+	rz += data->f;
+	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
+	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
+	rz.axpy(x.z,sigma);
+	rz.axpy(xbar.z,-sigma);
+
+	// rv = phi(ys,v), ys = y + sigma(x.v - xbar.v)
+	for(int i = 0;i<q;i++){
+		double ys = x.y(i) + sigma*(x.v(i) - xbar.v(i));
+		rv(i) = pfb(ys,x.v(i));
+	}
 
 }
 
@@ -160,8 +188,132 @@ double DenseResidual::Merit(){
 	return 0.5*temp*temp;
 }
 
+double DenseResidual::max(double a, double b){
+	return a>b ? a : b;
+}
+
+double DenseResidual::min(double a, double b){
+	return a<b ? a : b;
+}
+
+double DenseResidual::pfb(double a, double b, double alpha){
+	double fb = a + b - sqrt(a*a + b*b);
+	return alpha * fb + (1.0-alpha)* max(0,a)*max(0,b);
+}
 
 // DenseLinearSolver *************************************
+
+DenseLinearSolver::DenseLinearSolver(QPsize size){
+	n = size.n;
+	q = size.q;
+
+	// fb derivatives
+	double *a1 = new double[q];
+	double *a2 = new double[q];
+	double *a3 = new double[q];
+	gamma = StaticMatrix(a1,q);
+	mu = StaticMatrix(a2,q);
+	Gamma = StaticMatrix(a3,q);
+
+	// workspace residuals
+	double *b1 = new double[n];
+	double *b2 = new double[q];
+	r1 = StaticMatrix(b1,n);
+	r2 = StaticMatrix(b2,q);
+
+	// workspace hessian
+	double *c = new double[n*n];
+	K = StaticMatrix(c,n,n);
+}
+
+DenseLinearSolver::~DenseLinearSolver(){
+	delete[] gamma.data;
+	delete[] mu.data;
+	delete[] Gamma.data;
+
+	delete[] r1.data;
+	delete[] r2.data;
+
+	delete[] K.data;
+}
+
+void DenseLinearSolver::LinkData(const DenseData *data){
+	this->data = data;
+}
+
+bool DenseLinearSolver::Factor(const DenseVariable &x, double sigma){
+
+	// compute K = H + sigma I + A'*Gamma A
+	K.copy(data->H);
+	for(int i = 0;i<K.rows();i++){
+		K(i,i) += sigma;
+	}
+
+	// K <- K + A'*diag(Gamma(x))*A
+	Point2D tmp;
+	for(int i = 0;i<q;i++){
+		tmp = PFBgrad(x.y(i),x.v(i),sigma);
+		gamma(i) = tmp.x;
+		mus(i) = tmp.y + sigma*tmp.x;
+		Gamma(i) = gamma(i)/mus(i);
+	}
+	K.gram(data->A,Gamma);
+
+	// K = LL' in place
+	int chol_flag = K.llt();
+
+	if(chol_flag == 0)
+		return true;
+	else
+		return false;
+}
+
+// FINISHME
+bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
+
+	// solve the system
+	// K z = rz - A'*diag(1/mus)*rv
+	// diag(mus) v = rv + diag(gamma)*A*z
+
+	// invert mus
+	for(int i = 0;i<r1.rows();i++){
+		mus(i) = 1.0/mus(i);
+	}
+
+	r1.copy(r.rz);
+	r2.copy(r.rv);
+
+
+
+	r2.RowScale
+
+
+	return true;
+}
+
+
+Point2D DenseLinearSolver::PFBgrad(double a, double b, double sigma){
+	double mu = 0;
+	double gamma = 0;
+	double r = sqrt(a*a + b*b);
+	double d = sqrt(2.0);
+
+	if(r < zero_tol){
+		gamma = alpha*(1.0-d);
+		mu = alpha*(1.0-d);
+
+	} else if((a > 0) && (b > 0)){
+		gamma = alpha * (1.0- a/r) + (1.0-alpha) * b;
+		mu = alpha * (1.0- b/r) + (1.0-alpha) * a;
+
+	} else {
+		gamma = alpha * (1.0 - a/r);
+		mu = alpha * (1.0 - b/r);
+	}
+
+	Point2D out = {gamma, mu};
+	return out;
+}
 
 
 }  // namespace fbstab
