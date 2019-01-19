@@ -42,7 +42,7 @@ class DenseVariable{
 	void LinkData(DenseData *data);
 	// y <- a*ones
 	void Fill(double a);
-	// set the y field = b-Ax
+	// set the y field = b - Az
 	void InitConstraintMargin();
 	// y <- a*x + y
 	void axpy(const DenseVariable &x, double a);
@@ -74,13 +74,13 @@ class DenseResidual{
 	// y <- -1*y
 	void Negate(); 
 
-	// compute the penalized Fischer-Burmeister 
-	// residual at (x,xbar,sigma)
+	// compute the penalized FB residual at (x,xbar,sigma)
 	void FBresidual(const DenseVariable& x, 
 		const DenseVariable& xbar, double sigma);
 
 	// compute the natrual residual at x
 	void NaturalResidual(const DenseVariable& x);
+	// compute the penalized natural residuala t x
 	void PenalizedNaturalResidual(const DenseVariable& x);
 
 	// compute the norm and merit function
@@ -90,24 +90,45 @@ class DenseResidual{
 
  private:
  	DenseData *data = nullptr; // access to the data object
- 	double pfb(double a,double b);
+ 	static double pfb(double a, double b, double alpha);
+ 	static double max(double a, double b);
+ 	static double min(double a, double b);
 
 }
 
 // methods for solving linear systems + extra memory if needed
 class DenseLinearSolver{
  public:
- 	void LinkData
+
+ 	DenseLinearSolver(QPsize size);
+ 	~DenseLinearSolver();
+
+ 	void LinkData(const DenseData *data);
 	void Factor(const DenseVariable& x, double sigma);
 	bool Solve(const DenseResidual &r, DenseVariable *x);
 
-	double alpha = 0.95;;
+	double alpha = 0.95;
+	double zero_tol = 1e-13;
+
+	
  private:
- 	// memory for the augmented Hessian
- 	StaticMatrix K; 
- 	// memory for the PFB derivatives
- 	StaticMatrix mu;
+ 	struct Point2D {double x; double y;};
+
+ 	DenseData *data = nullptr;
+ 	StaticMatrix K; // memory for the augmented Hessian
+
+ 	StaticMatrix r1; // memory for the residuals
+ 	StaticMatrix r2;
+
+ 	StaticMatrix Gamma; // the FB barriers/derivatives
+ 	StaticMatrix mus;
  	StaticMatrix gamma;
+
+
+ 	int n,q;
+
+ 	// computes the pfb gradient at (a,b)
+ 	static Point2D PFBgrad(double a, double b, double sigma);
 
 }
 
