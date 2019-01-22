@@ -34,8 +34,10 @@ class DenseVariable{
 	StaticMatrix v; // dual
 	StaticMatrix y; // ieq margin
 
-
 	DenseVariable(QPsize size);
+	// 
+	DenseVariable(QPsize size, double *z_mem, 
+		double *v_mem, double *y_mem);
 	~DenseVariable();
 
 	// links in a DenseData object
@@ -56,6 +58,7 @@ class DenseVariable{
 	int n,q; // sizes
 	DenseData *data = nullptr; // link to the problem data
 	bool y_initialized = false;
+	bool memory_allocated = false;
 
 }
 
@@ -104,8 +107,8 @@ class DenseLinearSolver{
  	~DenseLinearSolver();
 
  	void LinkData(const DenseData *data);
-	void Factor(const DenseVariable& x, double sigma);
-	bool Solve(const DenseResidual &r, DenseVariable *x);
+	bool Factor(const DenseVariable& x, double sigma);
+	bool Solve(const DenseResidual &r, double sigma, DenseVariable *x);
 
 	double alpha = 0.95;
 	double zero_tol = 1e-13;

@@ -17,6 +17,8 @@ DenseData::DenseData(double *H,double *f,
 	n = size.n;
 	q = size.q;
 
+	// TODO: add check for null
+
 	// create static matrices over the inputs
 	this->H = StaticMatrix(H,n,n);
 	this->f = StaticMatrix(f,n);
@@ -41,12 +43,28 @@ DenseVariable::DenseVariable(QPsize size){
 	z.fill(0.0);
 	v.fill(0.0);
 	y.fill(0.0);
+
+	memory_allocated = true;
+}
+
+DenseVariable::DenseVariable(QPsize size, double *z_mem, 
+	double *v_mem, double y_mem){
+	n = size.n;
+	q = size.q;
+
+	z = StaticMatrix(z_mem,n);
+	v = StaticMatrix(v_mem,q);
+	y = StaticMatrix(y_mem,q);
+
+	memory_allocated = false;
 }
 
 DenseVariable::~DenseVariable(){
-	delete[] z.data;
-	delete[] v.data;
-	delete[] y.data;
+	if(memory_allocated){
+		delete[] z.data;
+		delete[] v.data;
+		delete[] y.data;
+	}
 }
 
 void DenseVariable::LinkData(DenseData *data){
@@ -268,25 +286,39 @@ bool DenseLinearSolver::Factor(const DenseVariable &x, double sigma){
 		return false;
 }
 
-// FINISHME
-bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
-
+bool DenseLinearSolver::Solve(const DenseResidual &r, double sigma, DenseVariable *x){
 	// solve the system
 	// K z = rz - A'*diag(1/mus)*rv
 	// diag(mus) v = rv + diag(gamma)*A*z
 
-	// invert mus
 	for(int i = 0;i<r1.rows();i++){
 		mus(i) = 1.0/mus(i);
 	}
 
 	r1.copy(r.rz);
 	r2.copy(r.rv);
+	// r2 = rv./mus
+	r2.RowScale(mus);
+	// r1 = -1.0*A'*r2 + 1.0*r1
+	r1.gemv(data->A,r2,-1.0,1.0,true); 
 
+	// solve K z = r1
+	r1.CholSolve(K);
+	(x->z).copy(r1);
 
+	// r2 = rv + diag(gamma)*A*z
+	r2.gemv(data->A,x->z,1.0);
+	r2.RowScale(gamma);
+	r2.axpy(r.rv,1.0);
 
-	r2.RowScale
+	// v = diag(1/mus)*r2
+	r2.RowScale(mus);
+	(x->v).copy(r2);
 
+	// y = b - Az + sigma v
+	r2.copy(data->b);
+	r2.gemv(data->A,x->z,-1.0);
+	r2.axpy(x->v,sigma);
 
 	return true;
 }

@@ -7,6 +7,23 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
+// return values for the solver
+enum ExitFlag {
+	SUCCESS = 0;
+	DIVERGENCE = 1;
+	MAXITERATIONS = 2;
+	PRIMAL_INFEASIBLE = 3;
+	UNBOUNDED_BELOW = 4;
+};
+
+// container for outputs
+struct SolverOut {
+	ExitFlag eflag;
+	double residual;
+	int newton_iters;
+	int prox_iters;
+};
+
 // TODO: Make me a template class later
 // this class implements the FBstab algorithm
 class FBstabAlgorithm{
@@ -18,22 +35,6 @@ public:
 		FINAL = 1; // prints message upon completion
 		ITER = 2; // basic information at each outer loop iteration
 		ITER_DETAILED = 3; // print inner loop information
-	};
-
-	// return values for the solver
-	enum ExitFlag {
-		SUCCESS = 0;
-		DIVERGENCE = 1;
-		MAXITERATIONS = 2;
-		PRIMAL_INFEASIBLE = 3;
-		UNBOUNDED_BELOW = 4;
-	};
-
-	struct SolverOut {
-		ExitFlag eflag;
-		double residual;
-		int newton_iters;
-		int prox_iters;
 	};
 
 	// initializes the component objects needed by the solver
