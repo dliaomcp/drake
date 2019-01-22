@@ -9,6 +9,11 @@
 #define STATICMATRIX_EXCEPTIONS
 #define CHOL_PD_TOL 1e-13
 
+
+namespace drake {
+namespace solvers {
+namespace dominic {
+
 class StaticMatrix{
 public:
 	// properties *************************************
@@ -24,7 +29,7 @@ public:
 	// methods *************************************
 
 	// Constructors
-	StaticMatrix(double* mem, int nrows, int ncols = 1);
+	StaticMatrix(double* mem, int nrows_, int ncols_ = 1);
 	StaticMatrix();
 
 	// Copy constructor
@@ -52,8 +57,8 @@ public:
 	int size() const;
 
 	// Seters *************************************
-	void SetStride(int stride);
-	void SetCap(int cap);
+	void SetStride(int stride_);
+	void SetCap(int cap_);
 
 	// Operator overloads *************************************
 	// 2D (matrix) indexing
@@ -69,11 +74,11 @@ public:
 
 	// Slicing and mapping *************************************
 	// used to map a StaticMatrix on top of existing memory
-	void map(double* mem, int nrows, int ncols);
+	void map(double* mem, int nrows_, int ncols_);
 	// reshape
-	void reshape(int nrows, int ncols);
+	void reshape(int nrows_, int ncols_);
 	// return a reshaped alias
-	StaticMatrix getreshape(int nrows, int ncols);
+	StaticMatrix getreshape(int nrows_, int ncols_);
 	// return a StaticMatrix which aliases the ith column
 	StaticMatrix col(int i);
 	// return a StaticMatrix which aliases the ith row
@@ -141,6 +146,12 @@ public:
 	static bool SameSize(const StaticMatrix &A, const StaticMatrix &B);
 
 };
+
+
+}  // namespace dominic
+}  // namespace solvers
+}  // namespace drake
+
 
 
 

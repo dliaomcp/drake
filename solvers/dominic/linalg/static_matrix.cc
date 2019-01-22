@@ -1,15 +1,19 @@
-#include "drake/solvers/dominic/static_matrix.h"
+#include "drake/solvers/dominic/linalg/static_matrix.h"
 
 #include <cmath>
 #include <iostream>
 
 
+namespace drake {
+namespace solvers {
+namespace dominic {
+
 // constructor
-StaticMatrix::StaticMatrix(double *mem, int nrows, int ncols){
-	this->nrows = nrows;
-	this->ncols = ncols;
-	this->nels = nrows*ncols;
-	this->cap = nrows*ncols;
+StaticMatrix::StaticMatrix(double *mem, int nrows_, int ncols_){
+	this->nrows = nrows_;
+	this->ncols = ncols_;
+	this->nels = nrows_*ncols_;
+	this->cap = nrows_*ncols_;
 	this->data = mem;
 	this->stride = 1;
 }
@@ -62,11 +66,11 @@ void StaticMatrix::copy(const StaticMatrix& A){
 }
 
 // map
-void StaticMatrix::map(double* mem, int nrows, int ncols){
-	this->nrows = nrows;
-	this->ncols = ncols;
-	this->nels = nrows*ncols;
-	this->cap = nrows*ncols;
+void StaticMatrix::map(double* mem, int nrows_, int ncols_){
+	this->nrows = nrows_;
+	this->ncols = ncols_;
+	this->nels = nrows_*ncols_;
+	this->cap = nrows_*ncols_;
 	this->data = mem;
 	this->stride = 1;
 }
@@ -80,7 +84,7 @@ void StaticMatrix::fill(double a){
 
 void StaticMatrix::rand(){
 	for(int k = 0;k<cap;k++){
-		data[k] = (double)(std::rand() % 100);
+		data[k] = static_cast<double>(std::rand() % 100);
 	}
 }
 
@@ -173,33 +177,33 @@ int StaticMatrix::size() const{
 }
 
 // set functions
-void StaticMatrix::SetStride(int stride){
-	this->stride = stride;
+void StaticMatrix::SetStride(int stride_){
+	this->stride = stride_;
 }
-void StaticMatrix::SetCap(int cap){
-	this->cap = cap;
+void StaticMatrix::SetCap(int cap_){
+	this->cap = cap_;
 }
 
 //reshape
-void StaticMatrix::reshape(int nrows,int ncols){
-	if(nrows*ncols > cap)
+void StaticMatrix::reshape(int nrows_,int ncols_){
+	if(nrows_*ncols_ > cap)
 		throw std::out_of_range("When reshaping the new size cannot exceed capacity");
 
-	this->nrows = nrows;
-	this->ncols = ncols;
-	this->nels = nrows*ncols;
+	this->nrows = nrows_;
+	this->ncols = ncols_;
+	this->nels = nrows_*ncols_;
 }
 
 // return a reshaped alias
-StaticMatrix StaticMatrix::getreshape(int nrows, int ncols){
+StaticMatrix StaticMatrix::getreshape(int nrows_, int ncols_){
 	StaticMatrix C(*this);
 
-	if(nrows*ncols != nels)
+	if(nrows_*ncols_ != nels)
 		throw std::out_of_range("Number of elements cannot change when reshaping");
 
 	// create different sized matrix on top of the memory of the current one
 	StaticMatrix A;
-	A.map(data,nrows,ncols);
+	A.map(data,nrows_,ncols_);
 
 	return A;
 }
@@ -625,6 +629,10 @@ bool StaticMatrix::SameSize(const StaticMatrix &A, const StaticMatrix &B){
 	return (A.rows() == B.rows()) && (A.cols() == B.cols());
 }
 
+
+}  // namespace dominic
+}  // namespace solvers
+}  // namespace drake
 
 
 

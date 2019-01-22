@@ -32,22 +32,26 @@ namespace fbstab {
 
 		// Output structure
 		struct SolverOut output = {
-			.eflag = MAXITERATIONS,
-			.residual = 0.0,
-			.newton_iters = 0,
-			.prox_iters = 0
+			MAXITERATIONS,
+			0.0,
+			0,
+		    0
 		};
 
 		// link the data object
-		xk->LinkData(*DenseData);
-		xi->LinkData(*DenseData);
-		dx->LinkData(*DenseData);
-		xp->LinkData(*DenseData);
+		xk->LinkData(&qp_data);
+		xi->LinkData(&qp_data);
+		dx->LinkData(&qp_data);
+		xp->LinkData(&qp_data);
+		x0->LinkData(&qp_data);
 
-		rk->LinkData(*DenseData);
-		ri->LinkData(*DenseData);
+		rk->LinkData(&qp_data);
+		ri->LinkData(&qp_data);
 
-		linear_solver->LinkData(*DenseData);
+		linear_solver->LinkData(&qp_data);
+
+		// compute the constraint margin for the initial guess
+		x0->InitConstraintMargin();
 
 		// initialization
 		xk->Copy(*x0);
@@ -82,6 +86,9 @@ namespace fbstab {
 				output.residual = Ek;
 				output.newton_iters = newton_iters;
 				output.prox_iters = prox_iters;
+
+				x0->copy(*xk);
+				
 				return output;
 			}
 
