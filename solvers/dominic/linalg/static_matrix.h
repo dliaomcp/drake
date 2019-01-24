@@ -74,7 +74,7 @@ public:
 
 	// Slicing and mapping *************************************
 	// used to map a StaticMatrix on top of existing memory
-	void map(double* mem, int nrows_, int ncols_);
+	void map(double* mem, int nrows_, int ncols_ = 1);
 	// reshape
 	void reshape(int nrows_, int ncols_);
 	// return a reshaped alias

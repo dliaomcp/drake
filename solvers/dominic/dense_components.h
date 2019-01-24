@@ -7,14 +7,14 @@
 
 namespace drake {
 namespace solvers {
-namespace fbstab {
+namespace dominic {
 
 
 // stores the size of the qp
 struct QPsize {
 	int n; // primal dimension
 	int q; // number of inequalities
-}
+};
 
 // stores the problem data
 class DenseData{
@@ -23,9 +23,8 @@ class DenseData{
 	StaticMatrix H,f,A,b;
 	int n,q;
 	// methods *************************************
-	DenseData(double *H,double *f, double *A,double *b,
-		struct QPSize size);
-}
+	DenseData(double *H,double *f, double *A,double *b, QPsize size);
+};
 
 // stores primal-dual variables
 class DenseVariable{
@@ -60,7 +59,7 @@ class DenseVariable{
 	bool y_initialized = false;
 	bool memory_allocated = false;
 
-}
+};
 
 // stores and computes residuals
 class DenseResidual{
@@ -97,7 +96,7 @@ class DenseResidual{
  	static double max(double a, double b);
  	static double min(double a, double b);
 
-}
+};
 
 // methods for solving linear systems + extra memory if needed
 class DenseLinearSolver{
@@ -133,7 +132,7 @@ class DenseLinearSolver{
  	// computes the pfb gradient at (a,b)
  	static Point2D PFBgrad(double a, double b, double sigma);
 
-}
+};
 
 
 
