@@ -48,7 +48,7 @@ DenseVariable::DenseVariable(QPsize size){
 }
 
 DenseVariable::DenseVariable(QPsize size, double *z_mem, 
-	double *v_mem, double y_mem){
+	double *v_mem, double *y_mem){
 	n = size.n;
 	q = size.q;
 
@@ -67,8 +67,8 @@ DenseVariable::~DenseVariable(){
 	}
 }
 
-void DenseVariable::LinkData(DenseData *data){
-	this->data = data;
+void DenseVariable::LinkData(DenseData *data_){
+	this->data = data_;
 }
 
 void DenseVariable::Fill(double a){
@@ -78,7 +78,7 @@ void DenseVariable::Fill(double a){
 	if(data != nullptr){
 		// y = b - A*z
 		y.copy(data->b);
-		if(a~= 0.0){
+		if(a != 0.0){
 			y.gemv(data->A,z,-1.0,1.0);
 		}
 
@@ -99,9 +99,9 @@ void DenseVariable::InitConstraintMargin(){
 void DenseVariable::axpy(const DenseVariable &x, double a){
 	z.axpy(x.z,a);
 	v.axpy(x.v,a);
+
 	// y <- y + a*(x.y - b)
 	y.axpy(x.y,a);
-
 	if(data != nullptr)
 		y.axpy(data->b,-a);
 	else
@@ -119,105 +119,114 @@ void DenseVariable::ProjectDuals(){
 	v.clip(0.0,1e15);
 }
 
+std::ostream &operator<<(std::ostream& output, const DenseVariable &x){
+	std::cout << "Printing DenseVariable\n"; 
+
+	std::cout << "z = [\n" << x.z << "]" << std::endl;
+	std::cout << "v = [\n" << x.v << "]" << std::endl;
+
+	return output;
+}
+
 // // DenseResidual *************************************
 
 // // TODO: throw an error if anything is done before
 // // linking a data object?
-// DenseResidual::DenseResidual(QPsize size){
-// 	n = size.n;
-// 	q = size.q;
+DenseResidual::DenseResidual(QPsize size){
+	n = size.n;
+	q = size.q;
 
-// 	// allocate memory
-// 	double *r1 = new double[n];
-// 	double *r2 = new double[q];
+	// allocate memory
+	double *r1 = new double[n];
+	double *r2 = new double[q];
 
-// 	rz = StaticMatrix(r1,n);
-// 	rv = StaticMatrix(r2,q);
-// }
+	rz = StaticMatrix(r1,n);
+	rv = StaticMatrix(r2,q);
+}
 
-// DenseResidual::~DenseResidual(){
-// 	delete[] rz.data;
-// 	delete[] rv.data;
-// }
+DenseResidual::~DenseResidual(){
+	delete[] rz.data;
+	delete[] rv.data;
+}
 
-// void DenseResidual::LinkData(DenseData *data){
-// 	this->data = data;
-// }
+void DenseResidual::LinkData(DenseData *data){
+	this->data = data;
+}
 
-// void DenseResidual::Negate(){
-// 	rz *= -1.0;
-// 	rv *= -1.0;
-// }
+void DenseResidual::Negate(){
+	rz *= -1.0;
+	rv *= -1.0;
+}
 
-// void DenseResidual::NaturalResidual(const DenseVariable& x){
-// 	// rz = H*z + f + A'*v
-// 	rz.fill(0.0);
-// 	rz += data->f;
-// 	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
-// 	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
+void DenseResidual::NaturalResidual(const DenseVariable& x){
+	// rz = H*z + f + A'*v
+	rz.fill(0.0);
+	rz += data->f;
+	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
+	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
 
-// 	// rv = min(y,v)
-// 	for(int i = 0;i<q;i++){
-// 		rv(i) = StaticMatrix::min(x.y(i),x.v(i));
-// 	}
-// }
+	// rv = min(y,v)
+	for(int i = 0;i<q;i++){
+		rv(i) = StaticMatrix::min(x.y(i),x.v(i));
+	}
+}
 
-// void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
-// 	// rz = H*z + f + A'*v
-// 	rz.fill(0.0);
-// 	rz += data->f;
-// 	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
-// 	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
+void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
+	// rz = H*z + f + A'*v
+	rz.fill(0.0);
+	rz += data->f;
+	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
+	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
 
-// 	// rv = min(y,v)
-// 	for(int i = 0;i<q;i++){
-// 		rv(i) = StaticMatrix::min(x.y(i),x.v(i));
-// 		rv(i) = alpha*rv(i) + 
-// 			(1.0-alpha)*max(0.0,x.y(i))*max(0.0,x.v(i));
-// 	}
+	// rv = min(y,v)
+	for(int i = 0;i<q;i++){
+		rv(i) = StaticMatrix::min(x.y(i),x.v(i));
+		rv(i) = alpha*rv(i) + 
+			(1.0-alpha)*max(0.0,x.y(i))*max(0.0,x.v(i));
+	}
 
-// }
+}
 
-// void DenseResidual::FBresidual(const DenseVariable& x, 
-// 		const DenseVariable& xbar, double sigma){
+void DenseResidual::FBresidual(const DenseVariable& x, 
+		const DenseVariable& xbar, double sigma){
 
-// 	// rz = Hz + f + A'v + sigma(z - zbar)
-// 	rz.fill(0.0);
-// 	rz += data->f;
-// 	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
-// 	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
-// 	rz.axpy(x.z,sigma);
-// 	rz.axpy(xbar.z,-sigma);
+	// rz = Hz + f + A'v + sigma(z - zbar)
+	rz.fill(0.0);
+	rz += data->f;
+	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
+	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
+	rz.axpy(x.z,sigma);
+	rz.axpy(xbar.z,-sigma);
 
-// 	// rv = phi(ys,v), ys = y + sigma(x.v - xbar.v)
-// 	for(int i = 0;i<q;i++){
-// 		double ys = x.y(i) + sigma*(x.v(i) - xbar.v(i));
-// 		rv(i) = pfb(ys,x.v(i));
-// 	}
+	// rv = phi(ys,v), ys = y + sigma(x.v - xbar.v)
+	for(int i = 0;i<q;i++){
+		double ys = x.y(i) + sigma*(x.v(i) - xbar.v(i));
+		rv(i) = pfb(ys,x.v(i));
+	}
 
-// }
+}
 
-// double DenseResidual::Norm(){
-// 	return rz.norm() + rv.norm();
-// }
+double DenseResidual::Norm(){
+	return rz.norm() + rv.norm();
+}
 
-// double DenseResidual::Merit(){
-// 	double temp = this->Norm();
-// 	return 0.5*temp*temp;
-// }
+double DenseResidual::Merit(){
+	double temp = this->Norm();
+	return 0.5*temp*temp;
+}
 
-// double DenseResidual::max(double a, double b){
-// 	return a>b ? a : b;
-// }
+double DenseResidual::max(double a, double b){
+	return a>b ? a : b;
+}
 
-// double DenseResidual::min(double a, double b){
-// 	return a<b ? a : b;
-// }
+double DenseResidual::min(double a, double b){
+	return a<b ? a : b;
+}
 
-// double DenseResidual::pfb(double a, double b, double alpha){
-// 	double fb = a + b - sqrt(a*a + b*b);
-// 	return alpha * fb + (1.0-alpha)* max(0,a)*max(0,b);
-// }
+double DenseResidual::pfb(double a, double b, double alpha){
+	double fb = a + b - sqrt(a*a + b*b);
+	return alpha * fb + (1.0-alpha)* max(0,a)*max(0,b);
+}
 
 // // DenseLinearSolver *************************************
 
