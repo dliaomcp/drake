@@ -27,6 +27,14 @@ drake_cc_binary(
 	deps = [":static_matrix"],
 )
 
+drake_cc_binary(
+    name = "dense_component_build_test",
+    srcs = ["test/dense_component_build_test.cc",
+            "dense_components.h",
+            "dense_components.cc"],
+    deps = [":static_matrix"],
+)
+
 # Unit tests *************************************
 drake_cc_googletest(
 	name = "static_matrix_test",
