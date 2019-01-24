@@ -34,13 +34,12 @@ class DenseVariable{
 	StaticMatrix y; // ieq margin
 
 	DenseVariable(QPsize size);
-	// 
 	DenseVariable(QPsize size, double *z_mem, 
 		double *v_mem, double *y_mem);
 	~DenseVariable();
 
 	// links in a DenseData object
-	void LinkData(DenseData *data);
+	void LinkData(DenseData *data_);
 	// y <- a*ones
 	void Fill(double a);
 	// set the y field = b - Az
@@ -52,11 +51,13 @@ class DenseVariable{
 	// projects inequality duals onto the nonnegative orthant
 	void ProjectDuals();
 
+	friend std::ostream &operator<<(std::ostream& output, const DenseVariable &x);
+
 
  private:
 	int n,q; // sizes
 	DenseData *data = nullptr; // link to the problem data
-	bool y_initialized = false;
+	// bool y_initialized = false;
 	bool memory_allocated = false;
 
 };

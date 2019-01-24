@@ -5,8 +5,6 @@
 #include "drake/solvers/dominic/linalg/static_matrix.h"
 
 
-
-
 using namespace drake::solvers::dominic;
 using namespace std;
 int main(){
@@ -32,8 +30,16 @@ int main(){
 	// create some variables
 
 	DenseVariable x(size);
-	
+	x.LinkData(&data);
+	x.Fill(0);
+	x.InitConstraintMargin();
+	cout << x;
 
+	DenseVariable y(size);
+	y.LinkData(&data);
+	y.Fill(-1);
+	y.ProjectDuals();
+	cout << y;
 
 	return 0;
 }

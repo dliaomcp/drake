@@ -20,6 +20,15 @@ drake_cc_library(
 	hdrs = ["linalg/static_matrix.h"],
 )
 
+drake_cc_library(
+    name = "dense_components",
+    srcs = ["dense_components.h",
+            "dense_components.cc"
+    ],
+    hdrs = ["dense_components.h"],
+    deps = [":static_matrix"],
+)
+
 # Build tests *************************************
 drake_cc_binary(
 	name = "static_matrix_build_test",
@@ -29,10 +38,9 @@ drake_cc_binary(
 
 drake_cc_binary(
     name = "dense_component_build_test",
-    srcs = ["test/dense_component_build_test.cc",
-            "dense_components.h",
-            "dense_components.cc"],
-    deps = [":static_matrix"],
+    srcs = ["test/dense_component_build_test.cc"],
+    deps = [":static_matrix",
+            ":dense_components"],
 )
 
 # Unit tests *************************************
@@ -40,4 +48,12 @@ drake_cc_googletest(
 	name = "static_matrix_test",
 	srcs = ["test/static_matrix_test.cc"],
 	deps = [":static_matrix"],
+)
+
+drake_cc_googletest(
+    name = "fbstab_dense_tests",
+    srcs = ["test/fbstab_dense_tests.cc"],
+    deps = [":static_matrix",
+            "dense_components"
+    ],
 )
