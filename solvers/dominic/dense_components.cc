@@ -149,8 +149,8 @@ DenseResidual::~DenseResidual(){
 	delete[] rv.data;
 }
 
-void DenseResidual::LinkData(DenseData *data){
-	this->data = data;
+void DenseResidual::LinkData(DenseData *data_){
+	this->data = data_;
 }
 
 void DenseResidual::Negate(){
@@ -184,7 +184,6 @@ void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 		rv(i) = alpha*rv(i) + 
 			(1.0-alpha)*max(0.0,x.y(i))*max(0.0,x.v(i));
 	}
-
 }
 
 void DenseResidual::FBresidual(const DenseVariable& x, 
@@ -201,13 +200,17 @@ void DenseResidual::FBresidual(const DenseVariable& x,
 	// rv = phi(ys,v), ys = y + sigma(x.v - xbar.v)
 	for(int i = 0;i<q;i++){
 		double ys = x.y(i) + sigma*(x.v(i) - xbar.v(i));
-		rv(i) = pfb(ys,x.v(i));
+		rv(i) = pfb(ys,x.v(i),alpha);
 	}
 
 }
 
 double DenseResidual::Norm(){
 	return rz.norm() + rv.norm();
+}
+
+double DenseResidual::AbsSum(){
+	return rz.asum() + rv.asum();
 }
 
 double DenseResidual::Merit(){
@@ -230,131 +233,133 @@ double DenseResidual::pfb(double a, double b, double alpha){
 
 // // DenseLinearSolver *************************************
 
-// DenseLinearSolver::DenseLinearSolver(QPsize size){
-// 	n = size.n;
-// 	q = size.q;
+DenseLinearSolver::DenseLinearSolver(QPsize size){
+	n = size.n;
+	q = size.q;
 
-// 	// fb derivatives
-// 	double *a1 = new double[q];
-// 	double *a2 = new double[q];
-// 	double *a3 = new double[q];
-// 	gamma = StaticMatrix(a1,q);
-// 	mu = StaticMatrix(a2,q);
-// 	Gamma = StaticMatrix(a3,q);
+	// fb derivatives
+	double *a1 = new double[q];
+	double *a2 = new double[q];
+	double *a3 = new double[q];
+	gamma = StaticMatrix(a1,q);
+	mus = StaticMatrix(a2,q);
+	Gamma = StaticMatrix(a3,q);
 
-// 	// workspace residuals
-// 	double *b1 = new double[n];
-// 	double *b2 = new double[q];
-// 	r1 = StaticMatrix(b1,n);
-// 	r2 = StaticMatrix(b2,q);
+	// workspace residuals
+	double *b1 = new double[n];
+	double *b2 = new double[q];
+	r1 = StaticMatrix(b1,n);
+	r2 = StaticMatrix(b2,q);
 
-// 	// workspace hessian
-// 	double *c = new double[n*n];
-// 	K = StaticMatrix(c,n,n);
-// }
+	// workspace hessian
+	double *c = new double[n*n];
+	K = StaticMatrix(c,n,n);
+}
 
-// DenseLinearSolver::~DenseLinearSolver(){
-// 	delete[] gamma.data;
-// 	delete[] mu.data;
-// 	delete[] Gamma.data;
+DenseLinearSolver::~DenseLinearSolver(){
+	delete[] gamma.data;
+	delete[] mus.data;
+	delete[] Gamma.data;
 
-// 	delete[] r1.data;
-// 	delete[] r2.data;
+	delete[] r1.data;
+	delete[] r2.data;
 
-// 	delete[] K.data;
-// }
+	delete[] K.data;
+}
 
-// void DenseLinearSolver::LinkData(const DenseData *data){
-// 	this->data = data;
-// }
+void DenseLinearSolver::LinkData(DenseData *data_){
+	this->data = data_;
+}
 
-// bool DenseLinearSolver::Factor(const DenseVariable &x, double sigma){
+bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar, double sigma){
 
-// 	// compute K = H + sigma I + A'*Gamma A
-// 	K.copy(data->H);
-// 	for(int i = 0;i<K.rows();i++){
-// 		K(i,i) += sigma;
-// 	}
+	// compute K = H + sigma I + A'*Gamma A
+	K.copy(data->H);
+	for(int i = 0;i<K.rows();i++){
+		K(i,i) += sigma;
+	}
 
-// 	// K <- K + A'*diag(Gamma(x))*A
-// 	Point2D tmp;
-// 	for(int i = 0;i<q;i++){
-// 		tmp = PFBgrad(x.y(i),x.v(i),sigma);
-// 		gamma(i) = tmp.x;
-// 		mus(i) = tmp.y + sigma*tmp.x;
-// 		Gamma(i) = gamma(i)/mus(i);
-// 	}
-// 	K.gram(data->A,Gamma);
+	// K <- K + A'*diag(Gamma(x))*A
+	Point2D tmp;
+	for(int i = 0;i<q;i++){
+		double ys = x.y(i) + sigma*(x.v(i) - xbar.v(i));
+		tmp = this->PFBgrad(ys,x.v(i),sigma);
 
-// 	// K = LL' in place
-// 	int chol_flag = K.llt();
+		gamma(i) = tmp.x;
+		mus(i) = tmp.y + sigma*tmp.x;
+		Gamma(i) = gamma(i)/mus(i);
+	}
+	K.gram(data->A,Gamma);
 
-// 	if(chol_flag == 0)
-// 		return true;
-// 	else
-// 		return false;
-// }
+	// K = LL' in place
+	int chol_flag = K.llt();
 
-// bool DenseLinearSolver::Solve(const DenseResidual &r, double sigma, DenseVariable *x){
-// 	// solve the system
-// 	// K z = rz - A'*diag(1/mus)*rv
-// 	// diag(mus) v = rv + diag(gamma)*A*z
+	if(chol_flag == 0)
+		return true;
+	else
+		return false;
+}
 
-// 	for(int i = 0;i<r1.rows();i++){
-// 		mus(i) = 1.0/mus(i);
-// 	}
+bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
+	// solve the system
+	// K z = rz - A'*diag(1/mus)*rv
+	// diag(mus) v = rv + diag(gamma)*A*z
 
-// 	r1.copy(r.rz);
-// 	r2.copy(r.rv);
-// 	// r2 = rv./mus
-// 	r2.RowScale(mus);
-// 	// r1 = -1.0*A'*r2 + 1.0*r1
-// 	r1.gemv(data->A,r2,-1.0,1.0,true); 
+	for(int i = 0;i<r1.rows();i++){
+		mus(i) = 1.0/mus(i);
+	}
 
-// 	// solve K z = r1
-// 	r1.CholSolve(K);
-// 	(x->z).copy(r1);
+	r1.copy(r.rz);
+	r2.copy(r.rv);
+	// r2 = rv./mus
+	r2.RowScale(mus);
+	// r1 = -1.0*A'*r2 + 1.0*r1
+	r1.gemv(data->A,r2,-1.0,1.0,true); 
 
-// 	// r2 = rv + diag(gamma)*A*z
-// 	r2.gemv(data->A,x->z,1.0);
-// 	r2.RowScale(gamma);
-// 	r2.axpy(r.rv,1.0);
+	// solve K z = r1
+	r1.CholSolve(K);
+	(x->z).copy(r1);
 
-// 	// v = diag(1/mus)*r2
-// 	r2.RowScale(mus);
-// 	(x->v).copy(r2);
+	// r2 = rv + diag(gamma)*A*z
+	r2.gemv(data->A,x->z,1.0);
+	r2.RowScale(gamma);
+	r2.axpy(r.rv,1.0);
 
-// 	// y = b - Az + sigma v
-// 	r2.copy(data->b);
-// 	r2.gemv(data->A,x->z,-1.0);
-// 	r2.axpy(x->v,sigma);
+	// v = diag(1/mus)*r2
+	r2.RowScale(mus);
+	(x->v).copy(r2);
 
-// 	return true;
-// }
+	// y = b - Az
+	(x->y).copy(data->b);
+	(x->y).gemv(data->A,x->z,-1.0,1.0);
+
+	return true;
+}
 
 
-// Point2D DenseLinearSolver::PFBgrad(double a, double b, double sigma){
-// 	double mu = 0;
-// 	double gamma = 0;
-// 	double r = sqrt(a*a + b*b);
-// 	double d = sqrt(2.0);
+DenseLinearSolver::Point2D DenseLinearSolver::PFBgrad(double a,
+ double b, double sigma){
+	double y = 0;
+	double x = 0;
+	double r = sqrt(a*a + b*b);
+	double d = 1.0/sqrt(2.0);
 
-// 	if(r < zero_tol){
-// 		gamma = alpha*(1.0-d);
-// 		mu = alpha*(1.0-d);
+	if(r < zero_tol){
+		x = alpha*(1.0-d);
+		y = alpha*(1.0-d);
 
-// 	} else if((a > 0) && (b > 0)){
-// 		gamma = alpha * (1.0- a/r) + (1.0-alpha) * b;
-// 		mu = alpha * (1.0- b/r) + (1.0-alpha) * a;
+	} else if((a > 0) && (b > 0)){
+		x = alpha * (1.0- a/r) + (1.0-alpha) * b;
+		y = alpha * (1.0- b/r) + (1.0-alpha) * a;
 
-// 	} else {
-// 		gamma = alpha * (1.0 - a/r);
-// 		mu = alpha * (1.0 - b/r);
-// 	}
+	} else {
+		x = alpha * (1.0 - a/r);
+		y = alpha * (1.0 - b/r);
+	}
 
-// 	Point2D out = {gamma, mu};
-// 	return out;
-// }
+	Point2D out = {x, y};
+	return out;
+}
 
 
 }  // namespace fbstab

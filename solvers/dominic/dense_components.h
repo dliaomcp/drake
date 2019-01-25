@@ -86,9 +86,10 @@ class DenseResidual{
 	// compute the penalized natural residuala t x
 	void PenalizedNaturalResidual(const DenseVariable& x);
 
-	// compute the norm and merit function
-	double Norm();
-	double Merit();
+	// norms and merit functions
+	double Norm(); // 2 norm
+	double Merit(); // 2 norm squared
+	double AbsSum(); // 1 norm
 	
 
  private:
@@ -96,42 +97,42 @@ class DenseResidual{
  	static double pfb(double a, double b, double alpha);
  	static double max(double a, double b);
  	static double min(double a, double b);
+ 	int n,q;
 
 };
 
 // methods for solving linear systems + extra memory if needed
 class DenseLinearSolver{
  public:
+ 	struct Point2D {double x; double y;};
 
  	DenseLinearSolver(QPsize size);
  	~DenseLinearSolver();
 
- 	void LinkData(const DenseData *data);
-	bool Factor(const DenseVariable& x, double sigma);
-	bool Solve(const DenseResidual &r, double sigma, DenseVariable *x);
+ 	void LinkData(DenseData *data);
+	bool Factor(const DenseVariable &x, const DenseVariable &xbar, double sigma);
+	bool Solve(const DenseResidual &r, DenseVariable *x);
 
 	double alpha = 0.95;
 	double zero_tol = 1e-13;
 
-	
- private:
- 	struct Point2D {double x; double y;};
+	StaticMatrix K; // memory for the augmented Hessian
 
- 	DenseData *data = nullptr;
- 	StaticMatrix K; // memory for the augmented Hessian
-
- 	StaticMatrix r1; // memory for the residuals
+	StaticMatrix r1; // memory for the residuals
  	StaticMatrix r2;
 
  	StaticMatrix Gamma; // the FB barriers/derivatives
  	StaticMatrix mus;
  	StaticMatrix gamma;
+ private:
+ 	
 
+ 	DenseData *data = nullptr;
 
  	int n,q;
 
  	// computes the pfb gradient at (a,b)
- 	static Point2D PFBgrad(double a, double b, double sigma);
+ 	Point2D PFBgrad(double a, double b, double sigma);
 
 };
 
