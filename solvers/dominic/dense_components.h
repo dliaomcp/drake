@@ -69,18 +69,17 @@ class DenseResidual{
 	StaticMatrix rv; // complimentarity residual
 
 	double alpha = 0.95; 
+	double z_norm = 0.0;
+	double v_norm = 0.0;
 	// methods *************************************
 	DenseResidual(QPsize size);
 	~DenseResidual();
-
 	void LinkData(DenseData *data);
-	// y <- -1*y
-	void Negate(); 
+	void Negate(); // y <- -1*y
 
 	// compute the penalized FB residual at (x,xbar,sigma)
 	void FBresidual(const DenseVariable& x, 
 		const DenseVariable& xbar, double sigma);
-
 	// compute the natrual residual at x
 	void NaturalResidual(const DenseVariable& x);
 	// compute the penalized natural residuala t x
@@ -90,7 +89,6 @@ class DenseResidual{
 	double Norm(); // 2 norm
 	double Merit(); // 2 norm squared
 	double AbsSum(); // 1 norm
-	
 
  private:
  	DenseData *data = nullptr; // access to the data object

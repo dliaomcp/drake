@@ -169,6 +169,9 @@ void DenseResidual::NaturalResidual(const DenseVariable& x){
 	for(int i = 0;i<q;i++){
 		rv(i) = StaticMatrix::min(x.y(i),x.v(i));
 	}
+
+	z_norm = rz.norm();
+	v_norm = rv.norm();
 }
 
 void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
@@ -184,6 +187,9 @@ void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 		rv(i) = alpha*rv(i) + 
 			(1.0-alpha)*max(0.0,x.y(i))*max(0.0,x.v(i));
 	}
+
+	z_norm = rz.norm();
+	v_norm = rv.norm();
 }
 
 void DenseResidual::FBresidual(const DenseVariable& x, 
@@ -203,6 +209,8 @@ void DenseResidual::FBresidual(const DenseVariable& x,
 		rv(i) = pfb(ys,x.v(i),alpha);
 	}
 
+	z_norm = rz.norm();
+	v_norm = rv.norm();
 }
 
 double DenseResidual::Norm(){

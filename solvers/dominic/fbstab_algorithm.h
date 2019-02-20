@@ -5,7 +5,7 @@
 
 namespace drake {
 namespace solvers {
-namespace fbstab {
+namespace dominic {
 
 // return values for the solver
 enum ExitFlag {
@@ -24,7 +24,7 @@ struct SolverOut {
 	int prox_iters;
 };
 
-// TODO: Make me a template class later
+// TODO: Make me a template class 
 // this class implements the FBstab algorithm
 class FBstabAlgorithm{
 public:
@@ -52,16 +52,28 @@ public:
 	~FBstabAlgorithm();
 
 private:
-	enum { kNonmonotoneLineseach = 5 }; 
+	enum { kNonmonotoneLineseach = 3 }; 
 	double merit_values[kNonmonotoneLineseach] = { 0.0 };
 
  	int CheckInfeasibility(const DenseVariable& dx);
 
-	void ShiftAndInsert(double* buffer, double x, int buff_size);
+ 	// shifts all elements up one, inserts x at 0
+	static void ShiftAndInsert(double *buffer, double x, int buff_size);
 
+	// returns the largest element in the vector
 	static double VectorMax(double* vec, int length);
+
+	// elementwise min and max
 	static double max(double a,double b);
 	static double min(double a,double b);
+
+	// printing
+	void IterHeader();
+	void IterLine(int prox_iters,int newton_iters,const DenseResidual &r);
+	void DetailedHeader(int prox_iters, int newton_iters, const DenseResidual &r);
+	void DetailedLine(int iter, int step_length, const DenseResidual &r);
+	void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const DenseResidual &r);
+
 
 	// problem data
 	DenseData *data = nullptr;
@@ -78,6 +90,9 @@ private:
 
 	// linear system solver object
 	DenseResidual *linear_solver;
+
+	// display settings
+	FBstabAlgorithm::Display display_level = ITER_DETAILED;
 
 	// tolerances
 	double abs_tol = 1e-6;
