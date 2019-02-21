@@ -29,6 +29,19 @@ drake_cc_library(
     deps = [":static_matrix"],
 )
 
+drake_cc_library(
+    name = "fbstab_dense",
+    srcs = ["fbstab_dense.h",
+            "fbstab_algorithm.h",
+            "fbstab_dense.cc",
+            "fbstab_algorithm.cc"
+    ],
+    hdrs = ["fbstab_dense.h",
+            "fbstab_algorithm.h"],
+    deps = [":static_matrix",
+            ":dense_components"],
+)
+
 # Build tests *************************************
 drake_cc_binary(
 	name = "static_matrix_build_test",
@@ -41,6 +54,14 @@ drake_cc_binary(
     srcs = ["test/dense_component_build_test.cc"],
     deps = [":static_matrix",
             ":dense_components"],
+)
+
+drake_cc_binary(
+    name = "dense_fbstab_build_test",
+    srcs = ["test/dense_fbstab_build_test.cc"],
+    deps = [":static_matrix",
+            ":dense_components",
+            ":fbstab_dense"],
 )
 
 # Unit tests *************************************

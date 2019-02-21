@@ -6,7 +6,7 @@
 #define DOUBLE_ABS_TOL 1e-14
 namespace drake {
 namespace solvers {
-namespace dominic {
+namespace fbstab {
 namespace test {
 
 

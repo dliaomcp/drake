@@ -11,36 +11,36 @@ namespace solvers {
 namespace fbstab {
 
 
-FBstabDense::FBstabDense(int n, int q){
+FBstabDense::FBstabDense(int n_, int q_){
 
 	// create the component objects
-	this->n = n;
-	this->q = q;
+	this->n = n_;
+	this->q = q_;
 
 	QPsize size = {n,q};
 
-	DenseVariable x1(size);
-	DenseVariable x2(size);
-	DenseVariable x3(size);
-	DenseVariable x4(size);
+	// create the component objects
+	DenseVariable *x1 = new DenseVariable(size);
+	DenseVariable *x2 = new DenseVariable(size);
+	DenseVariable *x3 = new DenseVariable(size);
+	DenseVariable *x4 = new DenseVariable(size);
 
-	DenseResidual r1(size);
-	DenseResidual r2(size);
+	DenseResidual *r1 = new DenseResidual(size);
+	DenseResidual *r2 = new DenseResidual(size);
 
-	DenseLinearSolver linsolve(size);
+	DenseLinearSolver *linsolve = new DenseLinearSolver(size);
 
-	// create the algorithm object
-	FBstabAlgorithm algo(&x1,&x2,&x3,&x4,&r1,&r2,&linsolve);
-
+	// link these objects to the algorithm object
+	algo = new FBstabAlgorithm(x1,x2,x3,x4,r1,r2,linsolve);
 }
 
-SolverOut FBstabDense::Solve(const QPdata &qp, double *z, double *v,
+SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
 	double *y, bool use_initial_guess){
 
 	QPsize size = {n,q};
-	// create the data object
-	DenseData data(qp.H,qp.f,qp.A,qp.b);
-	// create the initial condition
+
+	DenseData data(qp.H,qp.f,qp.A,qp.b,size);
+	
 	DenseVariable x0(size,z,v,y);
 
 	if(!use_initial_guess){
@@ -50,9 +50,15 @@ SolverOut FBstabDense::Solve(const QPdata &qp, double *z, double *v,
 	}
 
 	// call the solver
-	return algo.Solve(data, &x0);
+	return algo->Solve(data, &x0);
 }
 
-}  // namespace fbstab
+FBstabDense::~FBstabDense(){
+	// delete allocated memory
+	algo->DeleteComponents();
+	delete algo;
+}
+
+}  // namespace dominic
 }  // namespace solvers
 }  // namespace drake

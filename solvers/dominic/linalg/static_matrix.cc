@@ -6,7 +6,7 @@
 
 namespace drake {
 namespace solvers {
-namespace dominic {
+namespace fbstab {
 
 // constructor
 StaticMatrix::StaticMatrix(double *mem, int nrows_, int ncols_){
