@@ -28,18 +28,19 @@ class FBstabDense {
 
  	// Solve an instance of the QP
  	// Inputs are the QP data
- 	// z is a pointer to e.g., new double[n]
- 	// v,y are pointer to e.g., new double[q]
+ 	// z = new double[n]
+ 	// v,y = new double[q]
  	// the solution is stored in z and v with y = b - Az
- 	ExitFlag Solve(const QPdata &qp, double *z, double *v, double *y, bool use_initial_guess = true);
+ 	SolverOut Solve(const QPData &qp, double *z, double *v, double *y, bool use_initial_guess = true);
 
  	// destructor
  	~FBstabDense();
 
  private:
- 	int n;
- 	int q;
-}
+ 	int n = 0;
+ 	int q = 0;
+ 	FBstabAlgorithm *algo = nullptr;
+};
 
 }  // namespace fbstab
 }  // namespace solvers

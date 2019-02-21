@@ -5,7 +5,7 @@
 #include "drake/solvers/dominic/linalg/static_matrix.h"
 
 
-using namespace drake::solvers::dominic;
+using namespace drake::solvers::fbstab;
 using namespace std;
 int main(){
 

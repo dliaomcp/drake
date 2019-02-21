@@ -7,7 +7,7 @@
 
 namespace drake {
 namespace solvers {
-namespace dominic {
+namespace fbstab {
 namespace test {
 
 GTEST_TEST(FBstabDense, DenseData) {

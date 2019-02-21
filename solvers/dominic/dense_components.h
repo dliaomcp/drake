@@ -7,7 +7,7 @@
 
 namespace drake {
 namespace solvers {
-namespace dominic {
+namespace fbstab {
 
 
 // stores the size of the qp

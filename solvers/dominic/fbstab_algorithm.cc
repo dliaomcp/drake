@@ -4,15 +4,15 @@
 #include <cstdio>
 
 #include "drake/solvers/dominic/linalg/static_matrix.h"
-#include "drake/solvers/dominic/dense_components"
+#include "drake/solvers/dominic/dense_components.h"
 
 
 namespace drake {
 namespace solvers {
-namespace dominic {
+namespace fbstab {
 
 
-	FBstabAlgorithm::FBstabAlgorithm(DenseVariable *x1,DenseVariable *x2, DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *linear_solver){
+	FBstabAlgorithm::FBstabAlgorithm(DenseVariable *x1,DenseVariable *x2, DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol){
 
 		this->xk = x1;
 		this->xi = x2;
@@ -21,7 +21,19 @@ namespace dominic {
 
 		this->rk = r1;
 		this->ri = r2;
-		this->linear_solver = linear_solver;
+		this->linear_solver = lin_sol;
+	}
+
+	void FBstabAlgorithm::DeleteComponents(){
+		delete xk;
+		delete xi;
+		delete xp;
+		delete dx;
+
+		delete rk;
+		delete ri;
+
+		delete linear_solver;
 	}
 
 	SolverOut FBstabAlgorithm::Solve(const DenseData &qp_data,DenseVariable *x0){
@@ -38,6 +50,7 @@ namespace dominic {
 		    0 // newton iters
 		};
 
+		// figure out how to pass in data properly
 		// link the data object
 		xk->LinkData(&qp_data);
 		xi->LinkData(&qp_data);
@@ -50,10 +63,8 @@ namespace dominic {
 
 		linear_solver->LinkData(&qp_data);
 
-		// compute the constraint margin for the initial guess
-		x0->InitConstraintMargin();
-
 		// initialization
+		x0->InitConstraintMargin();
 		xk->Copy(*x0);
 		xi->Copy(*x0);
 		dx->Fill(1.0);
@@ -105,7 +116,7 @@ namespace dominic {
 			}
 
 			// TODO: add a divergence check
-			
+
 			rk->PenalizedNaturalResidual(*xk);
 			double Ekpen = rk->Norm();
 			double t = 1.0; // linesearch parameter

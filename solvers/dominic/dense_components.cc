@@ -6,7 +6,7 @@
 
 namespace drake {
 namespace solvers {
-namespace dominic {
+namespace fbstab {
 
 
 // DenseData *************************************

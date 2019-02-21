@@ -1,11 +1,11 @@
-#include "drake/solvers/dominic/dense_components.h"
+#include "drake/solvers/dominic/fbstab_dense.h"
 
 #include <cmath>
 
 #include "drake/solvers/dominic/linalg/static_matrix.h"
 
 
-using namespace drake::solvers::dominic;
+using namespace drake::solvers::fbstab;
 using namespace std;
 int main(){
 
@@ -18,28 +18,13 @@ int main(){
 	int n = 2;
 	int q = 2;
 
-	QPsize size = {n,q};
-	// create data object
-	DenseData data(H,f,A,b,size);
+	FBstabDense solver(n,q);
 
-	cout << data.H << endl;
-	cout << data.f << endl;
-	cout << data.A << endl; 
-	cout << data.b << endl;
-
-	// create some variables
-
-	DenseVariable x(size);
-	x.LinkData(&data);
-	x.Fill(0);
-	x.InitConstraintMargin();
-	cout << x;
-
-	DenseVariable y(size);
-	y.LinkData(&data);
-	y.Fill(-1);
-	y.ProjectDuals();
-	cout << y;
+	QPData data;
+	data.H = H;
+	data.f = f;
+	data.A = A;
+	data.b = b;
 
 	return 0;
 }
