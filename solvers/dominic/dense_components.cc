@@ -119,6 +119,9 @@ void DenseVariable::ProjectDuals(){
 	v.clip(0.0,1e15);
 }
 
+double DenseVariable::Norm(){
+	return z.norm() + v.norm();
+}
 std::ostream &operator<<(std::ostream& output, const DenseVariable &x){
 	std::cout << "Printing DenseVariable\n"; 
 
@@ -213,7 +216,7 @@ void DenseResidual::FBresidual(const DenseVariable& x,
 	v_norm = rv.norm();
 }
 
-double DenseResidual::Norm(){
+double DenseResidual::Norm() const{
 	return rz.norm() + rv.norm();
 }
 

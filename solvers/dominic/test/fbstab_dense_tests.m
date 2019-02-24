@@ -1,7 +1,7 @@
 % @Author: Dominic Liao-McPherson
 % @Date:   2019-01-24 14:38:19
 % @Last Modified by:   Dominic Liao-McPherson
-% @Last Modified time: 2019-01-24 14:59:37
+% @Last Modified time: 2019-02-21 21:23:48
 
 clear all
 close all
@@ -14,7 +14,10 @@ f = [1;6];
 A = [-1,0;0,1];
 b = [0;-1];
 
-zopt = quadprog(H,f,A,b)
+f = [10,5];
+
+[zopt,~,~,~,lam] = quadprog(H,f,A,b)
+lam.ineqlin
 
 %% margins
 x.z = ones(2,1);

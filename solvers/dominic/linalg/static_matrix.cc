@@ -448,7 +448,7 @@ void StaticMatrix::gemm(const StaticMatrix &A, const StaticMatrix &B, double a, 
 
 // Norms *************************************
 // 2 norm of a vector or Frobenius norm of a matrix
-double StaticMatrix::norm(){
+double StaticMatrix::norm() const{
 	StaticMatrix A(*this);
 
 	double a = 0;

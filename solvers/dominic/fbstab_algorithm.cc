@@ -36,7 +36,8 @@ namespace fbstab {
 		delete linear_solver;
 	}
 
-	SolverOut FBstabAlgorithm::Solve(const DenseData &qp_data,DenseVariable *x0){
+
+	SolverOut FBstabAlgorithm::Solve(DenseData *qp_data,DenseVariable *x0){
 		// harmonize the alpha value
 		rk->alpha = alpha;
 		ri->alpha = alpha;
@@ -50,18 +51,18 @@ namespace fbstab {
 		    0 // newton iters
 		};
 
-		// figure out how to pass in data properly
+		// TODO figure out how to pass in data properly
 		// link the data object
-		xk->LinkData(&qp_data);
-		xi->LinkData(&qp_data);
-		dx->LinkData(&qp_data);
-		xp->LinkData(&qp_data);
-		x0->LinkData(&qp_data);
+		xk->LinkData(qp_data);
+		xi->LinkData(qp_data);
+		dx->LinkData(qp_data);
+		xp->LinkData(qp_data);
+		x0->LinkData(qp_data);
 
-		rk->LinkData(&qp_data);
-		ri->LinkData(&qp_data);
+		rk->LinkData(qp_data);
+		ri->LinkData(qp_data);
 
-		linear_solver->LinkData(&qp_data);
+		linear_solver->LinkData(qp_data);
 
 		// initialization
 		x0->InitConstraintMargin();
@@ -93,11 +94,9 @@ namespace fbstab {
 			rk->NaturalResidual(*xk);
 			Ek = rk->Norm();
 
-			if(display_level == ITER_DETAILED){
-				DetailedHeader(prox_iters,newton_iters,*rk);
-			} else if(display_level == ITER){
-				IterLine(prox_iters,newton_iters,*rk);
-			}
+			// update tolerance
+			inner_tol = FBstabAlgorithm::min(inner_tol_multiplier*inner_tol,Ek);
+			inner_tol = FBstabAlgorithm::max(inner_tol,inner_tol_min);
 
 			// Solver stops if:
 			// a) the desired precision is obtained
@@ -107,7 +106,7 @@ namespace fbstab {
 				output.residual = Ek;
 				output.newton_iters = newton_iters;
 				output.prox_iters = prox_iters;
-				x0->copy(*xk);
+				x0->Copy(*xk);
 
 				if(display_level >= FINAL){
 					PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
@@ -115,11 +114,18 @@ namespace fbstab {
 				return output;
 			}
 
+			if(display_level == ITER_DETAILED){
+				DetailedHeader(prox_iters,newton_iters,*rk);
+			} else if(display_level == ITER){
+				IterLine(prox_iters,newton_iters,*rk);
+			}
+
 			// TODO: add a divergence check
 
 			rk->PenalizedNaturalResidual(*xk);
 			double Ekpen = rk->Norm();
 			double t = 1.0; // linesearch parameter
+			ClearBuffer(merit_values,kNonmonotoneLinesearch);
 			// inner loop *************************************
 			for(int i = 0;i<max_inner_iters;i++){
 				// compute residuals
@@ -129,51 +135,55 @@ namespace fbstab {
 				rk->PenalizedNaturalResidual(*xi);
 				double Eo = rk->Norm();
 
-				if(display_level == ITER_DETAILED){
-					DetailedLine(i,t,*ri);
-				}
 				// The inner loop stops if:
 				// a) The subproblem is solved to the prescribed 
 				// tolerance and the outer residual is reduced
 				// b) The outer residual cannot be decreased 
 				// (happens if problem is infeasible)
 				if((Ei <= inner_tol && Eo < Ekpen) || (Ei <= inner_tol_min)){
+					if(display_level == ITER_DETAILED){
+						DetailedFooter(inner_tol,*ri);
+					}
 					break;
+				}
+
+				if(display_level == ITER_DETAILED){
+					DetailedLine(i,t,*ri);
 				}
 
 				if(newton_iters >= max_newton_iters){
 					output.eflag = MAXITERATIONS;
 					if(Eo < Ekpen){
-						x0->copy(*xi);
+						x0->Copy(*xi);
 						output.residual = Eo;
 					} else{
-						x0->copy(*xk);
+						x0->Copy(*xk);
 						output.residual = Ekpen;
 						rk->PenalizedNaturalResidual(*xk);
 					}
 					output.newton_iters = newton_iters;
 					output.prox_iters = prox_iters;
 					if(display_level >= FINAL){
-						PrintFinal(prox_iters,newton_iters,output.eflag,rk);
+						PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 					}
 					return output;
 				}
 
 				// evaluate and factor the iteration matrix K at xi
-				linear_solver->Factor(*xi,sigma);
+				linear_solver->Factor(*xi,*xk,sigma);
 
 				// solve for the Newton step, i.e., dx = K\ri
 				ri->Negate(); 
-				bool solve_flag = linear_solver->Solve(*ri,dx);
+				linear_solver->Solve(*ri,dx);
 				newton_iters++;
 				// TODO: solver error handling
 
 				// linesearch *************************************
-				double m0 = VectorMax(merit_values,
-					kNonmonotoneLinesearch);
-
 				double mcurr = ri->Merit();
 				ShiftAndInsert(merit_values, mcurr, 
+					kNonmonotoneLinesearch);
+
+				double m0 = VectorMax(merit_values,
 					kNonmonotoneLinesearch);
 
 				t = 1.0;
@@ -194,14 +204,14 @@ namespace fbstab {
 				} // linesearch *************************************
 				xi->axpy(*dx,t); // xi <- xi + t*dx
 
-			} // pfb loop *************************************
+			} // inner loop *************************************
 
 			// make duals non-negative
 			xi->ProjectDuals();
 
 			// compute dx <- x(k+1) - x(k) = x(i) - x(k)
 			dx->Copy(*xi);
-			dx->axpy(xk,-1.0);
+			dx->axpy(*xk,-1.0);
 
 			// x(k+1) = x(i)
 			xk->Copy(*xi);
@@ -220,9 +230,9 @@ namespace fbstab {
 		output.residual = Ek;
 		output.newton_iters = newton_iters;
 		output.prox_iters = prox_iters;
-		x0->copy(*xk);
+		x0->Copy(*xk);
 		if(display_level >= FINAL){
-			PrintFinal(prox_iters,newton_iters,output.eflag,rk);
+			PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 		}
 
 		return output;
@@ -250,6 +260,12 @@ namespace fbstab {
 		return current_max;
 	}
 
+	void FBstabAlgorithm::ClearBuffer(double *buffer, int buff_size){
+		for(int i = 0;i< buff_size;i++){
+			buffer[i] = 0.0;
+		}
+	}
+
 	double FBstabAlgorithm::max(double a,double b){
 		return a>b ? a : b;
 	}
@@ -260,7 +276,7 @@ namespace fbstab {
 
 	// printing 
 	void FBstabAlgorithm::PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const DenseResidual &r){
-		printf("Optimization completed\n Exit code:")
+		printf("Optimization completed\n Exit code:");
 		switch(eflag){
 			case SUCCESS:
 				printf(" Success\n");
@@ -283,26 +299,31 @@ namespace fbstab {
 
 		printf("Proximal iterations: %d out of %d\n", prox_iters, max_prox_iters);
 		printf("Newton iterations: %d out of %d\n", newton_iters,max_newton_iters);
-		printf("%10s  %10s  %10s","|rz|","|rv|","Tolerance")
+		printf("%10s  %10s  %10s\n","|rz|","|rv|","Tolerance");
 		printf("%10.4e  %10.4e  %10.4e\n",r.z_norm,r.v_norm,abs_tol);
 	}
 
 	void FBstabAlgorithm::IterHeader(){
-		printf("%12s  %12s  %12s  %12s\n","prox iter","newton iter","|rz|","rv");
+		printf("%12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","rv");
 	}
 
 	void FBstabAlgorithm::IterLine(int prox_iters, int newton_iters, const DenseResidual &r){
-		printf("%12d  %12d  %12.4e  %12.4e",prox_iters,newton_iters,r.z_norm,r.v_norm);
+		printf("%12d  %12d  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.v_norm);
 	}
 
 	void FBstabAlgorithm::DetailedHeader(int prox_iters, int newton_iters, const DenseResidual &r){
-		printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",prox_iters,newton_iters,r.Norm());
+		double t = r.Norm();
+		printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",prox_iters,newton_iters,t);
 
 		printf("%10s  %10s  %10s  %10s\n","Iter","Step Size","|rz|","|rv|");
 	}
 
-	void FBstabAlgorithm::DetailedLine(int iter, int step_length, const DenseResidual &r){
-		printf("%10d  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.r.v_norm());
+	void FBstabAlgorithm::DetailedLine(int iter, double step_length, const DenseResidual &r){
+		printf("%10d  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.v_norm);
+	}
+
+	void FBstabAlgorithm::DetailedFooter(double tol, const DenseResidual &r){
+		printf("Exiting inner loop. Inner residual: %6.4e, Inner tolerance: %6.4e\n",r.Norm(),tol);
 	}
 
 }  // namespace fbstab
