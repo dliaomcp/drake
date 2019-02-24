@@ -40,7 +40,7 @@ SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
 	QPsize size = {n,q};
 
 	DenseData data(qp.H,qp.f,qp.A,qp.b,size);
-	
+
 	DenseVariable x0(size,z,v,y);
 
 	if(!use_initial_guess){
@@ -50,7 +50,7 @@ SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
 	}
 
 	// call the solver
-	return algo->Solve(data, &x0);
+	return algo->Solve(&data, &x0);
 }
 
 FBstabDense::~FBstabDense(){

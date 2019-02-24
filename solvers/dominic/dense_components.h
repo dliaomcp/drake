@@ -50,6 +50,7 @@ class DenseVariable{
 	void Copy(const DenseVariable &x);
 	// projects inequality duals onto the nonnegative orthant
 	void ProjectDuals();
+	double Norm();
 
 	friend std::ostream &operator<<(std::ostream& output, const DenseVariable &x);
 
@@ -86,7 +87,7 @@ class DenseResidual{
 	void PenalizedNaturalResidual(const DenseVariable& x);
 
 	// norms and merit functions
-	double Norm(); // 2 norm
+	double Norm() const; // 2 norm
 	double Merit(); // 2 norm squared
 	double AbsSum(); // 1 norm
 

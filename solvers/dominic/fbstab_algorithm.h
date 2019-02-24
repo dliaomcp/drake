@@ -42,13 +42,10 @@ public:
 		DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol);
 
 	// run the solve routine for a given problem data
-	SolverOut Solve(const DenseData &qp_data, DenseVariable *x0);
+	SolverOut Solve(DenseData *qp_data, DenseVariable *x0);
 
 	void UpdateOptions();
 	void DeleteComponents();
-
-	// destructor
-	~FBstabAlgorithm();
 
 private:
 	enum { kNonmonotoneLinesearch = 3 }; 
@@ -58,7 +55,7 @@ private:
 
  	// shifts all elements up one, inserts x at 0
 	static void ShiftAndInsert(double *buffer, double x, int buff_size);
-
+	static void ClearBuffer(double *buffer, int buff_size);
 	// returns the largest element in the vector
 	static double VectorMax(double* vec, int length);
 
@@ -70,7 +67,8 @@ private:
 	void IterHeader();
 	void IterLine(int prox_iters,int newton_iters,const DenseResidual &r);
 	void DetailedHeader(int prox_iters, int newton_iters, const DenseResidual &r);
-	void DetailedLine(int iter, int step_length, const DenseResidual &r);
+	void DetailedLine(int iter, double step_length, const DenseResidual &r);
+	void DetailedFooter(double tol, const DenseResidual &r);
 	void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const DenseResidual &r);
 	
 	// problem data

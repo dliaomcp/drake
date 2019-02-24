@@ -107,7 +107,7 @@ public:
 
 
 	// norms *************************************
-	double norm(); // 2 norm of a vector or F norm of a matrix
+	double norm() const; // 2 norm of a vector or F norm of a matrix
 	double asum(); // 1 norm
 
 	// Factorizations *************************************
