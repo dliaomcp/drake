@@ -218,7 +218,21 @@ namespace fbstab {
 
 			// check for infeasibility
 			if(check_infeasibility){
-
+				InfeasibilityStatus status = CheckInfeasibility(*dx);
+				if(status != FEASIBLE){
+					if(status == INFEASIBLE){
+						output.eflag = PRIMAL_INFEASIBLE;
+					} else if (status == UNBOUNDED_BELOW){
+						output.eflag = UNBOUNDED_BELOW;
+					}
+					output.residual = Ek;
+					output.newton_iters = newton_iters;
+					output.prox_iters = prox_iters;
+					x0->Copy(*xk);
+					if(display_level >= FINAL){
+						PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
+					}
+				}
 			}
 
 			// increment counter
@@ -238,7 +252,71 @@ namespace fbstab {
 		return output;
 	}
 
+	InfeasibilityStatus FBstabAlgorithm::CheckInfeasibility(const DenseVariable& dx){
+
+		s
+
+
+	}
+
+	void FBstabAlgorithm::UpdateOption(const char* option, double value){
+		if(strcmp(option,"abs_tol")){
+			abs_tol = max(value,1e-14);
+		} else if(strcmp(option,"rel_tol")){
+			rel_tol = max(value,0.0);
+		} else if(strcmp(option,"stall_tol")){
+			stall_tol = max(value,1e-14);
+		} else if(strcmp(option,"infeas_tol")){
+			infeas_tol = max(value,1e-14);
+		} else if(strcmp(option,"sigma0")){
+			sigma0 = max(value,1e-14);
+		} else if(strcmp(option,"alpha")){
+			alpha = max(value,0.001);
+			alpha = min(alpha,0.999);
+		} else if(strcmp(option,"beta")){
+			beta = max(value,0.1);
+			beta = min(beta,0.99);
+		} else if(strcmp(option,"eta")){
+			eta = max(value,1e-12);
+			eta = min(eta,0.499);
+		} else if(strcmp(option,"inner_tol_multiplier")){
+			inner_tol_multiplier = max(value,0.0001);
+			inner_tol_multiplier = min(inner_tol_multiplier,0.99);
+		} else if(strcmp(option,"inner_tol_max")){
+			inner_tol_max = max(value,1e-8);
+			inner_tol_max = min(inner_tol_max,100.0);
+		} else if(strcmp(option,"inner_tol_min")){
+			inner_tol_min = max(value,1e-14);
+			inner_tol_min = min(inner_tol_min,1e-2);
+		} else{
+			printf("%s is not an option, no action taken\n",option);
+		}
+	}
+
+	void FBstabAlgorithm::UpdateOption(const char* option, int value){
+		if(strcmp(option,"max_newton_iters")){
+			max_newton_iters = max(value,1);
+		} else if(strcmp(option,"max_prox_iters")){
+			max_prox_iters = max(value,1);
+		} else if(strcmp(option,"max_inner_iters")){
+			max_inner_iters = max(value,1);
+		} else if(strcmp(option,"max_linesearch_iters")){
+			max_linesearch_iters = max(value,1);
+		} else{
+			printf("%s is not an option, no action taken\n",option);
+		}
+	}
+
 	// static functions
+	bool FBstabAlgorithm::strcmp(const char *x, const char *y){
+		for(int i = 0;x[i] != '\0' || y[i] != '\0';i++){
+			if(x[i] != y[i]){
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	void FBstabAlgorithm::ShiftAndInsert(double *buffer, double x, int buff_size){
 
 		for(int i = 1;i<buff_size;i++){
@@ -271,6 +349,14 @@ namespace fbstab {
 	}
 
 	double FBstabAlgorithm::min(double a, double b){
+		return a<b ? a : b;
+	}
+
+	int FBstabAlgorithm::max(int a,int b){
+		return a>b ? a : b;
+	}
+
+	int FBstabAlgorithm::min(int a, int b){
 		return a<b ? a : b;
 	}
 

@@ -53,6 +53,21 @@ SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
 	return algo->Solve(&data, &x0);
 }
 
+void FBstabDense::UpdateOption(const char *option, int value){
+		algo->UpdateOption(option,value);
+}
+void FBstabDense::UpdateOption(const char *option, double value){
+	algo->UpdateOption(option,value);
+}
+
+void FBstabDense::SetDisplayLevel(FBstabAlgorithm::Display level){
+	algo->display_level = level;
+}
+
+void FBstabDense::CheckInfeasibility(bool check){
+	algo->check_infeasibility = check;
+}
+
 FBstabDense::~FBstabDense(){
 	// delete allocated memory
 	algo->DeleteComponents();

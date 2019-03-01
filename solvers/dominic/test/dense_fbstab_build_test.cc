@@ -30,12 +30,9 @@ int main(){
 	double v[] = {0,0};
 	double y[] = {0,0};
 
-	SolverOut status = solver.Solve(data,z,v,y);
-
-	cout << status.eflag << endl;
-	cout << status.residual << endl;
-	cout << status.newton_iters << endl;
-	cout << status.prox_iters << endl;
+	solver.UpdateOption("abs_tol",1e-7);
+	solver.SetDisplayLevel(FBstabAlgorithm::ITER);
+	solver.Solve(data,z,v,y);
 
 	cout << "z = ("<< z[0] << ", " << z[1] << ")\n";
 	cout << "v = ("<< v[0] << ", " << v[1] << ")\n";
