@@ -28,7 +28,8 @@ struct SolverOut {
 // this class implements the FBstab algorithm
 class FBstabAlgorithm{
 public:
-	
+	bool check_infeasibility = true;
+
 	// display settings
 	enum Display {
 		OFF = 0, // no display
@@ -37,6 +38,8 @@ public:
 		ITER_DETAILED = 3 // print inner loop information
 	};
 
+	FBstabAlgorithm::Display display_level = ITER_DETAILED;
+
 	// initializes the component objects needed by the solver
 	FBstabAlgorithm(DenseVariable *x1, DenseVariable *x2, 
 		DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol);
@@ -44,14 +47,21 @@ public:
 	// run the solve routine for a given problem data
 	SolverOut Solve(DenseData *qp_data, DenseVariable *x0);
 
-	void UpdateOptions();
+	void UpdateOption(const char *option, double value);
+	void UpdateOption(const char *option, int value);
 	void DeleteComponents();
 
 private:
 	enum { kNonmonotoneLinesearch = 3 }; 
 	double merit_values[kNonmonotoneLinesearch] = { 0.0 };
 
- 	int CheckInfeasibility(const DenseVariable& dx);
+	enum InfeasibilityStatus {
+		FEASIBLE = 0,
+		INFEASIBLE = 1,
+		UNBOUNDED_BELOW = 2
+	};
+
+ 	InfeasibilityStatus CheckInfeasibility(const DenseVariable& dx);
 
  	// shifts all elements up one, inserts x at 0
 	static void ShiftAndInsert(double *buffer, double x, int buff_size);
@@ -63,6 +73,9 @@ private:
 	static double max(double a,double b);
 	static double min(double a,double b);
 
+	static int max(int a,int b);
+	static int min(int a,int b);
+
 	// printing
 	void IterHeader();
 	void IterLine(int prox_iters,int newton_iters,const DenseResidual &r);
@@ -70,6 +83,8 @@ private:
 	void DetailedLine(int iter, double step_length, const DenseResidual &r);
 	void DetailedFooter(double tol, const DenseResidual &r);
 	void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const DenseResidual &r);
+
+	static bool strcmp(const char *x, const char *y);
 	
 	// problem data
 	DenseData *data = nullptr;
@@ -87,9 +102,6 @@ private:
 	// linear system solver object
 	DenseLinearSolver *linear_solver = nullptr;
 
-	// display settings
-	FBstabAlgorithm::Display display_level = ITER_DETAILED;
-
 	// tolerances
 	double abs_tol = 1e-6;
 	double rel_tol = 1e-12;
@@ -105,15 +117,13 @@ private:
 
 	// tolerance guards
 	double inner_tol_max = 1.0;
-	double inner_tol_min = 1e-13;
+	double inner_tol_min = 1e-12;
 	
 	// maximum iterations
 	int max_newton_iters = 100;
 	int max_prox_iters = 30;
 	int max_inner_iters = 50;
 	int max_linesearch_iters = 20;
-
-	bool check_infeasibility = true;
 
 };
 
