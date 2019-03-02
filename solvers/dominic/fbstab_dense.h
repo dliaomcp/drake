@@ -24,7 +24,7 @@ class FBstabDense {
  	// dynamically initializes component classes 
  	// n: number of decision variables
  	// q: number of constraints
- 	FBstabDense(int n,int q);
+ 	FBstabDense(int n, int q);
 
  	// Solve an instance of the QP
  	// Inputs are the QP data

@@ -29,9 +29,10 @@ FBstabDense::FBstabDense(int n_, int q_){
 	DenseResidual *r2 = new DenseResidual(size);
 
 	DenseLinearSolver *linsolve = new DenseLinearSolver(size);
+	DenseFeasibilityCheck *fcheck = new DenseFeasibilityCheck(size);
 
 	// link these objects to the algorithm object
-	algo = new FBstabAlgorithm(x1,x2,x3,x4,r1,r2,linsolve);
+	algo = new FBstabAlgorithm(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
 }
 
 SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
@@ -54,7 +55,7 @@ SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
 }
 
 void FBstabDense::UpdateOption(const char *option, int value){
-		algo->UpdateOption(option,value);
+	algo->UpdateOption(option,value);
 }
 void FBstabDense::UpdateOption(const char *option, double value){
 	algo->UpdateOption(option,value);

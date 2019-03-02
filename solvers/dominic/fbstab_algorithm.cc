@@ -12,7 +12,7 @@ namespace solvers {
 namespace fbstab {
 
 
-	FBstabAlgorithm::FBstabAlgorithm(DenseVariable *x1,DenseVariable *x2, DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol){
+	FBstabAlgorithm::FBstabAlgorithm(DenseVariable *x1,DenseVariable *x2, DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol, DenseFeasibilityCheck *fcheck){
 
 		this->xk = x1;
 		this->xi = x2;
@@ -22,6 +22,7 @@ namespace fbstab {
 		this->rk = r1;
 		this->ri = r2;
 		this->linear_solver = lin_sol;
+		this->feas = fcheck;
 	}
 
 	void FBstabAlgorithm::DeleteComponents(){
@@ -34,6 +35,7 @@ namespace fbstab {
 		delete ri;
 
 		delete linear_solver;
+		delete feas;
 	}
 
 
@@ -73,8 +75,9 @@ namespace fbstab {
 		// regularization parameter is fixed for now
 		double sigma = sigma0;
 
-		// initialize outer loop residual
+		// initialize residuals
 		rk->NaturalResidual(*xk);
+		ri->Fill(0.0);
 		double E0 = rk->Norm();
 		double Ek = E0;
 		// tolerances
@@ -117,11 +120,11 @@ namespace fbstab {
 			if(display_level == ITER_DETAILED){
 				DetailedHeader(prox_iters,newton_iters,*rk);
 			} else if(display_level == ITER){
-				IterLine(prox_iters,newton_iters,*rk);
+				IterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
 			}
 
 			// TODO: add a divergence check
-
+			xi->Copy(*xk);
 			rk->PenalizedNaturalResidual(*xk);
 			double Ekpen = rk->Norm();
 			double t = 1.0; // linesearch parameter
@@ -132,6 +135,8 @@ namespace fbstab {
 				ri->FBresidual(*xi,*xk,sigma);
 				double Ei = ri->Norm();
 
+				// std::cout << "Rz: " << ri->rz << "\n";
+				// std::cout << "Rz: " << ri->rv << "\n";
 				rk->PenalizedNaturalResidual(*xi);
 				double Eo = rk->Norm();
 
@@ -203,39 +208,45 @@ namespace fbstab {
 						t *= beta;
 				} // linesearch *************************************
 				xi->axpy(*dx,t); // xi <- xi + t*dx
+				// std::cout << dx->z << "\n";
 
 			} // inner loop *************************************
 
 			// make duals non-negative
 			xi->ProjectDuals();
 
-			// compute dx <- x(k+1) - x(k) = x(i) - x(k)
+			// compute dx <- x(k+1) - x(k)
 			dx->Copy(*xi);
 			dx->axpy(*xk,-1.0);
-
-			// x(k+1) = x(i)
-			xk->Copy(*xi);
 
 			// check for infeasibility
 			if(check_infeasibility){
 				InfeasibilityStatus status = CheckInfeasibility(*dx);
+				// std::cout << status << "\n";
 				if(status != FEASIBLE){
-					if(status == INFEASIBLE){
+					if(status == PRIMAL){
 						output.eflag = PRIMAL_INFEASIBLE;
-					} else if (status == UNBOUNDED_BELOW){
+					} else if (status == DUAL){
 						output.eflag = UNBOUNDED_BELOW;
 					}
 					output.residual = Ek;
 					output.newton_iters = newton_iters;
 					output.prox_iters = prox_iters;
-					x0->Copy(*xk);
+					// set x0 = x(k+1) - x(k)
+					dx->Copy(*xi);
+					dx->axpy(*xk,-1.0);
+					x0->Copy(*dx);
 					if(display_level >= FINAL){
 						PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 					}
+
+					return output;
 				}
 			}
 
-			// increment counter
+			// x(k+1) = x(i)
+			xk->Copy(*xi);
+
 			prox_iters++;
 		} // prox loop
 
@@ -252,11 +263,22 @@ namespace fbstab {
 		return output;
 	}
 
-	InfeasibilityStatus FBstabAlgorithm::CheckInfeasibility(const DenseVariable& dx){
+	FBstabAlgorithm::InfeasibilityStatus FBstabAlgorithm::CheckInfeasibility(const DenseVariable &x){
 
-		s
+		// call the variable classes checker
+		feas->CheckFeasibility(x,infeas_tol);
 
+		InfeasibilityStatus s = FEASIBLE;
 
+		if(!feas->Primal()){
+			s = PRIMAL;
+		} if(!feas->Dual()){
+			s = DUAL;
+		} if(!feas->Dual() && !feas->Primal()){
+			s = BOTH;
+		}
+
+		return s;
 	}
 
 	void FBstabAlgorithm::UpdateOption(const char* option, double value){
@@ -390,11 +412,11 @@ namespace fbstab {
 	}
 
 	void FBstabAlgorithm::IterHeader(){
-		printf("%12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","rv");
+		printf("%12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rv|","Inner res","Inner tol");
 	}
 
-	void FBstabAlgorithm::IterLine(int prox_iters, int newton_iters, const DenseResidual &r){
-		printf("%12d  %12d  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.v_norm);
+	void FBstabAlgorithm::IterLine(int prox_iters, int newton_iters, const DenseResidual &r, const DenseResidual &r_inner,double itol){
+		printf("%12d  %12d  %12.4e  %12.4e  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.v_norm,r_inner.Norm(),itol);
 	}
 
 	void FBstabAlgorithm::DetailedHeader(int prox_iters, int newton_iters, const DenseResidual &r){

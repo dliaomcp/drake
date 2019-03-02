@@ -122,6 +122,11 @@ void DenseVariable::ProjectDuals(){
 double DenseVariable::Norm(){
 	return z.norm() + v.norm();
 }
+
+double DenseVariable::InfNorm(){
+	return z.infnorm() + v.infnorm();
+}
+
 std::ostream &operator<<(std::ostream& output, const DenseVariable &x){
 	std::cout << "Printing DenseVariable\n"; 
 
@@ -204,7 +209,7 @@ void DenseResidual::FBresidual(const DenseVariable& x,
 	rz.gemv(data->H,x.z,1.0,1.0); // += H*z
 	rz.gemv(data->A,x.v,1.0,1.0,true); // += A'*v
 	rz.axpy(x.z,sigma);
-	rz.axpy(xbar.z,-sigma);
+	rz.axpy(xbar.z,-1.0*sigma);
 
 	// rv = phi(ys,v), ys = y + sigma(x.v - xbar.v)
 	for(int i = 0;i<q;i++){
@@ -214,6 +219,16 @@ void DenseResidual::FBresidual(const DenseVariable& x,
 
 	z_norm = rz.norm();
 	v_norm = rv.norm();
+}
+
+void DenseResidual::Copy(const DenseResidual &x){
+	rz.copy(x.rz);
+	rv.copy(x.rv);
+}
+
+void DenseResidual::Fill(double a){
+	rz.fill(a);
+	rv.fill(a);
 }
 
 double DenseResidual::Norm() const{
@@ -286,10 +301,9 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 
 	// compute K = H + sigma I + A'*Gamma A
 	K.copy(data->H);
-	for(int i = 0;i<K.rows();i++){
+	for(int i = 0;i<n;i++){
 		K(i,i) += sigma;
 	}
-
 	// K <- K + A'*diag(Gamma(x))*A
 	Point2D tmp;
 	for(int i = 0;i<q;i++){
@@ -316,7 +330,7 @@ bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	// K z = rz - A'*diag(1/mus)*rv
 	// diag(mus) v = rv + diag(gamma)*A*z
 
-	for(int i = 0;i<r1.rows();i++){
+	for(int i = 0;i<mus.rows();i++){
 		mus(i) = 1.0/mus(i);
 	}
 
@@ -372,6 +386,64 @@ DenseLinearSolver::Point2D DenseLinearSolver::PFBgrad(double a,
 	return out;
 }
 
+// DenseFeasibilityCheck *************************************
+
+
+DenseFeasibilityCheck::DenseFeasibilityCheck(QPsize size){
+	n = size.n;
+	q = size.q;
+
+	// allocate memory
+	double *r1 = new double[n];
+	double *r2 = new double[n];
+	double *r3 = new double[q];
+
+	z1 = StaticMatrix(r1,n);
+	z2 = StaticMatrix(r2,n);
+	v1 = StaticMatrix(r3,q);
+}
+
+DenseFeasibilityCheck::~DenseFeasibilityCheck(){
+	delete[] z1.data;
+	delete[] z2.data;
+	delete[] v1.data;
+}
+
+void DenseFeasibilityCheck::CheckFeasibility(const DenseVariable &x, double tol){
+
+	// check dual
+	double w = x.z.infnorm();
+	// max(Az)
+	v1.gemv(x.data->A,x.z);
+	double d1 = v1.max();
+	// f'*z
+	double d2 = StaticMatrix::dot(x.data->f,x.z);
+	// ||Hz||_inf
+	z1.gemv(x.data->H,x.z);
+	double d3 = z1.infnorm();
+
+	if( (d1 <=0) && (d2 < 0) && (d3 <= tol*w) ){
+		dual_ = false;
+	}
+
+	// check primal 
+	double u = x.v.infnorm();
+	// v'*b
+	double p1 = StaticMatrix::dot(x.v,x.data->b);
+	// ||A'v||_inf
+	z2.gemv(x.data->A,x.v,1.0,0.0,true);
+	double p2 = x.z.infnorm();
+	if( (p1 < 0) && (p2 <= tol*u) ){
+		primal_ = false;
+	}
+}
+
+bool DenseFeasibilityCheck::Dual(){
+	return dual_;
+}
+bool DenseFeasibilityCheck::Primal(){
+	return primal_;
+}
 
 }  // namespace fbstab
 }  // namespace solvers
