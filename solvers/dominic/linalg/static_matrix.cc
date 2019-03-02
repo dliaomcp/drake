@@ -267,6 +267,11 @@ void StaticMatrix::axpy(const StaticMatrix &x, double a){
 
 // y <- a*A*x + b*y
 void StaticMatrix::gemv(const StaticMatrix &A,const StaticMatrix &x, double a,double b,bool transA){
+	if(this == &x){
+		#ifdef STATICMATRIX_EXCEPTIONS
+		throw std::invalid_argument("A vector can't GEMV itself");
+		#endif
+	}
 	// an alias for easy indexing
 	StaticMatrix y(*this);
 	int m = y.rows();
@@ -462,13 +467,49 @@ double StaticMatrix::norm() const{
 }
 
 // sum of absolute values
-double StaticMatrix::asum(){
+double StaticMatrix::asum() const{
 	StaticMatrix A(*this);
 
 	double a = 0;
 	for(int i = 0;i<A.rows();i++){
 		for(int j = 0;j<A.cols();j++){
 			a += abs(A(i,j));
+		}
+	}
+	return a;
+}
+
+double StaticMatrix::infnorm() const{
+	StaticMatrix A(*this);
+
+	double a = 0;
+	double t = 0;
+	for(int i = 0;i<A.rows();i++){
+		for(int j = 0;j<A.cols();j++){
+			t = abs(A(i,j));
+			a = (a >= t ? a : t);
+		}
+	}
+	return a;
+}
+
+double StaticMatrix::max() const{
+	StaticMatrix A(*this);
+	double a = A(0,0);
+	for(int i = 0;i<A.rows();i++){
+		for(int j = 0;j<A.cols();j++){
+			a = max(a,A(i,j));
+		}
+	}
+	return a;
+}
+
+double StaticMatrix::min() const{
+	StaticMatrix A(*this);
+	double a = A(0,0);
+	for(int i = 0;i<A.rows();i++){
+		for(int j = 0;j<A.cols();j++){
+			a = min(a,A(i,j));
 		}
 	}
 	return a;

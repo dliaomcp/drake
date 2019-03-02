@@ -51,6 +51,7 @@ class DenseVariable{
 	// projects inequality duals onto the nonnegative orthant
 	void ProjectDuals();
 	double Norm();
+	double InfNorm();
 
 	friend std::ostream &operator<<(std::ostream& output, const DenseVariable &x);
 
@@ -58,9 +59,9 @@ class DenseVariable{
  private:
 	int n,q; // sizes
 	DenseData *data = nullptr; // link to the problem data
-	// bool y_initialized = false;
 	bool memory_allocated = false;
 
+	friend class DenseFeasibilityCheck;
 };
 
 // stores and computes residuals
@@ -85,7 +86,8 @@ class DenseResidual{
 	void NaturalResidual(const DenseVariable& x);
 	// compute the penalized natural residuala t x
 	void PenalizedNaturalResidual(const DenseVariable& x);
-
+	void Copy(const DenseResidual &x);
+	void Fill(double a);
 	// norms and merit functions
 	double Norm() const; // 2 norm
 	double Merit(); // 2 norm squared
@@ -124,8 +126,6 @@ class DenseLinearSolver{
  	StaticMatrix mus;
  	StaticMatrix gamma;
  private:
- 	
-
  	DenseData *data = nullptr;
 
  	int n,q;
@@ -135,7 +135,26 @@ class DenseLinearSolver{
 
 };
 
+class DenseFeasibilityCheck{
+ public:
+ 
+ 	DenseFeasibilityCheck(QPsize size);
+ 	~DenseFeasibilityCheck();
 
+ 	void CheckFeasibility(const DenseVariable &x, double tol);
+
+ 	bool Dual();
+ 	bool Primal();
+  private:
+  	StaticMatrix z1;
+  	StaticMatrix z2;
+  	StaticMatrix v1;
+  	int n,q;
+
+  	bool primal_ = true;
+  	bool dual_ = true;
+
+};
 
 
 }  // namespace fbstab

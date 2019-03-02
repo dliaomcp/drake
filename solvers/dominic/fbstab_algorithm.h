@@ -42,7 +42,7 @@ public:
 
 	// initializes the component objects needed by the solver
 	FBstabAlgorithm(DenseVariable *x1, DenseVariable *x2, 
-		DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol);
+		DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol, DenseFeasibilityCheck *fcheck);
 
 	// run the solve routine for a given problem data
 	SolverOut Solve(DenseData *qp_data, DenseVariable *x0);
@@ -57,11 +57,12 @@ private:
 
 	enum InfeasibilityStatus {
 		FEASIBLE = 0,
-		INFEASIBLE = 1,
-		UNBOUNDED_BELOW = 2
+		PRIMAL = 1,
+		DUAL = 2,
+		BOTH = 3
 	};
 
- 	InfeasibilityStatus CheckInfeasibility(const DenseVariable& dx);
+ 	InfeasibilityStatus CheckInfeasibility(const DenseVariable &x);
 
  	// shifts all elements up one, inserts x at 0
 	static void ShiftAndInsert(double *buffer, double x, int buff_size);
@@ -78,7 +79,7 @@ private:
 
 	// printing
 	void IterHeader();
-	void IterLine(int prox_iters,int newton_iters,const DenseResidual &r);
+	void IterLine(int prox_iters, int newton_iters, const DenseResidual &r, const DenseResidual &r_inner,double itol);
 	void DetailedHeader(int prox_iters, int newton_iters, const DenseResidual &r);
 	void DetailedLine(int iter, double step_length, const DenseResidual &r);
 	void DetailedFooter(double tol, const DenseResidual &r);
@@ -86,9 +87,6 @@ private:
 
 	static bool strcmp(const char *x, const char *y);
 	
-	// problem data
-	DenseData *data = nullptr;
-
 	// variable objects
 	DenseVariable *xk = nullptr;
 	DenseVariable *xi = nullptr;
@@ -101,6 +99,7 @@ private:
 
 	// linear system solver object
 	DenseLinearSolver *linear_solver = nullptr;
+	DenseFeasibilityCheck *feas = nullptr;
 
 	// tolerances
 	double abs_tol = 1e-6;
@@ -120,7 +119,7 @@ private:
 	double inner_tol_min = 1e-12;
 	
 	// maximum iterations
-	int max_newton_iters = 100;
+	int max_newton_iters = 20;
 	int max_prox_iters = 30;
 	int max_inner_iters = 50;
 	int max_linesearch_iters = 20;

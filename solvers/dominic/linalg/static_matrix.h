@@ -88,12 +88,13 @@ public:
 	// deep copy
 	// will resize the target matrix if it has sufficient memory
 	void copy(const StaticMatrix& A);
+
 	// y <- a*x + y
-	void axpy(const StaticMatrix &x,double a);
+	void axpy(const StaticMatrix &x, double a);
 	// y <- a*A*x + b*y
-	void gemv(const StaticMatrix &A, const StaticMatrix &x, double a = 1.0,double b = 0.0,bool transA = false);
+	void gemv(const StaticMatrix &A, const StaticMatrix &x, double a = 1.0, double b = 0.0, bool transA = false);
 	// C <- a*A*B + b*C
-	void gemm(const StaticMatrix &A, const StaticMatrix &B, double a,double b, bool transA = false, bool transB = false);
+	void gemm(const StaticMatrix &A, const StaticMatrix &B, double a, double b, bool transA = false, bool transB = false);
 
 	// Diagonal Matrix products *************************************
 	// compute C <- A'*A + C
@@ -108,7 +109,12 @@ public:
 
 	// norms *************************************
 	double norm() const; // 2 norm of a vector or F norm of a matrix
-	double asum(); // 1 norm
+	double asum() const; // 1 norm
+	double infnorm() const; // largest absolute element
+
+	// returns the largest/smallest element
+	double max() const;
+	double min() const;
 
 	// Factorizations *************************************
 	// In place factorization
