@@ -10,6 +10,7 @@ namespace fbstab {
 
 // constructor
 StaticMatrix::StaticMatrix(double *mem, int nrows_, int ncols_){
+	// TODO: checks to make sure nrows and ncols are > 0
 	this->nrows = nrows_;
 	this->ncols = ncols_;
 	this->nels = nrows_*ncols_;
@@ -67,6 +68,7 @@ void StaticMatrix::copy(const StaticMatrix& A){
 
 // map
 void StaticMatrix::map(double* mem, int nrows_, int ncols_){
+	// TODO: checks to make sure nrows and ncols are > 0
 	this->nrows = nrows_;
 	this->ncols = ncols_;
 	this->nels = nrows_*ncols_;
@@ -147,10 +149,10 @@ bool StaticMatrix::IsSquare() const{
 
 
 // matrix indexing
-double& StaticMatrix::operator()(int i,int j) const{
+double& StaticMatrix::operator()(int i, int j) const{
 	int k = nrows*j + i;
 
-	if((k>= nels)||(i >= nrows)||(j>= ncols)) 
+	if((k>= nels)||(i >= nrows)||(j>= ncols) || (i < 0) || (j < 0)) 
 		throw std::out_of_range("Index out of bounds");
 
 	return data[k];
@@ -158,7 +160,7 @@ double& StaticMatrix::operator()(int i,int j) const{
 // vector indexing
 double& StaticMatrix::operator()(int i) const{
 	StaticMatrix x(*this);
-	if(i >= nels) throw std::out_of_range("Index out of bounds");
+	if(i >= nels || i < 0) throw std::out_of_range("Index out of bounds");
 	if(!x.IsVector()) throw std::invalid_argument("Can't use 1D indexing on a Matrix");
 	if(i*stride >= cap) throw std::out_of_range("Internal Stride related error");
 
@@ -186,6 +188,7 @@ void StaticMatrix::SetCap(int cap_){
 
 //reshape
 void StaticMatrix::reshape(int nrows_,int ncols_){
+	// TODO: checks to make sure nrows and ncols are > 0
 	if(nrows_*ncols_ > cap)
 		throw std::out_of_range("When reshaping the new size cannot exceed capacity");
 
@@ -196,6 +199,7 @@ void StaticMatrix::reshape(int nrows_,int ncols_){
 
 // return a reshaped alias
 StaticMatrix StaticMatrix::getreshape(int nrows_, int ncols_){
+	// TODO: checks to make sure nrows and ncols are > 0
 	StaticMatrix C(*this);
 
 	if(nrows_*ncols_ != nels)
@@ -210,6 +214,7 @@ StaticMatrix StaticMatrix::getreshape(int nrows_, int ncols_){
 
 // returns a reference to a column
 StaticMatrix StaticMatrix::col(int i){
+	// TODO: checks to make sure nrows and ncols are > 0
 	StaticMatrix A(*this);
 	if(i >= A.cols()) throw std::out_of_range("Requested index exceeds number of columns");
 	// offset
@@ -222,6 +227,7 @@ StaticMatrix StaticMatrix::col(int i){
 
 // returns a reference to a row
 StaticMatrix StaticMatrix::row(int i){
+	// TODO: checks to make sure nrows and ncols are > 0
 	StaticMatrix A(*this);
 	if(i >= A.rows()) throw std::out_of_range("Requested index exceeds number of rows");
 	// offset
@@ -462,7 +468,6 @@ double StaticMatrix::norm() const{
 			a += A(i,j)*A(i,j);
 		}
 	}
-
 	return sqrt(a);
 }
 
