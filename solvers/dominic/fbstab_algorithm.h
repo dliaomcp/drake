@@ -27,7 +27,7 @@ struct SolverOut {
 // TODO: Make me a template class 
 // this class implements the FBstab algorithm
 class FBstabAlgorithm{
-public:
+ public:
 	bool check_infeasibility = true;
 
 	// display settings
@@ -51,7 +51,7 @@ public:
 	void UpdateOption(const char *option, int value);
 	void DeleteComponents();
 
-private:
+ private:
 	enum { kNonmonotoneLinesearch = 3 }; 
 	double merit_values[kNonmonotoneLinesearch] = { 0.0 };
 
@@ -71,11 +71,15 @@ private:
 	static double VectorMax(double* vec, int length);
 
 	// elementwise min and max
-	static double max(double a,double b);
-	static double min(double a,double b);
+	template <class T>
+	static T max(T a, T b){
+		return (a>b) ? a : b;
+	}
 
-	static int max(int a,int b);
-	static int min(int a,int b);
+	template <class T>
+	static T min(T a, T b){
+		return (a>b) ? b : a;
+	}
 
 	// printing
 	void IterHeader();

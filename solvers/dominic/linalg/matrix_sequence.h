@@ -1,36 +1,53 @@
 #pragma once
-#include "static_matrix.h"
 
-// template this on matrix type eventually?
+#include "drake/solvers/dominic/linalg/static_matrix.h"
+
+namespace drake {
+namespace solvers {
+namespace fbstab {
+
 class MatrixSequence{
-
-public:
-
-	// properties *************************************
-	int nrows; // rows in each matrix
-	int ncols; // columns in each matrix
-	int nseq; // number of matrices in the sequence
-	double **data; // array of pointers to the raw
-	StaticMatrix
-
-
-	// methods *************************************
-
+ public:
 	// constructor from array of matrix types
-	MatrixSequence(StaticMatrix *seq);
-	// constructor from raw memory
-	MatrixSequence(double *mem, int nrows, int ncols,int nseq);
+	MatrixSequence(StaticMatrix *seq, int nseq);
+	// constructor from contigous memory
+	MatrixSequence(double *mem, int nseq, int nrows, int ncols);
+	// constructor for array of arrays
+	MatrixSequence(double **mem, int nseq, int nrows, int ncols);
+	// copy constructor
+	MatrixSequence(const MatrixSequence &A);
 
+	// assignment
+	MatrixSequence& operator=(const MatrixSequence& A);
+	// deep copy
+	void copy(const MatrixSequence &A);
 
-
+	// size
 	int rows() const;
 	int cols() const;
 	int len() const;
 
+	bool IsVector() const;
+	bool IsRow() const;
+	bool IsCol() const;
+	bool IsSquare() const;
+
 	// element access
-
+	double& operator()(int kseq, int i, int j) const;
 	// matrix access
+	StaticMatrix operator()(int k) const;
 
-	// multiplcation?
-
+ private:
+ 	int nrows_; // rows in each matrix
+	int ncols_; // columns in each matrix
+	int nseq_; // number of matrices in the sequence
+	StaticMatrix *data_ = nullptr; // data 
+	double **mem_ = nullptr;
+	double *mem1_ = nullptr;
 };
+
+
+}  // namespace fbstab
+}  // namespace solvers
+}  // namespace drake
+
