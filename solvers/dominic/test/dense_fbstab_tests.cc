@@ -19,6 +19,7 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
 
 	int n = 2;
 	int q = 2;
+	
 	FBstabDense solver(n,q);
 
 	QPData data;
