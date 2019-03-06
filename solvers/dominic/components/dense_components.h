@@ -11,6 +11,7 @@ namespace fbstab {
 
 
 // stores the size of the qp
+// rename to DenseQPsize?
 struct QPsize {
 	int n; // primal dimension
 	int q; // number of inequalities
