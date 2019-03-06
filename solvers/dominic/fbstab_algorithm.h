@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drake/solvers/dominic/dense_components.h"
+#include "drake/solvers/dominic/components/dense_components.h"
 #include "drake/solvers/dominic/linalg/static_matrix.h"
 
 namespace drake {
@@ -12,7 +12,7 @@ enum ExitFlag {
 	SUCCESS = 0,
 	DIVERGENCE = 1,
 	MAXITERATIONS = 2,
-	PRIMAL_INFEASIBLE = 3,
+	INFEASIBLE = 3,
 	UNBOUNDED_BELOW = 4
 };
 

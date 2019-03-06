@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drake/solvers/dominic/dense_components.h"
+#include "drake/solvers/dominic/components/dense_components.h"
 #include "drake/solvers/dominic/fbstab_algorithm.h"
 #include "drake/solvers/dominic/linalg/static_matrix.h"
 

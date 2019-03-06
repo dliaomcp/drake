@@ -15,17 +15,33 @@ int main(){
 	a1[1] = &a[1][0];
 
 	// another sequence
-	// double b[2][6] = {};
+	double** b = new double*[2];
+	for(int i = 0;i<2;i++){
+		b[i] = new double[6];
+	}
 
 	MatrixSequence A(a1,2,2,3);
 
 	// grab the elements of the sequence
-
 	StaticMatrix A0 = A(0);
 	StaticMatrix A1 = A(1);
 
 	cout << A0 << endl;
 	cout << A1 << endl;
+
+	// copy
+	MatrixSequence B(b,2,2,3);
+	B.copy(A);
+	StaticMatrix B0 = B(0);
+	StaticMatrix B1 = B(1);
+
+	cout << B0 << endl;
+	cout << B1 << endl;
+
+	for(int i =0;i<2;i++){
+		delete[] b[i];
+	}
+	delete[] b;
 
 
 	return 0;

@@ -4,7 +4,7 @@
 #include <cstdio>
 
 #include "drake/solvers/dominic/linalg/static_matrix.h"
-#include "drake/solvers/dominic/dense_components.h"
+#include "drake/solvers/dominic/components/dense_components.h"
 
 
 namespace drake {
@@ -217,7 +217,7 @@ SolverOut FBstabAlgorithm::Solve(DenseData *qp_data,DenseVariable *x0){
 			InfeasibilityStatus status = CheckInfeasibility(*dx);
 			if(status != FEASIBLE){
 				if(status == PRIMAL){
-					output.eflag = PRIMAL_INFEASIBLE;
+					output.eflag = INFEASIBLE;
 				} else if (status == DUAL){
 					output.eflag = UNBOUNDED_BELOW;
 				}
@@ -361,7 +361,7 @@ void FBstabAlgorithm::PrintFinal(int prox_iters, int newton_iters, ExitFlag efla
 		case MAXITERATIONS:
 			printf(" Iteration limit exceeded\n");
 			break;
-		case PRIMAL_INFEASIBLE:
+		case INFEASIBLE:
 			printf(" Primal Infeasibility\n");
 			break;
 		case UNBOUNDED_BELOW:
