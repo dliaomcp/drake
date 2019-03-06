@@ -9,6 +9,7 @@ namespace solvers {
 namespace fbstab {
 
 // a data to store input data
+// Rename me? QPDataDense?
 struct QPData {
 	double *H = nullptr;
 	double *f = nullptr;
