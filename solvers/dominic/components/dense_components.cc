@@ -1,4 +1,4 @@
-#include "drake/solvers/dominic/dense_components.h"
+#include "drake/solvers/dominic/components/dense_components.h"
 
 #include <cmath>
 

@@ -56,6 +56,7 @@ int main(){
 	solver2.SetDisplayLevel(FBstabAlgorithm::ITER);
 	solver2.Solve(data2,z2,v2,y2);
 
+	cout << "z = ("<< z2[0] << ", " << z2[1] << ")\n";
 
 	return 0;
 }

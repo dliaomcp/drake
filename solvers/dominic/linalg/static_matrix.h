@@ -83,6 +83,8 @@ public:
 	StaticMatrix col(int i);
 	// return a StaticMatrix which aliases the ith row
 	StaticMatrix row(int i);
+	// return a StaticMatrix which aliases a portion of the vector
+	StaticMatrix subvector(int i, int j);
 
 	// BLAS operations *************************************
 	// deep copy
