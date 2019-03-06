@@ -239,6 +239,22 @@ StaticMatrix StaticMatrix::row(int i){
 	return a;
 }
 
+StaticMatrix StaticMatrix::subvec(int i, int j){
+	StaticMatrix A(*this);
+	if(!IsVector()) throw std::runtime_error("subvector cannot be called on a matrix");
+	if(i < 0 || j < i || j >= A.size()) throw std::out_of_range("Requested range is out of bounds");
+
+	double *ptr = A.data+i;
+
+	if(IsCol()){
+		StaticMatrix a(ptr,j-i+1,1);
+		return a;
+	} else{
+		StaticMatrix a(ptr,1,j-i);
+		return a;
+	}
+}
+
 // y <- a*y
 StaticMatrix& StaticMatrix::operator*=(double a){
 	StaticMatrix y(*this);

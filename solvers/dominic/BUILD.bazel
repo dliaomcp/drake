@@ -48,7 +48,7 @@ drake_cc_library(
 # Build tests *************************************
 drake_cc_binary(
 	name = "static_matrix_build_test",
-	srcs = ["static_matrix_build_test.cc"],
+	srcs = ["test/static_matrix_build_test.cc"],
 	deps = [":static_matrix"],
 )
 
