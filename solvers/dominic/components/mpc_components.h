@@ -17,9 +17,22 @@ struct QPsizeMPC {
 
 class MPCData{
  public:
- 	MPCData(double **Q, double **R, double **S, double **q, double **r,
- 			double **A, double **B, double **c,
- 			double **E, double **L, double **d, double *x0, QPsizeMPC size);
+ 	MPCData(double **Q, double **R, double **S, double **q, 
+ 			double **r, double **A, double **B, double **c,
+ 			double **E, double **L, double **d, double *x0, 
+ 			QPsizeMPC size);
+
+ 	// y <- a*T*x + b*y for T = H,A,G,A',G'
+ 	void gemvH(const StaticMatrix &x, double a, double b, StaticMatrix *y); 
+ 	void gemvA(const StaticMatrix &x, double a, double b, StaticMatrix *y); 
+ 	void gemvG(const StaticMatrix &x, double a, double b, StaticMatrix *y); 
+ 	void gemvAT(const StaticMatrix &x, double a, double b, StaticMatrix *y); 
+	void gemvGT(const StaticMatrix &x, double a, double b, StaticMatrix *y);
+
+	// y <- a*x + y for x = f,h,b
+	void axpyf(double a, StaticMatrix *y);
+	void axpyh(double a, StaticMatrix *y);
+	void axpyb(double a, StaticMatrix *y);
 
  private:
  	int N_;
@@ -114,7 +127,7 @@ class RicattiLinearSolver{
 
  	void LinkData(MPCData *data);
  	bool Factor(const MSVariable &x, const MSVariable &xbar, double sigma);
- 	bool Solve(const MSResidual &r, MSVariable *r);
+ 	bool Solve(const MSResidual &r, MSVariable *dx);
 
  private:
  	int N_, nx_, nu_, nc_;

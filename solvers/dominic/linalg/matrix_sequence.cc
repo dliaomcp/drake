@@ -19,6 +19,12 @@ MatrixSequence::MatrixSequence(StaticMatrix *seq, int nseq){
 	}
 }
 
+MatrixSequence::MatrixSequence(){
+	nseq_ = 0;
+	nrows_ = 0;
+	ncols_ = 0;
+}
+
 MatrixSequence::MatrixSequence(double *mem, int nseq, int nrows, int ncols){
 	nseq_ = nseq;
 	ncols_ = ncols;

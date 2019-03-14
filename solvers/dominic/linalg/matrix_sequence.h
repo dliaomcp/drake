@@ -10,6 +10,7 @@ class MatrixSequence{
  public:
 	// constructor from array of matrix types
 	MatrixSequence(StaticMatrix *seq, int nseq);
+	MatrixSequence();
 	// constructor from contigous memory
 	MatrixSequence(double *mem, int nseq, int nrows, int ncols);
 	// constructor for array of arrays

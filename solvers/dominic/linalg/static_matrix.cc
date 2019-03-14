@@ -177,6 +177,9 @@ int StaticMatrix::cols() const{
 int StaticMatrix::size() const{
 	return nels;
 }
+int StaticMatrix::len() const{
+	return nels;
+}
 
 // set functions
 void StaticMatrix::SetStride(int stride_){
@@ -198,7 +201,7 @@ void StaticMatrix::reshape(int nrows_,int ncols_){
 }
 
 // return a reshaped alias
-StaticMatrix StaticMatrix::getreshape(int nrows_, int ncols_){
+StaticMatrix StaticMatrix::getreshape(int nrows_, int ncols_) const{
 	// TODO: checks to make sure nrows and ncols are > 0
 	StaticMatrix C(*this);
 

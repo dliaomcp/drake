@@ -263,11 +263,6 @@ GTEST_TEST(FBstabDense, DenseLinearSolver) {
 	}	
 }
 
-// GTEST_TEST(FBstabDense,SolverIntegration) {
-// 	double zopt_exp[] = {2.49999999664944, -8.49999998818445};
-// 	double vopt_exp[] = {3.65900262042578e-09,6.31591394316009e-11};
-// }
-
 
 
 }  // namespace test
