@@ -55,6 +55,7 @@ public:
 	int rows() const;
 	int cols() const;
 	int size() const;
+	int len() const;
 
 	// Seters *************************************
 	void SetStride(int stride_);
@@ -78,7 +79,7 @@ public:
 	// reshape
 	void reshape(int nrows_, int ncols_);
 	// return a reshaped alias
-	StaticMatrix getreshape(int nrows_, int ncols_);
+	StaticMatrix getreshape(int nrows_, int ncols_) const;
 	// return a StaticMatrix which aliases the ith column
 	StaticMatrix col(int i);
 	// return a StaticMatrix which aliases the ith row

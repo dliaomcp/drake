@@ -33,6 +33,17 @@ drake_cc_library(
 )
 
 drake_cc_library(
+    name = "mpc_components",
+    srcs = ["components/mpc_data.h",
+            "components/mpc_variable.h"
+    ],
+    hdrs = ["components/mpc_data.h",
+            "components/mpc_variable.h"
+    ],
+    deps = [":static_matrix"],
+)
+
+drake_cc_library(
     name = "fbstab_dense",
     srcs = ["fbstab_dense.h",
             "fbstab_algorithm.h",
@@ -75,6 +86,14 @@ drake_cc_binary(
     deps = [":static_matrix"],
 )
 
+drake_cc_binary(
+    name = "mpc_component_build_test",
+    srcs = ["test/mpc_component_build_test.cc",
+            "test/test_helpers.h"],
+    deps = [":static_matrix",
+            ":mpc_components"]
+)
+
 # Unit tests *************************************
 drake_cc_googletest( # static matrices
 	name = "static_matrix_test",
@@ -88,11 +107,20 @@ drake_cc_googletest( # matrix sequences
     deps = [":static_matrix"],
 )
 
-drake_cc_googletest( # dense fbstab component objects
+drake_cc_googletest( # dense component objects
     name = "dense_component_tests",
     srcs = ["test/dense_component_tests.cc"],
     deps = [":static_matrix",
             ":dense_components"
+    ],
+)
+
+drake_cc_googletest( # mpc component objects
+    name = "mpc_component_tests",
+    srcs = ["test/mpc_component_tests.cc",
+            "test/test_helpers.h"],
+    deps = [":static_matrix",
+            ":mpc_components"
     ],
 )
 
