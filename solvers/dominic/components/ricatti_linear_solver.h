@@ -46,6 +46,30 @@ class RicattiLinearSolver{
  	Point2D PFBgrad(double a, double b, double sigma);
 };
 
+DenseLinearSolver::Point2D DenseLinearSolver::PFBgrad(double a,
+ double b, double sigma){
+	double y = 0;
+	double x = 0;
+	double r = sqrt(a*a + b*b);
+	double d = 1.0/sqrt(2.0);
+
+	if(r < zero_tol){
+		x = alpha*(1.0-d);
+		y = alpha*(1.0-d);
+
+	} else if((a > 0) && (b > 0)){
+		x = alpha * (1.0- a/r) + (1.0-alpha) * b;
+		y = alpha * (1.0- b/r) + (1.0-alpha) * a;
+
+	} else {
+		x = alpha * (1.0 - a/r);
+		y = alpha * (1.0 - b/r);
+	}
+
+	Point2D out = {x, y};
+	return out;
+}
+
 }  // namespace fbstab
 }  // namespace solvers
 }  // namespace drake
