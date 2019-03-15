@@ -48,6 +48,19 @@ MatrixSequence::MatrixSequence(const MatrixSequence &A){
 	mem1_ = A.mem1_;
 }
 
+MatrixSequence::DeleteMemory(){
+	if(data_ != nullptr){ // free the top level only
+		delete[] data_;
+	} else if(mem_ != nullptr){
+		for(int i = 0;i<nseq_;i++){
+			delete[] mem_[i];
+		}
+		delete[] mem_;
+	} else if(mem1_ != nullptr){
+		delete[] mem1_;
+	}
+}
+
 MatrixSequence& MatrixSequence::operator=(const MatrixSequence &A){
 	nseq_ = A.nseq_;
 	nrows_ = A.nrows_;

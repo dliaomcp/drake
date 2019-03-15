@@ -17,7 +17,8 @@ class MatrixSequence{
 	MatrixSequence(double **mem, int nseq, int nrows, int ncols);
 	// copy constructor
 	MatrixSequence(const MatrixSequence &A);
-
+	// use with care, calls delete
+	DeleteMemory();
 	// assignment
 	MatrixSequence& operator=(const MatrixSequence& A);
 	// deep copy
@@ -42,7 +43,9 @@ class MatrixSequence{
  	int nrows_; // rows in each matrix
 	int ncols_; // columns in each matrix
 	int nseq_; // number of matrices in the sequence
-	StaticMatrix *data_ = nullptr; // data 
+
+	// data
+	StaticMatrix *data_ = nullptr;
 	double **mem_ = nullptr;
 	double *mem1_ = nullptr;
 };
