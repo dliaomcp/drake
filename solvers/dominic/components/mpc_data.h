@@ -290,7 +290,7 @@ void MPCData::axpyf(double a, StaticMatrix *y){
 		// y(i) += a*[q(i);r(i)]
 		q = q_(i);
 		r = r_(i);
-
+		
 		yi = y->col(i);
 		yx = yi.subvec(0,nx-1);
 		yu = yi.subvec(nx,nx+nu-1);

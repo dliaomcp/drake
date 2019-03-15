@@ -35,10 +35,12 @@ drake_cc_library(
 drake_cc_library(
     name = "mpc_components",
     srcs = ["components/mpc_data.h",
-            "components/mpc_variable.h"
+            "components/mpc_variable.h",
+            "components/mpc_residual.h",
     ],
     hdrs = ["components/mpc_data.h",
-            "components/mpc_variable.h"
+            "components/mpc_variable.h",
+            "components/mpc_residual.h"
     ],
     deps = [":static_matrix"],
 )

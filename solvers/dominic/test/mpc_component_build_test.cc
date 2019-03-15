@@ -1,4 +1,6 @@
-#include "drake/solvers/dominic/components/mpc_components.h"
+#include "drake/solvers/dominic/components/mpc_data.h"
+#include "drake/solvers/dominic/components/mpc_variable.h"
+#include "drake/solvers/dominic/components/mpc_residual.h"
 
 #include <cmath>
 
@@ -14,6 +16,10 @@ int main(){
 	int nx = 2;
 	int nu = 1;
 	int nc = 6;
+
+	// int nz = (N+1)*(nx+nu);
+	// int nl = (N+1)*nx;
+	// int nv = (N+1)*nc;
 
 	double Q[] = {2,0,0,1};
 	double S[] = {1,0};
@@ -50,60 +56,22 @@ int main(){
 	// data object
 	MPCData data(Qt,Rt,St,qt,rt,At,Bt,ct,Et,Lt,dt,x0,size);
 
-	int nz = (N+1)*(nx+nu);
-	int nl = (N+1)*nx;
-	int nv = (N+1)*nc;
+	MSVariable x(size);
+	MSVariable y(size);
 
-	// create inputs
-	double* zm = new double[nz];
-	double* lm = new double[nl];
-	double* vm = new double[nv];
-	StaticMatrix z(zm,nz);
-	StaticMatrix l(lm,nl);
-	StaticMatrix v(vm,nv);
-	for(int i = 0;i<z.len();i++) 
-		z(i) = i+1;
-	for(int i = 0;i<l.len();i++) 
-		l(i) = i+1;
-	for(int i = 0;i<v.len();i++) 
-		v(i) = i+1;
+	x.LinkData(&data);
+	y.LinkData(&data);
 
-	// create outputs
-	double* y1m = new double[nz];
-	double* y2m = new double[nl];
-	double* y3m = new double[nv];
-	double* y4m = new double[nz];
-	double* y5m = new double[nz];
-	StaticMatrix y1(y1m,nz); y1.fill(0);
-	StaticMatrix y2(y2m,nl); y2.fill(0);
-	StaticMatrix y3(y3m,nv); y3.fill(0);
-	StaticMatrix y4(y4m,nz); y4.fill(0);
-	StaticMatrix y5(y5m,nz); y5.fill(0);
+	x.Fill(2.0);
+	y.Fill(-2.0);
 
-	data.gemvH(z,-2.0,0.0,&y1);
-	cout << y1 << endl;
-
-	data.gemvG(z,-2.0,0.0,&y2);
-	cout << y2 << endl;
-
-	data.gemvA(z,-2.0,0.0,&y3);
-	cout << y3 << endl;
-
-	data.gemvGT(l,-2.0,0.0,&y4);
-	cout << y4 << endl;
-
-	data.gemvAT(v,-2.0,0.0,&y5);
-	cout << y5 << endl;
+	double sigma = 1.0;
 
 
-	delete[] zm;
-	delete[] lm;
-	delete[] vm;
-	delete[] y1m;
-	delete[] y2m; 
-	delete[] y3m;
-	delete[] y4m;
-	delete[] y5m;
+	MSResidual res(size);
+	res.LinkData(&data);
+	res.FBresidual(x,y,sigma);
+
 
 	test::free_repmat(Qt,N+1);
 	test::free_repmat(Rt,N+1);
