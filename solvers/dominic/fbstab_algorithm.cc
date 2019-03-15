@@ -376,6 +376,7 @@ void FBstabAlgorithm::PrintFinal(int prox_iters, int newton_iters, ExitFlag efla
 	printf("%10.4e  %10.4e  %10.4e\n",r.z_norm,r.v_norm,abs_tol);
 }
 
+// TODO: add |rl| printing (0 if constraints aren't there)
 void FBstabAlgorithm::IterHeader(){
 	printf("%12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rv|","Inner res","Inner tol");
 }

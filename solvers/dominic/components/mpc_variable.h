@@ -22,17 +22,19 @@ class MSVariable{
  	double Norm();
  	double InfNorm();
 
- 	friend std::ostream &operator<<(std::ostream& output, const MSVariable &x);
-
- private:
  	StaticMatrix z_; // decision variables [x0,u0,x1,u1 ... xN,uN]
  	StaticMatrix l_; // co-states [l0, ..., lN];
  	StaticMatrix v_; // ieq-duals [v0,... vN];
  	StaticMatrix y_; // ieq margin, [y0, ..., yN]
 
+ 	friend std::ostream &operator<<(std::ostream& output, const MSVariable &x);
+
+ private:
+ 
+
  	int N_, nx_, nu_, nc_;
  	int nz_, nl_, nv_;
-
+ 	bool memory_allocated_ = false;
  	MPCData *data_ = nullptr;
 };
 
@@ -60,13 +62,17 @@ MSVariable::MSVariable(QPsizeMPC size){
 	l_.fill(0.0);
 	v_.fill(0.0);
 	y_.fill(0.0);
+
+	memory_allocated_ = true;
 }
 
 MSVariable::~MSVariable(){
-	delete[] z_.data;
-	delete[] l_.data;
-	delete[] v_.data;
-	delete[] y_.data;
+	if(memory_allocated_){
+		delete[] z_.data;
+		delete[] l_.data;
+		delete[] v_.data;
+		delete[] y_.data;
+	}
 }
 
 void MSVariable::LinkData(MPCData *data){
@@ -81,6 +87,8 @@ void MSVariable::Fill(double a){
 }
 
 void MSVariable::InitConstraintMargin(){
+	if(data_ == nullptr)
+		throw std::runtime_error("Data not linked in MSVariable");
 	// y = b-A*z
 	y_.fill(0.0);
 	data_->axpyb(1.0,&y_);
@@ -88,13 +96,15 @@ void MSVariable::InitConstraintMargin(){
 }
 
 void MSVariable::axpy(const MSVariable &x, double a){
+	if(data_ == nullptr)
+		throw std::runtime_error("Data not linked in MSVariable");
 	z_.axpy(x.z_,a);
 	l_.axpy(x.l_,a);
 	v_.axpy(x.v_,a);
 
 	// y <- y + a*(x.y - b)
 	y_.axpy(x.y_,a);
-	data_.axpyb(-a,&y_);
+	data_->axpyb(-a,&y_);
 }
 
 void MSVariable::Copy(const MSVariable &x){
@@ -115,6 +125,16 @@ double MSVariable::Norm(){
 
 double MSVariable::InfNorm(){
 	return z_.infnorm() + l_.infnorm() + v_.infnorm();
+}
+
+std::ostream &operator<<(std::ostream& output, const MSVariable &x){
+	std::cout << "Printing MSVariable\n";
+
+	std::cout << "z = [\n" << x.z_ << "]" << std::endl;
+	std::cout << "l = [\n" << x.l_ << "]" << std::endl;
+	std::cout << "v = [\n" << x.v_ << "]" << std::endl;
+
+	return output;
 }
 
 }  // namespace fbstab
