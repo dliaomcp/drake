@@ -74,7 +74,7 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	int NN = N+1;
 
 	double *Q_mem = new double[nx*nx*NN];
-	double *S_mem = new double[nx*nu*NN];
+	double *S_mem = new double[nu*nx*NN];
 	double *R_mem = new double[nu*nu*NN];
 
 	double *P_mem = new double[nx*nu*NN];
@@ -130,7 +130,6 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	rlp_ = StaticMatrix(rlp_mem,nx,1);
 
 	memory_allocated_ = true;
-
 }
 
 RicattiLinearSolver::~RicattiLinearSolver(){
@@ -142,6 +141,7 @@ RicattiLinearSolver::~RicattiLinearSolver(){
 		P_.DeleteMemory();
 		SG_.DeleteMemory();
 		M_.DeleteMemory();
+		L_.DeleteMemory();
 		SM_.DeleteMemory();
 		AM_.DeleteMemory();
 
@@ -159,7 +159,6 @@ RicattiLinearSolver::~RicattiLinearSolver(){
 		delete[] rx_.data;
 		delete[] ru_.data;
 		delete[] rl_.data;
-
 		delete[] rxp_.data;
 		delete[] rlp_.data;
 	}
@@ -172,7 +171,24 @@ void RicattiLinearSolver::LinkData(MPCData *data){
 bool RicattiLinearSolver::Factor(const MSVariable&x, const MSVariable &xbar, double sigma){
 	int N = N_; int nx = nx_; int nu = nu_; int nc = nc_;
 
-	// compute the barrier terms
+	// compute the barrier vector Gamma= gamma/mus
+	Point2D tmp;
+	for(int i = 0;i<q;i++){
+		double ys = x.y(i) + sigma*(x.v(i) - xbar.v(i));
+		tmp = PFBgrad(ys,x.v(i),sigma);
+
+		gamma(i) = tmp.x;
+		mus(i) = tmp.y + sigma*tmp.x;
+		Gamma(i) = gamma(i)/mus(i);
+	}
+
+	// augment the Hessians with the barrier terms
+	Q_.copy(data->Q_);
+	S_.copy(data->S_);
+	R_.copy(data->R_);
+	for(int i=0;i<=N;i++){
+		
+	}
 
 }
 
