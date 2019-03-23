@@ -37,10 +37,12 @@ drake_cc_library(
     srcs = ["components/mpc_data.h",
             "components/mpc_variable.h",
             "components/mpc_residual.h",
+            "components/ricatti_linear_solver.h"
     ],
     hdrs = ["components/mpc_data.h",
             "components/mpc_variable.h",
-            "components/mpc_residual.h"
+            "components/mpc_residual.h",
+            "components/ricatti_linear_solver.h"
     ],
     deps = [":static_matrix"],
 )

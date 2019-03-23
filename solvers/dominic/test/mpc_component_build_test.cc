@@ -1,6 +1,7 @@
 #include "drake/solvers/dominic/components/mpc_data.h"
 #include "drake/solvers/dominic/components/mpc_variable.h"
 #include "drake/solvers/dominic/components/mpc_residual.h"
+#include "drake/solvers/dominic/components/ricatti_linear_solver.h"
 
 #include <cmath>
 
@@ -37,7 +38,6 @@ int main(){
 	double L[] = {0,0,0,0,-1,1};
 	double d[] = {0,0,-2,-2,-1,-1};
 
-	
 	double** Qt = test::repmat(Q,2,2,N+1);
 	double** Rt = test::repmat(R,1,1,N+1);
 	double** St = test::repmat(S,1,2,N+1);
@@ -62,16 +62,33 @@ int main(){
 	x.LinkData(&data);
 	y.LinkData(&data);
 
-	x.Fill(2.0);
-	y.Fill(-2.0);
+	x.z_.fill(1);
+	x.l_.fill(2);
+	x.v_.fill(4);
+
+	y.z_.fill(2);
+	y.l_.fill(1);
+	y.v_.fill(3);
+
+	x.InitConstraintMargin();
+	y.InitConstraintMargin();
 
 	double sigma = 1.0;
+
+	RicattiLinearSolver ls(size);
+	ls.LinkData(&data);
+	ls.Factor(x,y,sigma);
+
+	cout << ls.L_ << endl;
+	cout << ls.P_ << endl;
+	cout << ls.M_ << endl;
+	cout << ls.SM_ << endl;
+	cout << ls.SG_ << endl;
 
 
 	MSResidual res(size);
 	res.LinkData(&data);
 	res.FBresidual(x,y,sigma);
-
 
 	test::free_repmat(Qt,N+1);
 	test::free_repmat(Rt,N+1);

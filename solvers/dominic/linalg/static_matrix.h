@@ -37,7 +37,7 @@ public:
 
 	// create special matrices (in place)
 	void fill(double a);
-	void eye();
+	void eye(double a = 1.0);
 	void rand();
 
 	// zero out upper triangle
@@ -87,10 +87,10 @@ public:
 	// return a x(i:j)
 	StaticMatrix subvec(int i, int j);
 
-	// BLAS operations *************************************
-	// deep copy
-	// will resize the target matrix if it has sufficient memory
+	// deep copy will resize if it has sufficient memory
 	void copy(const StaticMatrix& A);
+
+	// BLAS operations *************************************
 
 	// y <- a*x + y
 	void axpy(const StaticMatrix &x, double a);
@@ -100,14 +100,18 @@ public:
 	void gemm(const StaticMatrix &A, const StaticMatrix &B, double a, double b, bool transA = false, bool transB = false);
 
 	// Diagonal Matrix products *************************************
-	// compute C <- A'*A + C
-	void gram(const StaticMatrix &A);
-	// compute C <-A'*diag(d)*A + C where d is a vector
+	// compute C <- a*A'*A + C
+	void gram(const StaticMatrix &A, double a = 1.0, bool transA = false);
+	// compute C <- A'*diag(d)*A + C where d is a vector
 	void gram(const StaticMatrix &A,const StaticMatrix& d);
 	// compute A <- diag(d)*A where d is a vector
 	void RowScale(const StaticMatrix &d);
 	// compute A <- A*diag(d) where d is a vector
 	void ColScale(const StaticMatrix &d);
+	// C <- C + diag(d)
+	void AddDiag(const StaticMatrix &d);
+	// C <- C + a*I
+	void AddDiag(double a);
 
 
 	// norms *************************************
@@ -123,6 +127,7 @@ public:
 	// In place factorization
 	// returns 0 if successful
 	// return -1 if dynamic regularization was applied
+	// only the lower triangle is accessed 
 	int llt(); // LL'
 
 	// Apply a cholesky factorization to a matrix or vector

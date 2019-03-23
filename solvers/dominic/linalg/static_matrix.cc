@@ -90,16 +90,16 @@ void StaticMatrix::rand(){
 	}
 }
 
-void StaticMatrix::eye(){
+void StaticMatrix::eye(double a){
 	StaticMatrix A(*this);
 	if(!A.IsSquare()) throw std::invalid_argument("eye can only be called on a square matrix");
 
 	for(int i = 0;i< nrows;i++){
 		for(int j = 0;j < ncols;j++){
 			if(i==j)
-				A(i,j) = 1;
+				A(i,j) = a;
 			else
-				A(i,j) = 0;
+				A(i,j) = 0.0;
 		}
 	}
 }
@@ -157,6 +157,7 @@ double& StaticMatrix::operator()(int i, int j) const{
 
 	return data[k];
 }
+
 // vector indexing
 double& StaticMatrix::operator()(int i) const{
 	StaticMatrix x(*this);
@@ -413,67 +414,93 @@ void StaticMatrix::gemm(const StaticMatrix &A, const StaticMatrix &B, double a, 
 }
 
 // Diagonal Matrix products *************************************
-// compute C <- A'*A + C
-	void StaticMatrix::gram(const StaticMatrix &A){
-		StaticMatrix C(*this);
-		bool OK = C.IsSquare();
+// compute C <- A'*A + C or C <- A*A' + C
+void StaticMatrix::gram(const StaticMatrix &A, double a, bool transA){
+	StaticMatrix C(*this);
+	bool OK = C.IsSquare();
+
+	if (!transA){
 		OK = OK && (C.rows() == A.cols());
 		if(!OK) throw std::invalid_argument("Size Mismatch in gram");
 
-		// call gemm
-		C.gemm(A,A,1.0,1.0,true);
-	}
-	// compute C <-A'*diag(d)*A + C where d is a vector
-	void StaticMatrix::gram(const StaticMatrix &A,const StaticMatrix& d){
-		StaticMatrix C(*this);
-		bool OK = C.IsSquare();
-		OK = OK && (C.rows() == A.cols());
-		OK = OK && d.IsVector();
-		OK = OK && (A.rows() == max(d.cols(),d.rows()));
+		C.gemm(A,A,a,1.0,true,false);
+	} else{
+		OK = OK && (C.rows() == A.rows());
 		if(!OK) throw std::invalid_argument("Size Mismatch in gram");
+		C.gemm(A,A,a,1.0,false,true);
+	}
+}
+// compute C <-A'*diag(d)*A + C where d is a vector
+void StaticMatrix::gram(const StaticMatrix &A,const StaticMatrix& d){
+	StaticMatrix C(*this);
+	bool OK = C.IsSquare();
+	OK = OK && (C.rows() == A.cols());
+	OK = OK && d.IsVector();
+	OK = OK && (A.rows() == d.len());
+	if(!OK) throw std::invalid_argument("Size Mismatch in gram");
 
-		int m = C.rows();
-		int n = A.rows();
+	int m = C.rows();
+	int n = A.rows();
 
-		for(int i = 0;i<m;i++){
-			for(int j = 0;j<m;j++){
-				for(int k = 0;k<n;k++){
-					C(i,j) += A(k,i)*d(k)*A(k,j);
-				}
+	for(int i = 0;i<m;i++){
+		for(int j = 0;j<m;j++){
+			for(int k = 0;k<n;k++){
+				C(i,j) += A(k,i)*d(k)*A(k,j);
 			}
 		}
-
-
 	}
-	// compute A <- diag(d)*A where d is a vector
-	void StaticMatrix::RowScale(const StaticMatrix &d){
-		StaticMatrix A(*this);
-		bool OK = d.IsVector();
-		int n = max(d.rows(),d.cols());
-		OK = OK & (n == A.rows());
-		if(!OK) throw std::invalid_argument("Size Mismatch in RScale");
+}
+// compute A <- diag(d)*A where d is a vector
+void StaticMatrix::RowScale(const StaticMatrix &d){
+	StaticMatrix A(*this);
+	bool OK = d.IsVector();
+	int n = max(d.rows(),d.cols());
+	OK = OK & (n == A.rows());
+	if(!OK) throw std::invalid_argument("Size Mismatch in RScale");
 
-		for(int i = 0; i<A.rows();i++){
-			for(int j = 0;j<A.cols();j++){
-				A(i,j) *= d(i);
-			}
-		}
-
-	}
-	// compute A <- A*diag(d) where d is a vector
-	void StaticMatrix::ColScale(const StaticMatrix &d){
-		StaticMatrix A(*this);
-		bool OK = d.IsVector();
-		int n = max(d.rows(),d.cols());
-		OK = OK & (n == A.cols());
-		if(!OK) throw std::invalid_argument("Size Mismatch in CScale");
-
+	for(int i = 0; i<A.rows();i++){
 		for(int j = 0;j<A.cols();j++){
-			for(int i = 0;i<A.rows();i++){
-				A(i,j) *= d(j);
-			}
+			A(i,j) *= d(i);
 		}
 	}
+
+}
+// compute A <- A*diag(d) where d is a vector
+void StaticMatrix::ColScale(const StaticMatrix &d){
+	StaticMatrix A(*this);
+	bool OK = d.IsVector();
+	int n = max(d.rows(),d.cols());
+	OK = OK && (n == A.cols());
+	if(!OK) throw std::invalid_argument("Size Mismatch in CScale");
+
+	for(int j = 0;j<A.cols();j++){
+		for(int i = 0;i<A.rows();i++){
+			A(i,j) *= d(j);
+		}
+	}
+}
+
+void StaticMatrix::AddDiag(const StaticMatrix &d){
+	StaticMatrix A(*this);
+	bool OK = d.IsVector();
+	OK = OK && A.IsSquare();
+	OK = OK && (d.len() == A.rows());
+	if(!OK) throw std::invalid_argument("Size Mismatch in AddDiag");
+
+	for(int i = 0;i<A.rows();i++){
+		A(i,i) += d(i);
+	}
+}
+
+void StaticMatrix::AddDiag(double a){
+	StaticMatrix A(*this);
+	if(!A.IsSquare()) throw std::invalid_argument("Size Mismatch in AddDiag");
+
+	for(int i = 0;i<A.rows();i++){
+		A(i,i) += a;
+	}
+}
+
 
 
 // Norms *************************************
@@ -587,6 +614,7 @@ void  StaticMatrix::CholSolve(const StaticMatrix &L){
 }
 
 // computes A <- A*inv(L) or A <- A*inv(L)'
+// replace internals with DTRSM
 void StaticMatrix::RightCholApply(const StaticMatrix &L,bool transL){
 	
 	StaticMatrix A(*this);
@@ -619,6 +647,7 @@ void StaticMatrix::RightCholApply(const StaticMatrix &L,bool transL){
 }
 
 // computes A <- inv(L)*A or A <- inv(L)'*A
+// replace internals with DTRSM
 void StaticMatrix::LeftCholApply(const StaticMatrix &L, bool transL){
 	StaticMatrix A(*this);
 	// check L.rows == L.cols == A.rows

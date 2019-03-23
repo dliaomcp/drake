@@ -18,7 +18,7 @@ class MatrixSequence{
 	// copy constructor
 	MatrixSequence(const MatrixSequence &A);
 	// use with care, calls delete
-	DeleteMemory();
+	void DeleteMemory();
 	// assignment
 	MatrixSequence& operator=(const MatrixSequence& A);
 	// deep copy
@@ -34,10 +34,10 @@ class MatrixSequence{
 	bool IsCol() const;
 	bool IsSquare() const;
 
-	// element access
-	double& operator()(int kseq, int i, int j) const;
 	// matrix access
 	StaticMatrix operator()(int k) const;
+
+	friend std::ostream& operator<<(std::ostream& output, const MatrixSequence &A);
 
  private:
  	int nrows_; // rows in each matrix
