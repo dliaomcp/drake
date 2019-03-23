@@ -48,7 +48,7 @@ MatrixSequence::MatrixSequence(const MatrixSequence &A){
 	mem1_ = A.mem1_;
 }
 
-MatrixSequence::DeleteMemory(){
+void MatrixSequence::DeleteMemory(){
 	if(data_ != nullptr){ // free the top level only
 		delete[] data_;
 	} else if(mem_ != nullptr){
@@ -135,9 +135,12 @@ StaticMatrix MatrixSequence::operator()(int k) const{
 	}
 }
 
-double& MatrixSequence::operator()(int kseq, int i, int j) const{
-	StaticMatrix A = this->operator()(kseq);
-	return A(i,j);
+std::ostream &operator<<(std::ostream& output, const MatrixSequence &A){
+
+	for(int i = 0;i<A.len();i++){
+		output << A(i) << "\n";
+	}
+	return output;
 }
 
 }  // namespace fbstab

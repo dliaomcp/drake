@@ -301,9 +301,8 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 
 	// compute K = H + sigma I + A'*Gamma A
 	K.copy(data->H);
-	for(int i = 0;i<n;i++){
-		K(i,i) += sigma;
-	}
+	K.AddDiag(sigma);
+	
 	// K <- K + A'*diag(Gamma(x))*A
 	Point2D tmp;
 	for(int i = 0;i<q;i++){
