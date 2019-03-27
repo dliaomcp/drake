@@ -42,14 +42,12 @@ class RicattiLinearSolver{
  	StaticMatrix Gamma_;
 
  	StaticMatrix Etemp_;
- 	StaticMatrix tx_;
- 	StaticMatrix tu_;
 
  	StaticMatrix Linv_;
  	StaticMatrix r1_;
  	StaticMatrix r2_;
 
- 	StaticMatrix rx_,rl_,ru_,rxp_,rlp_;
+ 	StaticMatrix tx_,tl_,tu_;
 
  private:
  	int N_, nx_, nu_, nc_;
@@ -102,11 +100,9 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	double *r1_mem = new double[nz];
 	double *r2_mem = new double[nl];
 
-	double *rx_mem = new double[nx];
-	double *ru_mem = new double[nu];
-	double *rl_mem = new double[nx];
-	double *rxp_mem = new double[nx];
-	double *rlp_mem = new double[nx];
+	double *tx_mem = new double[nx];
+	double *tu_mem = new double[nu];
+	double *tl_mem = new double[nx];
 
 	Q_ = MatrixSequence(Q_mem,N+1,nx,nx);
 	S_ = MatrixSequence(S_mem,N+1,nu,nx);
@@ -132,11 +128,9 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	r1_ = StaticMatrix(r1_mem,nz,1);
 	r2_ = StaticMatrix(r2_mem,nl,1);
 
-	rx_ = StaticMatrix(rx_mem,nx,1);
-	ru_ = StaticMatrix(ru_mem,nu,1);
-	rl_ = StaticMatrix(rl_mem,nx,1);
-	rxp_ = StaticMatrix(rxp_mem,nx,1);
-	rlp_ = StaticMatrix(rlp_mem,nx,1);
+	tx_ = StaticMatrix(tx_mem,nx,1);
+	tu_ = StaticMatrix(tu_mem,nu,1);
+	tl_ = StaticMatrix(tl_mem,nx,1);
 
 	memory_allocated_ = true;
 }
@@ -162,16 +156,14 @@ RicattiLinearSolver::~RicattiLinearSolver(){
 		delete[] Gamma_.data;
 
 		delete[] Etemp_.data;
-		
+
 		delete[] Linv_.data;
 		delete[] r1_.data;
 		delete[] r2_.data;
 
-		delete[] rx_.data;
-		delete[] ru_.data;
-		delete[] rl_.data;
-		delete[] rxp_.data;
-		delete[] rlp_.data;
+		delete[] tx_.data;
+		delete[] tu_.data;
+		delete[] tl_.data;
 	}
 }
 
@@ -291,7 +283,8 @@ bool RicattiLinearSolver::Factor(const MSVariable&x, const MSVariable &xbar, dou
 }
 
 bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
-	int N = N_; int nc = nc_; int nv = nv_; int nx = nx_; int nu = nu_;
+	int N = N_; int nx = nx_; int nu = nu_; 
+	int nz = nz_; int nl = nl_; int nv = nv_;
 
 	// compute reduced residuals 
 	// r1 = rz - A'*(rv./mus)
@@ -299,9 +292,9 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 	for(int i = 0;i<nv;i++){
 		Gamma_(i) = r.v_(i)/mus_(i);
 	}
-	data_.gemvAT(Gamma_,-1.0,1.0,&r1_)
+	data_->gemvAT(Gamma_,-1.0,1.0,&r1_);
 	// r2 = -rl
-	r2_.copy(r.l);
+	r2_.copy(r.l_);
 	r2_ *= -1.0;
 
 	r1_.reshape(nx+nu,N+1);
@@ -310,47 +303,51 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 	// forward recursion for h and theta
 	// i = 0
 	th_(0).copy(r2_.col(0));
-	rx_.copy(r1_.col(0).subvec(0,nx-1));
+	tx_.copy(r1_.col(0).subvec(0,nx-1));
+
+	h_(0).copy(th_(0));
 	h_(0).CholSolve(L_(0));
-	h_(0).axpy(rx_,-1.0);
+	h_(0).axpy(tx_,-1.0);
 
 	StaticMatrix rlp, rxp;
-	for(int i = 0;i<N;i++)
+	for(int i = 0;i<N;i++){
 		// compute theta(i+1)
-		rx_.copy(h_(i)); // rx = h
-		rx_.LeftCholApply(M_(i)); // rx = inv(M)*rx
+		tx_.copy(h_(i)); // rx = h
+		tx_.LeftCholApply(M_(i)); // rx = inv(M)*rx
 
-		ru_.copy(r1_.col(i).subvec(nx,nx+nu-1));
-		ru_.gemv(SM_,rx_,1.0,1.0); // ru = SM*rx + ru
+		tu_.copy(r1_.col(i).subvec(nx,nx+nu-1));
+		tu_.gemv(SM_(i),tx_,1.0,1.0); // ru = SM*rx + ru
+		tu_.LeftCholApply(SG_(i));
 
 		rlp = r2_.col(i+1);
 		th_(i+1).copy(rlp);
-		th_(i+1).gemv(P_(i),ru_,1.0,1.0); // th(i+1) += P*ru
-		th_(i+1).gemv(AM_(i),rx_,1.0,1.0); // th(i+1) += AM*rx
+		th_(i+1).gemv(P_(i),tu_,1.0,1.0); // th(i+1) += P*ru
+		th_(i+1).gemv(AM_(i),tx_,1.0,1.0); // th(i+1) += AM*rx
 
 		// compute h(i+1)
 		rxp = r1_.col(i+1).subvec(0,nx-1);
+		h_(i+1).copy(th_(i+1));
 		h_(i+1).CholSolve(L_(i+1));
 		h_(i+1).axpy(rxp,-1.0);
 	}
 
 	// compute xN,uN, and lN
-	rx_.copy(h_(N));
-	rx_.LeftCholApply(M_(N)); 
-	ru_.copy(r1_.col(N).subvec(nx,nx+nu-1)); // uN = rx(N)
-	ru_.gemv(SM_(N),rx_,1.0,1.0); // uN = SM*inv(M)*h + rx(N)
-	ru_.CholSolve(SG_(N)); // uN = inv(SG*SG')uN
+	tx_.copy(h_(N));
+	tx_.LeftCholApply(M_(N)); 
+	tu_.copy(r1_.col(N).subvec(nx,nx+nu-1)); // uN = rx(N)
+	tu_.gemv(SM_(N),tx_,1.0,1.0); // uN = SM*inv(M)*h + rx(N)
+	tu_.CholSolve(SG_(N)); // uN = inv(SG*SG')uN
 
-	rx_.copy(h_(N));
-	rx_.LeftCholApply(M_(N));
-	rx_.gemv(SM_(N),ru_,1.0,1.0,true); // xN = inv(M)*h + SM'*uN
-	rx_ *= -1.0; 
-	rx_.LeftCholApply(M_(N),true); // xN = -inv(M')*xN
+	tx_.copy(h_(N));
+	tx_.LeftCholApply(M_(N));
+	tx_.gemv(SM_(N),tu_,1.0,1.0,true); // xN = inv(M)*h + SM'*uN
+	tx_ *= -1.0; 
+	tx_.LeftCholApply(M_(N),true); // xN = -inv(M')*xN
 
-	rl_.copy(rx_);
-	rl_.axpy(theta_(N)); // lN = xN + theta(N)
-	rl_ *= -1.0; 
-	rl_.CholSolve(L_(N)); // lN = -inv(L*L')*lN
+	tl_.copy(tx_);
+	tl_.axpy(th_(N),1.0); // lN = xN + theta(N)
+	tl_ *= -1.0; 
+	tl_.CholSolve(L_(N)); // lN = -inv(L*L')*lN
 
 	// copy into solution vector
 	dx->z_.reshape(nx+nu,N+1);
@@ -359,18 +356,18 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 	StaticMatrix uN = dx->z_.col(N).subvec(nx,nx+nu-1);
 	StaticMatrix lN = dx->l_.col(N);
 
-	xN.copy(rx_);
-	uN.copy(ru_);
-	lN.copy(rl_);
+	xN.copy(tx_);
+	uN.copy(tu_);
+	lN.copy(tl_);
 
 	// backwards recursion for the solution
 	for(int i = N-1;i>=0;i--){
 		// compute u(i)
-		rx_.copy(h_(i));
-		rx_.LeftCholApply(M_(i));
+		tx_.copy(h_(i));
+		tx_.LeftCholApply(M_(i));
 
 		StaticMatrix ui = dx->z_.col(i).subvec(nx,nx+nu-1);
-		ui.gemv(SM_(i),rx_,1.0,0.0); // ui = SM*(inv(M)*h)
+		ui.gemv(SM_(i),tx_,1.0,0.0); // ui = SM*(inv(M)*h)
 
 		StaticMatrix ru = r1_.col(i).subvec(nx,nx+nu-1);
 		ui.axpy(ru,1.0); // ui += ru
@@ -396,6 +393,7 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 		li.copy(th_(i));
 		li.axpy(xi,1.0);
 		li.CholSolve(L_(i));
+		li *= -1.0;
 	}
 
 	// recover ieq dual variables
@@ -412,7 +410,7 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 	// dy = b - A*dz
 	StaticMatrix dy = dx->y_;
 	data_->gemvA(dx->z_,-1.0,0.0,&dy);
-	data->axpyb(1.0,&dy);
+	data_->axpyb(1.0,&dy);
 
 	// return the solution vectors to the correct shape
 	dx->z_.reshape(nz,1);
