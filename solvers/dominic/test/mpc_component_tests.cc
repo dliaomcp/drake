@@ -1,6 +1,7 @@
 #include "drake/solvers/dominic/components/mpc_data.h"
 #include "drake/solvers/dominic/components/mpc_variable.h"
 #include "drake/solvers/dominic/components/mpc_residual.h"
+#include "drake/solvers/dominic/components/ricatti_linear_solver.h"
 
 #include <cmath>
 #include <gtest/gtest.h>
@@ -338,6 +339,116 @@ GTEST_TEST(MPCComponents,MSResidual) {
 	test::free_repmat(dt,N+1);
 }
 
+GTEST_TEST(MPCComponents,RicattiLinearSolver) {
+
+	// set up the QP
+	int N = 2;
+	int nx = 2;
+	int nu = 1;
+	int nc = 6;
+
+	double Q[] = {2,0,0,1};
+	double S[] = {1,0};
+	double R[] = {3};
+	double q[] = {-2,0};
+	double r[] = {0};
+
+	double A[] = {1,0,1,1};
+	double B[] = {0,1};
+	double c[] = {0,0};
+	double x0[] = {0,0};
+
+	double E[] = {-1,0,1,0,0,0,
+				  0,-1,0,1,0,0};
+	double L[] = {0,0,0,0,-1,1};
+	double d[] = {0,0,-2,-2,-1,-1};
+
+	
+	double** Qt = test::repmat(Q,2,2,N+1);
+	double** Rt = test::repmat(R,1,1,N+1);
+	double** St = test::repmat(S,1,2,N+1);
+	double** qt = test::repmat(q,2,1,N+1);
+	double** rt = test::repmat(r,1,1,N+1);
+
+	double** At = test::repmat(A,2,2,N);
+	double** Bt = test::repmat(B,2,1,N);
+	double** ct = test::repmat(c,2,1,N);
+
+	double** Et = test::repmat(E,6,2,N+1);
+	double** Lt = test::repmat(L,6,1,N+1);
+	double** dt = test::repmat(d,6,1,N+1);
+
+	QPsizeMPC size = {N,nx,nu,nc};
+	// data object
+	MPCData data(Qt,Rt,St,qt,rt,At,Bt,ct,Et,Lt,dt,x0,size);
+
+	MSVariable x(size);
+	MSVariable y(size);
+	x.LinkData(&data);
+	y.LinkData(&data);
+
+	x.z_.fill(1);
+	x.l_.fill(2);
+	x.v_.fill(4);
+
+	y.z_.fill(2);
+	y.l_.fill(1);
+	y.v_.fill(3);
+
+
+	x.InitConstraintMargin();
+	y.InitConstraintMargin();
+
+	double sigma = 1.0;
+
+	// create the solver and factor
+	RicattiLinearSolver ls(size);
+	ls.LinkData(&data);
+	ls.Factor(x,y,sigma);
+
+	// create the residual then solve
+	MSResidual res(size);
+	res.LinkData(&data);
+	res.FBresidual(x,y,sigma);
+
+	MSVariable dx(size);
+	ls.Solve(res,&dx);
+
+	// expected dx values
+	// computed by the reference matlab implementation
+	double dz[] = {0.0535976427784205,0.467700500428916,0.986932897633297,-0.193383484498563,0.305367761214063,0.978878432270103,-0.507027982371936,-0.156718234496897,0.934679032375019};
+
+	double dl[] = {1.94640235722158,1.53229949957108,0.714681627705900,1.14926563684815,0.619012259087436,1.44096442798106};
+
+	double dv[] = {1.95863828506912,1.63416011976308,2.04263318861624,2.36711135392228,2.09519447757901,1.94459960741925,2.15216504192066,1.76135902316692,1.84910643176471,2.23991245051844,2.10027229269928,1.93717762013637,2.39792714992857,2.12343528835525,1.60334432375680,1.87783618533011,2.12813713176358,1.89644898463544};
+
+	double dy[] = {0.0535976427784205,0.467700500428916,1.94640235722158,1.53229949957108,1.98693289763330,0.0130671023667034,-0.193383484498563,0.305367761214063,2.19338348449856,1.69463223878594,1.97887843227010,0.0211215677298969,-0.507027982371936,-0.156718234496897,2.50702798237194,2.15671823449690,1.93467903237502,0.0653209676249814};
+
+	for(int i=0;i<dx.z_.len();i++){
+		EXPECT_NEAR(dx.z_(i),dz[i],1e-12);
+	}
+	for(int i=0;i<dx.l_.len();i++){
+		EXPECT_NEAR(dx.l_(i),dl[i],1e-12);
+	}
+	for(int i=0;i<dx.v_.len();i++){
+		EXPECT_NEAR(dx.v_(i),dv[i],1e-12);
+		EXPECT_NEAR(dx.y_(i),dy[i],1e-12);
+	}
+
+	test::free_repmat(Qt,N+1);
+	test::free_repmat(Rt,N+1);
+	test::free_repmat(St,N+1);
+	test::free_repmat(qt,N+1);
+	test::free_repmat(rt,N+1);
+
+	test::free_repmat(At,N);
+	test::free_repmat(Bt,N);
+	test::free_repmat(ct,N);
+
+	test::free_repmat(Et,N+1);
+	test::free_repmat(Lt,N+1);
+	test::free_repmat(dt,N+1);
+}
 
 
 
