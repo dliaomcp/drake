@@ -42,6 +42,9 @@ class RicattiLinearSolver{
  	StaticMatrix Gamma_;
 
  	StaticMatrix Etemp_;
+ 	StaticMatrix tx_;
+ 	StaticMatrix tu_;
+
  	StaticMatrix Linv_;
  	StaticMatrix r1_;
  	StaticMatrix r2_;
@@ -159,7 +162,7 @@ RicattiLinearSolver::~RicattiLinearSolver(){
 		delete[] Gamma_.data;
 
 		delete[] Etemp_.data;
-
+		
 		delete[] Linv_.data;
 		delete[] r1_.data;
 		delete[] r2_.data;
@@ -280,13 +283,140 @@ bool RicattiLinearSolver::Factor(const MSVariable&x, const MSVariable &xbar, dou
 	SG_(N).gram(SM_(N),-1.0,true);
 	SG_(N).llt();
 
+	// return Gamma to its initial shape
+	Gamma_.reshape(nv,1);
+
 	// TODO take some kind of action if one of the cholesky factorizations fail
 	return true;
 }
 
 bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
-	int N = N_; int nc = nc_; int nv = nv_;
+	int N = N_; int nc = nc_; int nv = nv_; int nx = nx_; int nu = nu_;
 
+	// compute reduced residuals 
+	// r1 = rz - A'*(rv./mus)
+	r1_.copy(r.z_);
+	for(int i = 0;i<nv;i++){
+		Gamma_(i) = r.v_(i)/mus_(i);
+	}
+	data_.gemvAT(Gamma_,-1.0,1.0,&r1_)
+	// r2 = -rl
+	r2_.copy(r.l);
+	r2_ *= -1.0;
+
+	r1_.reshape(nx+nu,N+1);
+	r2_.reshape(nx,N+1);
+
+	// forward recursion for h and theta
+	// i = 0
+	th_(0).copy(r2_.col(0));
+	rx_.copy(r1_.col(0).subvec(0,nx-1));
+	h_(0).CholSolve(L_(0));
+	h_(0).axpy(rx_,-1.0);
+
+	StaticMatrix rlp, rxp;
+	for(int i = 0;i<N;i++)
+		// compute theta(i+1)
+		rx_.copy(h_(i)); // rx = h
+		rx_.LeftCholApply(M_(i)); // rx = inv(M)*rx
+
+		ru_.copy(r1_.col(i).subvec(nx,nx+nu-1));
+		ru_.gemv(SM_,rx_,1.0,1.0); // ru = SM*rx + ru
+
+		rlp = r2_.col(i+1);
+		th_(i+1).copy(rlp);
+		th_(i+1).gemv(P_(i),ru_,1.0,1.0); // th(i+1) += P*ru
+		th_(i+1).gemv(AM_(i),rx_,1.0,1.0); // th(i+1) += AM*rx
+
+		// compute h(i+1)
+		rxp = r1_.col(i+1).subvec(0,nx-1);
+		h_(i+1).CholSolve(L_(i+1));
+		h_(i+1).axpy(rxp,-1.0);
+	}
+
+	// compute xN,uN, and lN
+	rx_.copy(h_(N));
+	rx_.LeftCholApply(M_(N)); 
+	ru_.copy(r1_.col(N).subvec(nx,nx+nu-1)); // uN = rx(N)
+	ru_.gemv(SM_(N),rx_,1.0,1.0); // uN = SM*inv(M)*h + rx(N)
+	ru_.CholSolve(SG_(N)); // uN = inv(SG*SG')uN
+
+	rx_.copy(h_(N));
+	rx_.LeftCholApply(M_(N));
+	rx_.gemv(SM_(N),ru_,1.0,1.0,true); // xN = inv(M)*h + SM'*uN
+	rx_ *= -1.0; 
+	rx_.LeftCholApply(M_(N),true); // xN = -inv(M')*xN
+
+	rl_.copy(rx_);
+	rl_.axpy(theta_(N)); // lN = xN + theta(N)
+	rl_ *= -1.0; 
+	rl_.CholSolve(L_(N)); // lN = -inv(L*L')*lN
+
+	// copy into solution vector
+	dx->z_.reshape(nx+nu,N+1);
+	dx->l_.reshape(nx,N+1);
+	StaticMatrix xN = dx->z_.col(N).subvec(0,nx-1); 
+	StaticMatrix uN = dx->z_.col(N).subvec(nx,nx+nu-1);
+	StaticMatrix lN = dx->l_.col(N);
+
+	xN.copy(rx_);
+	uN.copy(ru_);
+	lN.copy(rl_);
+
+	// backwards recursion for the solution
+	for(int i = N-1;i>=0;i--){
+		// compute u(i)
+		rx_.copy(h_(i));
+		rx_.LeftCholApply(M_(i));
+
+		StaticMatrix ui = dx->z_.col(i).subvec(nx,nx+nu-1);
+		ui.gemv(SM_(i),rx_,1.0,0.0); // ui = SM*(inv(M)*h)
+
+		StaticMatrix ru = r1_.col(i).subvec(nx,nx+nu-1);
+		ui.axpy(ru,1.0); // ui += ru
+		ui.LeftCholApply(SG_(i)); // ui = inv(SG)*ui
+
+		StaticMatrix lip = dx->l_.col(i+1);
+		ui.gemv(P_(i),lip,1.0,1.0,true); // ui += P'*lp
+		ui.LeftCholApply(SG_(i),true); // ui = SG'*ui
+
+		// compute x(i)
+		StaticMatrix xi = dx->z_.col(i).subvec(0,nx-1);
+		xi.copy(h_(i));
+		xi.LeftCholApply(M_(i)); // x(i) = inv(M)*h(i)
+
+		xi.gemv(SM_(i),ui,1.0,1.0,true); // x(i) += SM'*u(i)
+		xi.gemv(AM_(i),lip,1.0,1.0,true); // x(i) += AM'*l(i+1)
+
+		xi.LeftCholApply(M_(i),true); // x(i) = inv(M')*xi
+		xi *= -1.0;
+
+		// compute l(i)
+		StaticMatrix li = dx->l_.col(i);
+		li.copy(th_(i));
+		li.axpy(xi,1.0);
+		li.CholSolve(L_(i));
+	}
+
+	// recover ieq dual variables
+	// dv = (r.v + diag(gamma) * A*dz)*diag(1/mus)
+	StaticMatrix dv = dx->v_;
+	dv.copy(r.v_);
+	data_->gemvA(dx->z_,1.0,0.0,&Gamma_); // Gamma is being used as a temp
+
+	for(int i = 0;i<nv;i++){
+		dv(i) = (dv(i) + gamma_(i)*Gamma_(i))/mus_(i);
+	}
+
+	// compute dy for the linesearch
+	// dy = b - A*dz
+	StaticMatrix dy = dx->y_;
+	data_->gemvA(dx->z_,-1.0,0.0,&dy);
+	data->axpyb(1.0,&dy);
+
+	// return the solution vectors to the correct shape
+	dx->z_.reshape(nz,1);
+	dx->l_.reshape(nl,1);
 
 	return true;
 }
