@@ -79,16 +79,21 @@ int main(){
 	ls.LinkData(&data);
 	ls.Factor(x,y,sigma);
 
-	cout << ls.L_ << endl;
-	cout << ls.P_ << endl;
-	cout << ls.M_ << endl;
-	cout << ls.SM_ << endl;
-	cout << ls.SG_ << endl;
-
-
 	MSResidual res(size);
 	res.LinkData(&data);
 	res.FBresidual(x,y,sigma);
+
+
+	MSVariable dx(size);
+	ls.Solve(res,&dx);
+
+	cout << ls.th_ << endl;
+	cout << ls.h_<< endl;
+
+	cout << dx.z_ << endl;
+	cout << dx.l_ << endl;
+	cout << dx.v_ << endl;
+
 
 	test::free_repmat(Qt,N+1);
 	test::free_repmat(Rt,N+1);
