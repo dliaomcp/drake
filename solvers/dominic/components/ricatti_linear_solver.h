@@ -26,7 +26,12 @@ class RicattiLinearSolver{
 
  	double alpha_ = 0.95;
 
- 	MatrixSequence Q_, R_, S_;
+ 	// barrier augmented cost matrices
+ 	MatrixSequence Q_; 
+ 	MatrixSequence R_;
+ 	MatrixSequence S_;
+
+ 	// Storage for the matrix portion of the recursion
  	MatrixSequence P_;
  	MatrixSequence SG_;
  	MatrixSequence M_;
@@ -34,20 +39,25 @@ class RicattiLinearSolver{
  	MatrixSequence SM_;
  	MatrixSequence AM_;
 
+ 	// Storage for the vector portion of the recursion
  	MatrixSequence h_;
  	MatrixSequence th_;
 
+ 	// Storage for barrier terms
  	StaticMatrix gamma_; 
  	StaticMatrix mus_;
  	StaticMatrix Gamma_;
 
+ 	// Workspace matrices
  	StaticMatrix Etemp_;
-
  	StaticMatrix Linv_;
+
+ 	// Workspace vectors
+ 	StaticMatrix tx_;
+ 	StaticMatrix tl_;
+ 	StaticMatrix tu_;
  	StaticMatrix r1_;
  	StaticMatrix r2_;
-
- 	StaticMatrix tx_,tl_,tu_;
 
  private:
  	int N_, nx_, nu_, nc_;
@@ -95,14 +105,13 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	double *mus_mem = new double[nv];
 
 	double *Etemp_mem = new double[nc*nx];
-
-	double *Linv_mem = new double[nx*nx];
-	double *r1_mem = new double[nz];
-	double *r2_mem = new double[nl];
+ 	double *Linv_mem = new double[nx*nx];
 
 	double *tx_mem = new double[nx];
 	double *tu_mem = new double[nu];
 	double *tl_mem = new double[nx];
+	double *r1_mem = new double[nz];
+	double *r2_mem = new double[nl];
 
 	Q_ = MatrixSequence(Q_mem,N+1,nx,nx);
 	S_ = MatrixSequence(S_mem,N+1,nu,nx);
@@ -123,14 +132,14 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	Gamma_ = StaticMatrix(Gamma_mem,nv,1);
 
 	Etemp_ = StaticMatrix(Etemp_mem,nc,nx);
-
 	Linv_ = StaticMatrix(Linv_mem,nx,nx);
-	r1_ = StaticMatrix(r1_mem,nz,1);
-	r2_ = StaticMatrix(r2_mem,nl,1);
+
 
 	tx_ = StaticMatrix(tx_mem,nx,1);
 	tu_ = StaticMatrix(tu_mem,nu,1);
 	tl_ = StaticMatrix(tl_mem,nx,1);
+	r1_ = StaticMatrix(r1_mem,nz,1);
+	r2_ = StaticMatrix(r2_mem,nl,1);
 
 	memory_allocated_ = true;
 }
@@ -156,14 +165,13 @@ RicattiLinearSolver::~RicattiLinearSolver(){
 		delete[] Gamma_.data;
 
 		delete[] Etemp_.data;
-
 		delete[] Linv_.data;
-		delete[] r1_.data;
-		delete[] r2_.data;
 
 		delete[] tx_.data;
 		delete[] tu_.data;
 		delete[] tl_.data;
+		delete[] r1_.data;
+		delete[] r2_.data;
 	}
 }
 
@@ -177,7 +185,7 @@ bool RicattiLinearSolver::Factor(const MSVariable&x, const MSVariable &xbar, dou
 	if(data_ == nullptr)
 		throw std::runtime_error("Data not linked in MSVariable");
 	
-	// compute the barrier vector Gamma= gamma/mus
+	// compute the barrier vector Gamma = gamma/mus
 	Point2D tmp;
 	for(int i = 0;i<nv;i++){
 		double ys = x.y_(i) + sigma*(x.v_(i) - xbar.v_(i));
@@ -215,9 +223,10 @@ bool RicattiLinearSolver::Factor(const MSVariable&x, const MSVariable &xbar, dou
 		Si.gemm(Li,Etemp_,1.0,1.0,true,false);
 	}
 
-	// begin the ricatti recursion
+	// begin the matrix portion of the ricatti recursion
 	// base case, Pi = sigma I, L = chol(Pi)
 	L_(0).eye(sqrt(sigma));
+
 	for(int i = 0;i<N;i++){
 		// get inv(L(i))
 		Linv_.eye();
@@ -300,14 +309,13 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 	r1_.reshape(nx+nu,N+1);
 	r2_.reshape(nx,N+1);
 
-	// forward recursion for h and theta
-	// i = 0
+	// vector portion of the recursion
+	// base case
 	th_(0).copy(r2_.col(0));
-	tx_.copy(r1_.col(0).subvec(0,nx-1));
 
 	h_(0).copy(th_(0));
 	h_(0).CholSolve(L_(0));
-	h_(0).axpy(tx_,-1.0);
+	h_(0).axpy(r1_.col(0).subvec(0,nx-1),-1.0);
 
 	StaticMatrix rlp, rxp;
 	for(int i = 0;i<N;i++){
@@ -395,6 +403,9 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 		li.CholSolve(L_(i));
 		li *= -1.0;
 	}
+	// return the solution vectors to the correct shape
+	dx->z_.reshape(nz,1);
+	dx->l_.reshape(nl,1);
 
 	// recover ieq dual variables
 	// dv = (r.v + diag(gamma) * A*dz)*diag(1/mus)
@@ -412,9 +423,9 @@ bool RicattiLinearSolver::Solve(const MSResidual &r, MSVariable *dx){
 	data_->gemvA(dx->z_,-1.0,0.0,&dy);
 	data_->axpyb(1.0,&dy);
 
-	// return the solution vectors to the correct shape
-	dx->z_.reshape(nz,1);
-	dx->l_.reshape(nl,1);
+	// return residual vectors so their original shape
+	r1_.reshape(nz,1);
+	r2_.reshape(nl,1);
 
 	return true;
 }
