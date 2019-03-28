@@ -450,8 +450,6 @@ GTEST_TEST(MPCComponents,RicattiLinearSolver) {
 	test::free_repmat(dt,N+1);
 }
 
-
-
 }  // namespace test
 }  // namespace fbstab
 }  // namespace solvers
