@@ -130,7 +130,7 @@ drake_cc_googletest( # mpc component objects
 )
 
 drake_cc_googletest( # fbstab_dense
-    name = "dense_fbstab_tests",
+    name = "fbstab_dense_tests",
     srcs = ["test/dense_fbstab_tests.cc"],
     deps = [":static_matrix",
             ":dense_components",

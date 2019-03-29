@@ -303,6 +303,7 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::UpdateOption(const char* option, int value){
 	if(strcmp(option,"max_newton_iters")){
@@ -385,21 +386,20 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	}
 	printf("Proximal iterations: %d out of %d\n", prox_iters, max_prox_iters);
 	printf("Newton iterations: %d out of %d\n", newton_iters,max_newton_iters);
-	printf("%10s  %10s  %10s\n","|rz|","|rv|","Tolerance");
-	printf("%10.4e  %10.4e  %10.4e\n",r.z_norm,r.v_norm,abs_tol);
+	printf("%10s  %10s  %10s  %10s\n","|rz|","|rl|","|rv|","Tolerance");
+	printf("%10.4e  %10.4e  %10.4e  %10.4e\n",r.z_norm,r.l_norm,r.v_norm,abs_tol);
 }
 
-// TODO: add |rl| printing (0 if constraints aren't there)
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::IterHeader(){
-	printf("%12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rv|","Inner res","Inner tol");
+	printf("%12s  %12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rl|","|rv|","Inner res","Inner tol");
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::IterLine(int prox_iters, int newton_iters, const Residual &r, const Residual &r_inner,double itol){
-	printf("%12d  %12d  %12.4e  %12.4e  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.v_norm,r_inner.Norm(),itol);
+	printf("%12d  %12d  %12.4e  %12.4e  %12.4e  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.l_norm,r.v_norm,r_inner.Norm(),itol);
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
@@ -408,13 +408,13 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	double t = r.Norm();
 	printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",prox_iters,newton_iters,t);
 
-	printf("%10s  %10s  %10s  %10s\n","Iter","Step Size","|rz|","|rv|");
+	printf("%10s  %10s  %10s  %10s  %10s\n","Iter","Step Size","|rz|","|rv|","|rl|");
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::DetailedLine(int iter, double step_length, const Residual &r){
-	printf("%10d  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.v_norm);
+	printf("%10d  %10e  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.v_norm,r.l_norm);
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>

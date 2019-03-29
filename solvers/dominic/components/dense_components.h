@@ -74,6 +74,7 @@ class DenseResidual{
 	double alpha = 0.95; 
 	double z_norm = 0.0;
 	double v_norm = 0.0;
+	double l_norm = 0.0;
 	// methods *************************************
 	DenseResidual(QPsize size);
 	~DenseResidual();
