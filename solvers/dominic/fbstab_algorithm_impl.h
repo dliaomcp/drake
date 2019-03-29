@@ -1,18 +1,12 @@
-#include "drake/solvers/dominic/fbstab_algorithm.h"
-
-#include <cmath>
-#include <cstdio>
-
-#include "drake/solvers/dominic/linalg/static_matrix.h"
-#include "drake/solvers/dominic/components/dense_components.h"
-
+#pragma once
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-
-FBstabAlgorithm::FBstabAlgorithm(DenseVariable *x1,DenseVariable *x2, DenseVariable *x3, DenseVariable *x4, DenseResidual *r1, DenseResidual *r2, DenseLinearSolver *lin_sol, DenseFeasibilityCheck *fcheck){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::FBstabAlgorithm(Variable *x1,Variable *x2, Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck){
 
 	this->xk = x1;
 	this->xi = x2;
@@ -25,7 +19,9 @@ FBstabAlgorithm::FBstabAlgorithm(DenseVariable *x1,DenseVariable *x2, DenseVaria
 	this->feas = fcheck;
 }
 
-void FBstabAlgorithm::DeleteComponents(){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::DeleteComponents(){
 	delete xk;
 	delete xi;
 	delete xp;
@@ -38,8 +34,9 @@ void FBstabAlgorithm::DeleteComponents(){
 	delete feas;
 }
 
-
-SolverOut FBstabAlgorithm::Solve(DenseData *qp_data,DenseVariable *x0){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::Solve(Data *qp_data,Variable *x0){
 	// harmonize the alpha value
 	rk->alpha = alpha;
 	ri->alpha = alpha;
@@ -250,7 +247,9 @@ SolverOut FBstabAlgorithm::Solve(DenseData *qp_data,DenseVariable *x0){
 	return output;
 }
 
-FBstabAlgorithm::InfeasibilityStatus FBstabAlgorithm::CheckInfeasibility(const DenseVariable &x){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+typename FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::InfeasibilityStatus FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::CheckInfeasibility(const Variable &x){
 
 	// use the infeasibility checker class
 	feas->CheckFeasibility(x,infeas_tol);
@@ -267,7 +266,9 @@ FBstabAlgorithm::InfeasibilityStatus FBstabAlgorithm::CheckInfeasibility(const D
 	return s;
 }
 
-void FBstabAlgorithm::UpdateOption(const char* option, double value){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::UpdateOption(const char* option, double value){
 	if(strcmp(option,"abs_tol")){
 		abs_tol = max(value,1e-14);
 	} else if(strcmp(option,"rel_tol")){
@@ -301,7 +302,9 @@ void FBstabAlgorithm::UpdateOption(const char* option, double value){
 	}
 }
 
-void FBstabAlgorithm::UpdateOption(const char* option, int value){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::UpdateOption(const char* option, int value){
 	if(strcmp(option,"max_newton_iters")){
 		max_newton_iters = max(value,1);
 	} else if(strcmp(option,"max_prox_iters")){
@@ -316,7 +319,9 @@ void FBstabAlgorithm::UpdateOption(const char* option, int value){
 }
 
 // static functions
-bool FBstabAlgorithm::strcmp(const char *x, const char *y){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+bool FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::strcmp(const char *x, const char *y){
 	for(int i = 0;x[i] != '\0' || y[i] != '\0';i++){
 		if(x[i] != y[i]){
 			return false;
@@ -324,15 +329,19 @@ bool FBstabAlgorithm::strcmp(const char *x, const char *y){
 	}
 	return true;
 }
-	
-void FBstabAlgorithm::ShiftAndInsert(double *buffer, double x, int buff_size){
+
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::ShiftAndInsert(double *buffer, double x, int buff_size){
 	for(int i = 1;i<buff_size;i++){
 		buffer[i] = buffer[i-1];
 	}
 	buffer[0] = x;
 }
 
-double FBstabAlgorithm::VectorMax(double *vec, int length){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+double FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::VectorMax(double *vec, int length){
 	double current_max = vec[0];
 	for(int i = 0;i<length;i++){
 		if(vec[i] >= current_max){
@@ -342,14 +351,18 @@ double FBstabAlgorithm::VectorMax(double *vec, int length){
 	return current_max;
 }
 
-void FBstabAlgorithm::ClearBuffer(double *buffer, int buff_size){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::ClearBuffer(double *buffer, int buff_size){
 	for(int i = 0;i< buff_size;i++){
 		buffer[i] = 0.0;
 	}
 }
 
 // printing 
-void FBstabAlgorithm::PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const DenseResidual &r){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const Residual &r){
 	printf("Optimization completed\n Exit code:");
 	switch(eflag){
 		case SUCCESS:
@@ -377,26 +390,36 @@ void FBstabAlgorithm::PrintFinal(int prox_iters, int newton_iters, ExitFlag efla
 }
 
 // TODO: add |rl| printing (0 if constraints aren't there)
-void FBstabAlgorithm::IterHeader(){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::IterHeader(){
 	printf("%12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rv|","Inner res","Inner tol");
 }
 
-void FBstabAlgorithm::IterLine(int prox_iters, int newton_iters, const DenseResidual &r, const DenseResidual &r_inner,double itol){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::IterLine(int prox_iters, int newton_iters, const Residual &r, const Residual &r_inner,double itol){
 	printf("%12d  %12d  %12.4e  %12.4e  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.v_norm,r_inner.Norm(),itol);
 }
 
-void FBstabAlgorithm::DetailedHeader(int prox_iters, int newton_iters, const DenseResidual &r){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::DetailedHeader(int prox_iters, int newton_iters, const Residual &r){
 	double t = r.Norm();
 	printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",prox_iters,newton_iters,t);
 
 	printf("%10s  %10s  %10s  %10s\n","Iter","Step Size","|rz|","|rv|");
 }
 
-void FBstabAlgorithm::DetailedLine(int iter, double step_length, const DenseResidual &r){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::DetailedLine(int iter, double step_length, const Residual &r){
 	printf("%10d  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.v_norm);
 }
 
-void FBstabAlgorithm::DetailedFooter(double tol, const DenseResidual &r){
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::DetailedFooter(double tol, const Residual &r){
 	printf("Exiting inner loop. Inner residual: %6.4e, Inner tolerance: %6.4e\n",r.Norm(),tol);
 }
 
