@@ -32,10 +32,10 @@ FBstabDense::FBstabDense(int n_, int q_){
 	DenseFeasibilityCheck *fcheck = new DenseFeasibilityCheck(size);
 
 	// link these objects to the algorithm object
-	algo = new FBstabAlgorithm(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
+	algo = new FBstabAlgoDense(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
 }
 
-SolverOut FBstabDense::Solve(const QPData &qp, double *z, double *v,
+SolverOut FBstabDense::Solve(const QPDataDense &qp, double *z, double *v,
 	double *y, bool use_initial_guess){
 
 	QPsize size = {n,q};
@@ -61,7 +61,7 @@ void FBstabDense::UpdateOption(const char *option, double value){
 	algo->UpdateOption(option,value);
 }
 
-void FBstabDense::SetDisplayLevel(FBstabAlgorithm::Display level){
+void FBstabDense::SetDisplayLevel(FBstabAlgoDense::Display level){
 	algo->display_level = level;
 }
 

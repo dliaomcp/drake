@@ -18,7 +18,7 @@ int main(){
 
 	FBstabDense solver(2,2);
 
-	QPData data;
+	QPDataDense data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -29,7 +29,7 @@ int main(){
 	double y[] = {0,0};
 
 	solver.UpdateOption("abs_tol",1e-7);
-	solver.SetDisplayLevel(FBstabAlgorithm::ITER);
+	solver.SetDisplayLevel(FBstabAlgoDense::ITER);
 	solver.Solve(data,z,v,y);
 
 	cout << "z = ("<< z[0] << ", " << z[1] << ")\n";
@@ -43,7 +43,7 @@ int main(){
 	double A2[] = {0,1,-1,0,0,0,0,-1};
 	double b2[] = {0,3,-1,-1};
 
-	QPData data2;
+	QPDataDense data2;
 	data2.H = H2;
 	data2.f = f2;
 	data2.A = A2;
@@ -53,7 +53,7 @@ int main(){
 	double y2[] = {0,0,0,0};
 
 	FBstabDense solver2(2,4);
-	solver2.SetDisplayLevel(FBstabAlgorithm::ITER);
+	solver2.SetDisplayLevel(FBstabAlgoDense::ITER);
 	solver2.Solve(data2,z2,v2,y2);
 
 	cout << "z = ("<< z2[0] << ", " << z2[1] << ")\n";

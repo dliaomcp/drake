@@ -9,14 +9,16 @@ namespace solvers {
 namespace fbstab {
 
 // a data to store input data
-// Rename me? QPDataDense?
-struct QPData {
+struct QPDataDense {
 	double *H = nullptr;
 	double *f = nullptr;
 	double *A = nullptr;
 	double *b = nullptr;
 	
 };
+
+// Conveience type for the templated dense version of the algorithm
+using FBstabAlgoDense = FBstabAlgorithm<DenseVariable,DenseResidual,DenseData,DenseLinearSolver,DenseFeasibilityCheck>;
 
 // the main object for the C++ API
 class FBstabDense {
@@ -32,11 +34,11 @@ class FBstabDense {
  	// z = new double[n]
  	// v,y = new double[q]
  	// the solution is stored in z and v with y = b - Az
- 	SolverOut Solve(const QPData &qp, double *z, double *v, double *y, bool use_initial_guess = true);
+ 	SolverOut Solve(const QPDataDense &qp, double *z, double *v, double *y, bool use_initial_guess = true);
 
  	void UpdateOption(const char *option, double value);
  	void UpdateOption(const char *option, int value);
- 	void SetDisplayLevel(FBstabAlgorithm::Display level);
+ 	void SetDisplayLevel(FBstabAlgoDense::Display level);
  	void CheckInfeasibility(bool check);
 
  	// destructor
@@ -45,7 +47,7 @@ class FBstabDense {
  private:
  	int n = 0;
  	int q = 0;
- 	FBstabAlgorithm *algo = nullptr;
+ 	FBstabAlgoDense *algo = nullptr;
 };
 
 }  // namespace fbstab
