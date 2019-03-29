@@ -232,7 +232,7 @@ void DenseResidual::Fill(double a){
 }
 
 double DenseResidual::Norm() const{
-	return rz.norm() + rv.norm();
+	return z_norm + v_norm;
 }
 
 double DenseResidual::AbsSum(){

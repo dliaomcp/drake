@@ -27,13 +27,11 @@ struct SolverOut {
 	int prox_iters;
 };
 
-// TODO: Make me a template class 
+
 // this class implements the FBstab algorithm
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 class FBstabAlgorithm{
  public:
-	bool check_infeasibility = true;
-
 	// display settings
 	enum Display {
 		OFF = 0, // no display
@@ -43,12 +41,13 @@ class FBstabAlgorithm{
 	};
 
 	FBstabAlgorithm::Display display_level = ITER_DETAILED;
+	bool check_infeasibility = true;
 
 	// initializes the component objects needed by the solver
 	FBstabAlgorithm(Variable *x1, Variable *x2, 
 		Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck);
 
-	// run the solve routine for a given problem data
+	// run the solve routine for given problem data and initial guess
 	SolverOut Solve(Data *qp_data, Variable *x0);
 
 	void UpdateOption(const char *option, double value);

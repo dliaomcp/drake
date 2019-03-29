@@ -39,9 +39,7 @@ SolverOut FBstabDense::Solve(const QPDataDense &qp, double *z, double *v,
 	double *y, bool use_initial_guess){
 
 	QPsize size = {n,q};
-
 	DenseData data(qp.H,qp.f,qp.A,qp.b,size);
-
 	DenseVariable x0(size,z,v,y);
 
 	if(!use_initial_guess){

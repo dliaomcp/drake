@@ -22,7 +22,7 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
 	
 	FBstabDense solver(n,q);
 
-	QPData data;
+	QPDataDense data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -33,7 +33,7 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
 	double y[] = {0,0};
 
 	solver.UpdateOption("abs_tol",1e-8);
-	solver.SetDisplayLevel(FBstabAlgorithm::OFF);
+	solver.SetDisplayLevel(FBstabAlgoDense::OFF);
 	SolverOut out = solver.Solve(data,z,v,y);
 
 	ASSERT_EQ(out.eflag,SUCCESS);
@@ -60,7 +60,7 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
 	int q = 5;
 	FBstabDense solver(n,q);
 
-	QPData data;
+	QPDataDense data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -71,7 +71,7 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
 	double y[5] = {0};
 
 	solver.UpdateOption("abs_tol",1e-8);
-	solver.SetDisplayLevel(FBstabAlgorithm::OFF);
+	solver.SetDisplayLevel(FBstabAlgoDense::OFF);
 	SolverOut out = solver.Solve(data,z,v,y);
 
 	ASSERT_EQ(out.eflag,SUCCESS);
@@ -98,7 +98,7 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
 	int q = 5;
 	FBstabDense solver(n,q);
 
-	QPData data;
+	QPDataDense data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -109,7 +109,7 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
 	double y[5] = {0};
 
 	solver.UpdateOption("abs_tol",1e-8);
-	solver.SetDisplayLevel(FBstabAlgorithm::OFF);
+	solver.SetDisplayLevel(FBstabAlgoDense::OFF);
 	SolverOut out = solver.Solve(data,z,v,y);
 
 	ASSERT_EQ(out.eflag,INFEASIBLE);
@@ -126,7 +126,7 @@ GTEST_TEST(FBstabDense, UnboundedQP) {
 	int q = 4;
 	FBstabDense solver(n,q);
 
-	QPData data;
+	QPDataDense data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -137,7 +137,7 @@ GTEST_TEST(FBstabDense, UnboundedQP) {
 	double y[4] = {0};
 
 	solver.UpdateOption("abs_tol",1e-8);
-	solver.SetDisplayLevel(FBstabAlgorithm::OFF);
+	solver.SetDisplayLevel(FBstabAlgoDense::OFF);
 	SolverOut out = solver.Solve(data,z,v,y);
 
 	ASSERT_EQ(out.eflag,UNBOUNDED_BELOW);
