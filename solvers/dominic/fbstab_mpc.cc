@@ -48,6 +48,18 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc){
 	algo_ = new FBstabAlgoMPC(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
 }
 
+void FBstabMPC::UpdateOptions()
+
+void UpdateOption(const char *option, double value);
+void UpdateOption(const char *option, int value);
+void SetDisplayLevel(FBstabAlgoDense::Display level);
+void CheckInfeasibility(bool check);
+
+FBstabMPC::~FBstabMPC(){
+	algo_->DeleteComponents();
+	delete algo_;
+}
+
 
 
 

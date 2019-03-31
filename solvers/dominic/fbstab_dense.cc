@@ -58,13 +58,12 @@ void FBstabDense::UpdateOption(const char *option, int value){
 void FBstabDense::UpdateOption(const char *option, double value){
 	algo->UpdateOption(option,value);
 }
+void FBstabDense::UpdateOption(const char *option, bool value){
+	algo->UpdateOption(option,value);
+}
 
 void FBstabDense::SetDisplayLevel(FBstabAlgoDense::Display level){
 	algo->display_level = level;
-}
-
-void FBstabDense::CheckInfeasibility(bool check){
-	algo->check_infeasibility = check;
 }
 
 FBstabDense::~FBstabDense(){

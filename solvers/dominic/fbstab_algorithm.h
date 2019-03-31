@@ -41,8 +41,7 @@ class FBstabAlgorithm{
 	};
 
 	FBstabAlgorithm::Display display_level = ITER_DETAILED;
-	bool check_infeasibility = true;
-
+	
 	// initializes the component objects needed by the solver
 	FBstabAlgorithm(Variable *x1, Variable *x2, 
 		Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck);
@@ -52,6 +51,7 @@ class FBstabAlgorithm{
 
 	void UpdateOption(const char *option, double value);
 	void UpdateOption(const char *option, int value);
+	void UpdateOption(const char *option, bool value);
 	void DeleteComponents();
 
  private:
@@ -130,6 +130,8 @@ class FBstabAlgorithm{
 	int max_prox_iters = 30;
 	int max_inner_iters = 50;
 	int max_linesearch_iters = 20;
+
+	bool check_feasibility = true;
 
 };
 

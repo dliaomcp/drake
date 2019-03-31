@@ -81,9 +81,7 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	int newton_iters = 0;
 	int prox_iters = 0;
 
-	if(display_level == ITER){
-		IterHeader();
-	}
+	IterHeader();
 
 	// prox loop *************************************
 	for(int k = 0;k<max_prox_iters;k++){
@@ -101,18 +99,13 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 			output.prox_iters = prox_iters;
 			x0->Copy(*xk);
 
-			if(display_level >= FINAL){
-				PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
-			}
+			PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 			return output;
 		}
 		// TODO: add a divergence check
 
-		if(display_level == ITER_DETAILED){
-			DetailedHeader(prox_iters,newton_iters,*rk);
-		} else if(display_level == ITER){
-			IterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
-		}
+		DetailedHeader(prox_iters,newton_iters,*rk);
+		IterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
 
 		// update tolerance
 		inner_tol = FBstabAlgorithm::min(inner_tol_multiplier*inner_tol,Ek);
@@ -140,15 +133,10 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 			// b) The outer residual cannot be decreased 
 			// (happens if problem is infeasible)
 			if((Ei <= inner_tol && Eo < Ekpen) || (Ei <= inner_tol_min)){
-				if(display_level == ITER_DETAILED){
-					DetailedFooter(inner_tol,*ri);
-				}
+				DetailedFooter(inner_tol,*ri);
 				break;
 			}
-
-			if(display_level == ITER_DETAILED){
-				DetailedLine(i,t,*ri);
-			}
+			DetailedLine(i,t,*ri);
 
 			if(newton_iters >= max_newton_iters){
 				output.eflag = MAXITERATIONS;
@@ -162,9 +150,7 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 				}
 				output.newton_iters = newton_iters;
 				output.prox_iters = prox_iters;
-				if(display_level >= FINAL){
-					PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
-				}
+				PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 				return output;
 			}
 
@@ -210,7 +196,7 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 		dx->axpy(*xk,-1.0);
 
 		// check for infeasibility
-		if(check_infeasibility){
+		if(check_feasibility){
 			InfeasibilityStatus status = CheckInfeasibility(*dx);
 			if(status != FEASIBLE){
 				if(status == PRIMAL){
@@ -222,9 +208,7 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 				output.newton_iters = newton_iters;
 				output.prox_iters = prox_iters;
 				x0->Copy(*dx);
-				if(display_level >= FINAL){
-					PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
-				}
+				PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 				return output;
 			}
 		}
@@ -241,9 +225,8 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	output.newton_iters = newton_iters;
 	output.prox_iters = prox_iters;
 	x0->Copy(*xk);
-	if(display_level >= FINAL){
-		PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
-	}
+
+	PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 	return output;
 }
 
@@ -303,7 +286,6 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
-
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::UpdateOption(const char* option, int value){
 	if(strcmp(option,"max_newton_iters")){
@@ -314,6 +296,16 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 		max_inner_iters = max(value,1);
 	} else if(strcmp(option,"max_linesearch_iters")){
 		max_linesearch_iters = max(value,1);
+	} else{
+		printf("%s is not an option, no action taken\n",option);
+	}
+}
+
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::UpdateOption(const char* option, bool value){
+	if(strcmp(option,"check_feasibility")){
+		check_feasibility = value;
 	} else{
 		printf("%s is not an option, no action taken\n",option);
 	}
@@ -364,63 +356,75 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const Residual &r){
-	printf("Optimization completed\n Exit code:");
-	switch(eflag){
-		case SUCCESS:
-			printf(" Success\n");
-			break;
-		case DIVERGENCE:
-			printf(" Divergence\n");
-			break;
-		case MAXITERATIONS:
-			printf(" Iteration limit exceeded\n");
-			break;
-		case INFEASIBLE:
-			printf(" Primal Infeasibility\n");
-			break;
-		case UNBOUNDED_BELOW:
-			printf(" Unbounded Below\n");
-			break;
-		default:
-			printf(" ???\n");
+
+	if(display_level >= FINAL){
+		printf("Optimization completed\n Exit code:");
+		switch(eflag){
+			case SUCCESS:
+				printf(" Success\n");
+				break;
+			case DIVERGENCE:
+				printf(" Divergence\n");
+				break;
+			case MAXITERATIONS:
+				printf(" Iteration limit exceeded\n");
+				break;
+			case INFEASIBLE:
+				printf(" Primal Infeasibility\n");
+				break;
+			case UNBOUNDED_BELOW:
+				printf(" Unbounded Below\n");
+				break;
+			default:
+				printf(" ???\n");
+		}
+		printf("Proximal iterations: %d out of %d\n", prox_iters, max_prox_iters);
+		printf("Newton iterations: %d out of %d\n", newton_iters,max_newton_iters);
+		printf("%10s  %10s  %10s  %10s\n","|rz|","|rl|","|rv|","Tolerance");
+		printf("%10.4e  %10.4e  %10.4e  %10.4e\n",r.z_norm,r.l_norm,r.v_norm,abs_tol);
 	}
-	printf("Proximal iterations: %d out of %d\n", prox_iters, max_prox_iters);
-	printf("Newton iterations: %d out of %d\n", newton_iters,max_newton_iters);
-	printf("%10s  %10s  %10s  %10s\n","|rz|","|rl|","|rv|","Tolerance");
-	printf("%10.4e  %10.4e  %10.4e  %10.4e\n",r.z_norm,r.l_norm,r.v_norm,abs_tol);
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::IterHeader(){
-	printf("%12s  %12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rl|","|rv|","Inner res","Inner tol");
+	if(display_level == ITER){
+		printf("%12s  %12s  %12s  %12s  %12s  %12s  %12s\n","prox iter","newton iters","|rz|","|rl|","|rv|","Inner res","Inner tol");
+	}
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::IterLine(int prox_iters, int newton_iters, const Residual &r, const Residual &r_inner,double itol){
-	printf("%12d  %12d  %12.4e  %12.4e  %12.4e  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.l_norm,r.v_norm,r_inner.Norm(),itol);
+	if(display_level == ITER){
+		printf("%12d  %12d  %12.4e  %12.4e  %12.4e  %12.4e  %12.4e\n",prox_iters,newton_iters,r.z_norm,r.l_norm,r.v_norm,r_inner.Norm(),itol);
+	}
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::DetailedHeader(int prox_iters, int newton_iters, const Residual &r){
-	double t = r.Norm();
-	printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",prox_iters,newton_iters,t);
-
-	printf("%10s  %10s  %10s  %10s  %10s\n","Iter","Step Size","|rz|","|rv|","|rl|");
+	if(display_level == ITER_DETAILED){
+		double t = r.Norm();
+		printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",prox_iters,newton_iters,t);
+		printf("%10s  %10s  %10s  %10s  %10s\n","Iter","Step Size","|rz|","|rv|","|rl|");
+	}
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::DetailedLine(int iter, double step_length, const Residual &r){
-	printf("%10d  %10e  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.v_norm,r.l_norm);
+	if(display_level == ITER_DETAILED){
+		printf("%10d  %10e  %10e  %10e  %10e\n",iter,step_length,r.z_norm,r.v_norm,r.l_norm);
+	}
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::DetailedFooter(double tol, const Residual &r){
+	if(display_level == ITER_DETAILED){
 	printf("Exiting inner loop. Inner residual: %6.4e, Inner tolerance: %6.4e\n",r.Norm(),tol);
+	}
 }
 
 }  // namespace fbstab
