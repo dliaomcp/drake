@@ -38,6 +38,7 @@ class FBstabDense {
 
  	void UpdateOption(const char *option, double value);
  	void UpdateOption(const char *option, int value);
+ 	void UpdateOption(const char *option, bool value);
  	void SetDisplayLevel(FBstabAlgoDense::Display level);
  	void CheckInfeasibility(bool check);
 
