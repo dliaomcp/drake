@@ -39,7 +39,7 @@ class FBstabAlgorithm{
 		ITER_DETAILED = 3 // print inner loop information
 	};
 
-	FBstabAlgorithm::Display display_level = ITER_DETAILED;
+	FBstabAlgorithm::Display display_level = FINAL;
 
 	// initializes the component objects needed by the solver
 	FBstabAlgorithm(Variable *x1, Variable *x2, 

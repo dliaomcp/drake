@@ -77,7 +77,6 @@ int main(){
 	solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
 	solver.Solve(data,z,l,v,y);
 
-
 	delete[] z;
 	delete[] l;
 	delete[] v;
