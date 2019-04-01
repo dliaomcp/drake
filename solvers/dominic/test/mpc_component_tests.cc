@@ -158,7 +158,7 @@ GTEST_TEST(MPCComponents,MPCData) {
 }
 
 
-GTEST_TEST(MPCComponents,MSVariable) {
+GTEST_TEST(MPCComponents,MPCVariable) {
 
 	// set up the QP
 	int N = 2;
@@ -205,8 +205,8 @@ GTEST_TEST(MPCComponents,MSVariable) {
 	// data object
 	MPCData data(Qt,Rt,St,qt,rt,At,Bt,ct,Et,Lt,dt,x0,size);
 
-	MSVariable x(size);
-	MSVariable y(size);
+	MPCVariable x(size);
+	MPCVariable y(size);
 
 	x.LinkData(&data);
 	y.LinkData(&data);
@@ -249,7 +249,7 @@ GTEST_TEST(MPCComponents,MSVariable) {
 	test::free_repmat(dt,N+1);
 }
 
-GTEST_TEST(MPCComponents,MSResidual) {
+GTEST_TEST(MPCComponents,MPCResidual) {
 
 	// set up the QP
 	int N = 2;
@@ -292,8 +292,8 @@ GTEST_TEST(MPCComponents,MSResidual) {
 	// data object
 	MPCData data(Qt,Rt,St,qt,rt,At,Bt,ct,Et,Lt,dt,x0,size);
 
-	MSVariable x(size);
-	MSVariable y(size);
+	MPCVariable x(size);
+	MPCVariable y(size);
 
 	x.LinkData(&data);
 	y.LinkData(&data);
@@ -304,7 +304,7 @@ GTEST_TEST(MPCComponents,MSResidual) {
 	double sigma = 1.0;
 
 
-	MSResidual res(size);
+	MPCResidual res(size);
 	res.LinkData(&data);
 	res.FBresidual(x,y,sigma);
 
@@ -382,8 +382,8 @@ GTEST_TEST(MPCComponents,RicattiLinearSolver) {
 	// data object
 	MPCData data(Qt,Rt,St,qt,rt,At,Bt,ct,Et,Lt,dt,x0,size);
 
-	MSVariable x(size);
-	MSVariable y(size);
+	MPCVariable x(size);
+	MPCVariable y(size);
 	x.LinkData(&data);
 	y.LinkData(&data);
 
@@ -407,11 +407,11 @@ GTEST_TEST(MPCComponents,RicattiLinearSolver) {
 	ls.Factor(x,y,sigma);
 
 	// create the residual then solve
-	MSResidual res(size);
+	MPCResidual res(size);
 	res.LinkData(&data);
 	res.FBresidual(x,y,sigma);
 
-	MSVariable dx(size);
+	MPCVariable dx(size);
 	ls.Solve(res,&dx);
 
 	// expected dx values

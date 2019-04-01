@@ -9,6 +9,8 @@
 #include "drake/solvers/dominic/components/ricatti_linear_solver.h"
 #include "drake/solvers/dominic/components/mpc_feasibility.h"
 
+#include "drake/solvers/dominic/fbstab_algorithm.h"
+
 namespace drake {
 namespace solvers {
 namespace fbstab {
@@ -23,7 +25,7 @@ struct QPDataMPC {
 	double **A = nullptr;
 	double **B = nullptr;
 	double **c = nullptr;
-	double **x0 = nullptr;
+	double *x0 = nullptr;
 
 	double **E = nullptr;
 	double **L = nullptr;
@@ -31,20 +33,20 @@ struct QPDataMPC {
 };
 
 // Conveience type for the templated version of the algorithm
-using FBstabAlgoMPC = FBstabAlgorithm<MSVariable,MSResidual,MCPCData,RicattiLinearSolver,MPCFeasibility>;
+using FBstabAlgoMPC = FBstabAlgorithm<MPCVariable,MPCResidual,MPCData,RicattiLinearSolver,MPCFeasibility>;
 
 class FBstabMPC {
  public:
 
  	FBstabMPC(int N, int nx, int nu, int nc);
- 	SolverOut Solve(const QPDataMPC &qp, double *z, double *l, double *v, double *y, bool use_initial_guess = true);
-
  	~FBstabMPC();
+
+ 	SolverOut Solve(const QPDataMPC &qp, double *z, double *l, double *v, double *y, bool use_initial_guess = true);
 
  	void UpdateOption(const char *option, double value);
  	void UpdateOption(const char *option, int value);
- 	void SetDisplayLevel(FBstabAlgoDense::Display level);
- 	void CheckInfeasibility(bool check);
+ 	void UpdateOption(const char *option, bool value);
+ 	void SetDisplayLevel(FBstabAlgoMPC::Display level);
 
  private:
  	int nx_,nu_,N_,nc_,nv_,nl_,nz_;

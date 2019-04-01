@@ -36,14 +36,13 @@ class FBstabDense {
  	// the solution is stored in z and v with y = b - Az
  	SolverOut Solve(const QPDataDense &qp, double *z, double *v, double *y, bool use_initial_guess = true);
 
+ 	~FBstabDense();
+ 	
  	void UpdateOption(const char *option, double value);
  	void UpdateOption(const char *option, int value);
  	void UpdateOption(const char *option, bool value);
  	void SetDisplayLevel(FBstabAlgoDense::Display level);
- 	void CheckInfeasibility(bool check);
 
- 	// destructor
- 	~FBstabDense();
 
  private:
  	int n = 0;

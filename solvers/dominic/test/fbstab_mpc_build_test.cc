@@ -1,7 +1,4 @@
-#include "drake/solvers/dominic/components/mpc_data.h"
-#include "drake/solvers/dominic/components/mpc_variable.h"
-#include "drake/solvers/dominic/components/mpc_residual.h"
-#include "drake/solvers/dominic/components/ricatti_linear_solver.h"
+#include "drake/solvers/dominic/fbstab_mpc.h"
 
 #include <cmath>
 
@@ -17,10 +14,6 @@ int main(){
 	int nx = 2;
 	int nu = 1;
 	int nc = 6;
-
-	// int nz = (N+1)*(nx+nu);
-	// int nl = (N+1)*nx;
-	// int nv = (N+1)*nc;
 
 	double Q[] = {2,0,0,1};
 	double S[] = {1,0};
@@ -52,48 +45,43 @@ int main(){
 	double** Lt = test::repmat(L,6,1,N+1);
 	double** dt = test::repmat(d,6,1,N+1);
 
-	QPsizeMPC size = {N,nx,nu,nc};
-	// data object
-	MPCData data(Qt,Rt,St,qt,rt,At,Bt,ct,Et,Lt,dt,x0,size);
 
-	MPCVariable x(size);
-	MPCVariable y(size);
+	int nz = (N+1)*(nx+nu);
+	int nl = (N+1)*nx;
+	int nv = (N+1)*nc;
 
-	x.LinkData(&data);
-	y.LinkData(&data);
-
-	x.z_.fill(1);
-	x.l_.fill(2);
-	x.v_.fill(4);
-
-	y.z_.fill(2);
-	y.l_.fill(1);
-	y.v_.fill(3);
-
-	x.InitConstraintMargin();
-	y.InitConstraintMargin();
-
-	double sigma = 1.0;
-
-	RicattiLinearSolver ls(size);
-	ls.LinkData(&data);
-	ls.Factor(x,y,sigma);
-
-	MPCResidual res(size);
-	res.LinkData(&data);
-	res.FBresidual(x,y,sigma);
+	double *z = new double[nz];
+	double *l = new double[nl];
+	double *v = new double[nv];
+	double *y = new double[nv];
 
 
-	MPCVariable dx(size);
-	ls.Solve(res,&dx);
+	QPDataMPC data;
+	data.Q = Qt;
+	data.R = Rt;
+	data.S = St;
+	data.q = qt;
+	data.r = rt;
+	data.A = At;
+	data.B = Bt;
+	data.c = ct;
+	data.x0 = x0;
 
-	cout << ls.th_ << endl;
-	cout << ls.h_<< endl;
+	data.E = Et;
+	data.L = Lt;
+	data.d = dt;
 
-	cout << dx.z_ << endl;
-	cout << dx.l_ << endl;
-	cout << dx.v_ << endl;
 
+	FBstabMPC solver(N,nx,nu,nc);
+
+	solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+	solver.Solve(data,z,l,v,y);
+
+
+	delete[] z;
+	delete[] l;
+	delete[] v;
+	delete[] y;
 
 	test::free_repmat(Qt,N+1);
 	test::free_repmat(Rt,N+1);
