@@ -162,4 +162,13 @@ drake_cc_googletest( # fbstab_dense
     ],
 )
 
+drake_cc_googletest( # fbstab_mpc
+    name = "fbstab_mpc_tests",
+    srcs = ["test/fbstab_mpc_tests.cc",
+            "test/test_helpers.h"],
+    deps = [":static_matrix",
+            ":fbstab_mpc"
+    ],
+)
+
 

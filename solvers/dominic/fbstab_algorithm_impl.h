@@ -100,13 +100,15 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 			output.prox_iters = prox_iters;
 			x0->Copy(*xk);
 
+			PrintIterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
 			PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
 			return output;
+		} else{
+			PrintDetailedHeader(prox_iters,newton_iters,*rk);
+			PrintIterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
 		}
-		// TODO: add a divergence check
 
-		PrintDetailedHeader(prox_iters,newton_iters,*rk);
-		PrintIterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
+		// TODO: add a divergence check
 
 		// update tolerance
 		inner_tol = FBstabAlgorithm::min(inner_tol_multiplier*inner_tol,Ek);
@@ -134,11 +136,12 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 			// b) The outer residual cannot be decreased 
 			// (happens if problem is infeasible)
 			if((Ei <= inner_tol && Eo < Ekpen) || (Ei <= inner_tol_min)){
+				PrintDetailedLine(i,t,*ri);
 				PrintDetailedFooter(inner_tol,*ri);
 				break;
+			} else{
+				PrintDetailedLine(i,t,*ri);
 			}
-			
-			PrintDetailedLine(i,t,*ri);
 
 			if(newton_iters >= max_newton_iters){
 				output.eflag = MAXITERATIONS;
@@ -360,7 +363,7 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const Residual &r){
 
 	if(display_level >= FINAL){
-		printf("Optimization completed\n Exit code:");
+		printf("Optimization completed!  Exit code:");
 		switch(eflag){
 			case SUCCESS:
 				printf(" Success\n");
