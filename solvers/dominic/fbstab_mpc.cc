@@ -9,8 +9,6 @@
 #include "drake/solvers/dominic/components/ricatti_linear_solver.h"
 #include "drake/solvers/dominic/components/mpc_feasibility.h"
 
-
-
 namespace drake {
 namespace solvers {
 namespace fbstab {
@@ -34,33 +32,58 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc){
 	size.nc = nc;
 
 	// create the components
-	MSVariable *x1 = new MSVariable(size);
-	MSVariable *x2 = new MSVariable(size);
-	MSVariable *x3 = new MSVariable(size);
-	MSVariable *x4 = new MSVariable(size);
+	MPCVariable *x1 = new MPCVariable(size);
+	MPCVariable *x2 = new MPCVariable(size);
+	MPCVariable *x3 = new MPCVariable(size);
+	MPCVariable *x4 = new MPCVariable(size);
 
-	MSResidual *r1 = new MSResidual(size);
-	MSResidual *r2 = new MSResidual(size);
+	MPCResidual *r1 = new MPCResidual(size);
+	MPCResidual *r2 = new MPCResidual(size);
 
 	RicattiLinearSolver *linsolve = new RicattiLinearSolver(size);
-	MSVariable *fcheck = new MPCFeasibility(size);
+	MPCFeasibility *fcheck = new MPCFeasibility(size);
 
 	algo_ = new FBstabAlgoMPC(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
 }
 
-void FBstabMPC::UpdateOptions()
+SolverOut FBstabMPC::Solve(const QPDataMPC &qp, double *z, double *l, double *v, double *y, bool use_initial_guess){
 
-void UpdateOption(const char *option, double value);
-void UpdateOption(const char *option, int value);
-void SetDisplayLevel(FBstabAlgoDense::Display level);
-void CheckInfeasibility(bool check);
+	QPsizeMPC size;
+	size.nx = nx_;
+	size.nu = nu_;
+	size.nc = nc_;
+	size.N = N_;
+
+	MPCData data(qp.Q,qp.R,qp.S,qp.q,qp.r,qp.A,qp.B,qp.c,qp.E,qp.L,qp.d,qp.x0,size);
+	MPCVariable x0(size,z,l,v,y);
+
+	if(!use_initial_guess){
+		x0.z_.fill(0.0);
+		x0.l_.fill(0.0);
+		x0.v_.fill(0.0);
+		x0.y_.fill(0.0);
+	}
+
+	return algo_->Solve(&data,&x0);
+}
+
+void FBstabMPC::UpdateOption(const char *option, double value){
+	algo_->UpdateOption(option,value);
+}
+void FBstabMPC::UpdateOption(const char *option, int value){
+	algo_->UpdateOption(option,value);
+}
+void FBstabMPC::UpdateOption(const char *option, bool value){
+	algo_->UpdateOption(option,value);
+}
+void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level){
+	algo_->display_level = level;
+}
 
 FBstabMPC::~FBstabMPC(){
 	algo_->DeleteComponents();
 	delete algo_;
 }
-
-
 
 
 }  // namespace fbstab

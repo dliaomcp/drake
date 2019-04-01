@@ -161,6 +161,10 @@ void DenseResidual::LinkData(DenseData *data_){
 	this->data = data_;
 }
 
+void DenseResidual::SetAlpha(double alpha_){
+	alpha = alpha_;
+}
+
 void DenseResidual::Negate(){
 	rz *= -1.0;
 	rv *= -1.0;
@@ -297,6 +301,10 @@ void DenseLinearSolver::LinkData(DenseData *data_){
 	this->data = data_;
 }
 
+void DenseLinearSolver::SetAlpha(double alpha_){
+	alpha = alpha_;
+}
+
 bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar, double sigma){
 
 	// compute K = H + sigma I + A'*Gamma A
@@ -406,6 +414,11 @@ DenseFeasibilityCheck::~DenseFeasibilityCheck(){
 	delete[] z1.data;
 	delete[] z2.data;
 	delete[] v1.data;
+}
+
+DenseFeasibilityCheck::void LinkData(MPCData *data){
+	int i = 0;
+	i++;
 }
 
 void DenseFeasibilityCheck::CheckFeasibility(const DenseVariable &x, double tol){

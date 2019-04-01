@@ -78,7 +78,9 @@ class DenseResidual{
 	// methods *************************************
 	DenseResidual(QPsize size);
 	~DenseResidual();
+
 	void LinkData(DenseData *data);
+	void SetAlpha(double alpha_);
 	void Negate(); // y <- -1*y
 
 	// compute the penalized FB residual at (x,xbar,sigma)
@@ -113,6 +115,8 @@ class DenseLinearSolver{
  	~DenseLinearSolver();
 
  	void LinkData(DenseData *data);
+ 	void SetAlpha(double alpha_);
+ 	
 	bool Factor(const DenseVariable &x, const DenseVariable &xbar, double sigma);
 	bool Solve(const DenseResidual &r, DenseVariable *x);
 
@@ -142,6 +146,8 @@ class DenseFeasibilityCheck{
  
  	DenseFeasibilityCheck(QPsize size);
  	~DenseFeasibilityCheck();
+
+ 	void LinkData(MPCData *data);
 
  	void CheckFeasibility(const DenseVariable &x, double tol);
 

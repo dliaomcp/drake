@@ -3,7 +3,6 @@
 #include <cmath>
 #include <cstdio>
 
-#include "drake/solvers/dominic/components/dense_components.h"
 #include "drake/solvers/dominic/linalg/static_matrix.h"
 
 namespace drake {
@@ -41,7 +40,7 @@ class FBstabAlgorithm{
 	};
 
 	FBstabAlgorithm::Display display_level = ITER_DETAILED;
-	
+
 	// initializes the component objects needed by the solver
 	FBstabAlgorithm(Variable *x1, Variable *x2, 
 		Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck);
@@ -85,11 +84,11 @@ class FBstabAlgorithm{
 	}
 
 	// printing
-	void IterHeader();
-	void IterLine(int prox_iters, int newton_iters, const Residual &r, const Residual &r_inner,double itol);
-	void DetailedHeader(int prox_iters, int newton_iters, const Residual &r);
-	void DetailedLine(int iter, double step_length, const Residual &r);
-	void DetailedFooter(double tol, const Residual &r);
+	void PrintIterHeader();
+	void PrintIterLine(int prox_iters, int newton_iters, const Residual &r, const Residual &r_inner,double itol);
+	void PrintDetailedHeader(int prox_iters, int newton_iters, const Residual &r);
+	void PrintDetailedLine(int iter, double step_length, const Residual &r);
+	void PrintDetailedFooter(double tol, const Residual &r);
 	void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const Residual &r);
 
 	static bool strcmp(const char *x, const char *y);
