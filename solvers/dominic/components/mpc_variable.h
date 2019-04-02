@@ -10,7 +10,7 @@ namespace fbstab {
 
 
 /**
- * A class that implements primal-dual variables for model predictive
+ * Implements primal-dual variables for model predictive
  * control QPs. See mpc_data.h for the mathematical description.
  * Stores variables and defines methods implementing useful operations.
  * 
