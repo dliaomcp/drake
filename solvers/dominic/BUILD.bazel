@@ -58,7 +58,7 @@ drake_cc_library(
     srcs = ["fbstab_dense.h",
             "fbstab_dense.cc",
             "fbstab_algorithm.h",
-            "fbstab_algorithm_impl.h"
+            "fbstab_algorithm-inl.h"
     ],
     hdrs = ["fbstab_dense.h"],
     deps = [":static_matrix",
@@ -70,7 +70,7 @@ drake_cc_library(
     srcs = ["fbstab_mpc.h",
             "fbstab_mpc.cc",
             "fbstab_algorithm.h",
-            "fbstab_algorithm_impl.h"
+            "fbstab_algorithm-inl.h"
     ],
     hdrs = ["fbstab_mpc.h"],
     deps = [":static_matrix",
