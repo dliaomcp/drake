@@ -46,20 +46,20 @@ namespace fbstab {
  * column major format for i = 0, ..., N. (or sometimes N-1)
  *
  * Fields:
- * Q = Q0,Q1,..., QN, sizeof(Q) = N+1, sizeof(Q[i]) = nx*nx
- * R = R0,R1,..., RN, sizeof(R) = N+1, sizeof(R[i]) = nu*nu
- * S = S0,S1,..., SN, sizeof(S) = N+1, sizeof(S[i]) = nu*nx
- * q = q0,q1,..., qN, sizeof(q) = N+1, sizeof(q[i]) = nx
- * r = r0,r1,..., rN, sizeof(r) = N+1, sizeof(r[i]) = nu
+ * Q = Q0,Q1,..., QN, length(Q) = N+1, length(Q[i]) = nx*nx
+ * R = R0,R1,..., RN, length(R) = N+1, length(R[i]) = nu*nu
+ * S = S0,S1,..., SN, length(S) = N+1, length(S[i]) = nu*nx
+ * q = q0,q1,..., qN, length(q) = N+1, length(q[i]) = nx
+ * r = r0,r1,..., rN, length(r) = N+1, length(r[i]) = nu
  *
- * A = A0,A1,..., AN-1, sizeof(A) = N, sizeof(A[i]) = nx*nx
- * B = B0,B1,..., BN-1, sizeof(B) = N, sizeof(B[i]) = nx*nu
- * c = c0,c1,..., cN-1, sizeof(c) = N, sizeof(c[i]) = nx
- * x0, sizeof(x0) = nx
+ * A = A0,A1,..., AN-1, length(A) = N, length(A[i]) = nx*nx
+ * B = B0,B1,..., BN-1, length(B) = N, length(B[i]) = nx*nu
+ * c = c0,c1,..., cN-1, length(c) = N, length(c[i]) = nx
+ * x0, length(x0) = nx
  *
- * E = E0,E1,..., EN, sizeof(E) = N+1, sizeof(E[i]) = nc*nx
- * L = L0,L1,..., LN, sizeof(L) = N+1, sizeof(L[i]) = nc*nu
- * d = d0,d1,..., dN, sizeof(d) = N+1, sizeof(d[i]) = nc
+ * E = E0,E1,..., EN, length(E) = N+1, length(E[i]) = nc*nx
+ * L = L0,L1,..., LN, length(L) = N+1, length(L[i]) = nc*nu
+ * d = d0,d1,..., dN, length(d) = N+1, sizeof(d[i]) = nc
  *
  * 
  * E.g., if Q0 =  [1 3],  Q1 = [5 7]

@@ -10,7 +10,7 @@ namespace solvers {
 namespace fbstab {
 
 /**
- * Possible return codes for the solver
+ * Return codes for the solver.
  */
 enum ExitFlag {
 	SUCCESS = 0,
@@ -21,8 +21,8 @@ enum ExitFlag {
 };
 
 /**
- * Structure for packaging the exit flag, overall residual, 
- * and iteration numbers
+ * Packages the exit flag, overall residual, 
+ * and iteration counts.
  * 
  */
 struct SolverOut {
@@ -34,11 +34,20 @@ struct SolverOut {
 
 /**
  * FBstabAlgorithm implements the FBstab solver for 
- * convex quadratic programs. The algorithm is applied to 
- * abstract component objects representing variables, residuals etc.
- * These are template parameters for the algorithm and
+ * convex quadratic programs. 
+ *
+ * FBstab tries to solve the following convex QP 
+ * 
+ * min.  1/2 z'*H*z + f'*z
+ * 
+ * s.t.  Gz =  h
+ *       Az <= b
+ *
+ * The algorithm is implemented using to abstract objects 
+ * representing variables, residuals etc. 
+ * These are template parameters for the class and
  * should be written so as to be efficient for specific classes
- * of QPs 
+ * of QPs.
  * 
  * @tparam Variable storage and methods for working with primal-dual variables 
  * @tparam Residual storage and methods for computing QP residuals

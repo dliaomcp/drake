@@ -147,7 +147,7 @@ class DenseFeasibilityCheck{
  	DenseFeasibilityCheck(QPsize size);
  	~DenseFeasibilityCheck();
 
- 	void LinkData(MPCData *data);
+ 	void LinkData(DenseData *data);
 
  	void CheckFeasibility(const DenseVariable &x, double tol);
 

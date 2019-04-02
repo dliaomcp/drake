@@ -11,18 +11,68 @@ namespace solvers {
 namespace fbstab {
 
 
+/**
+ * Implements a Ricatti recursion based method for solving linear systems of 
+ * equations that arise when solving MPC form QPs (see mpc_data.h) using FBstab.
+ * The equations have the form
+ * 								 K(x,xbar,sigma)*dx = r
+ * 								 
+ * where dx is a primal-dual variable and r is a residual object.
+ * 
+ * Contains workspace memory and methods for setting up and solving the linear
+ * systems.
+ */
 class RicattiLinearSolver{
  public:
- 	struct Point2D {double x; double y;};
 
+ 	/**
+ 	 * Allocates workspace memory.
+ 	 * @param[in] size QP dimensions
+ 	 * 
+ 	 */
  	RicattiLinearSolver(QPsizeMPC size);
+
+ 	/**
+ 	 * Frees allocated memory.
+ 	 */
  	~RicattiLinearSolver();
 
+ 	/**
+ 	 * Links to problem data needed to perform calculations.
+ 	 * @param[in] data Pointer to the data object defining the problem instance
+ 	 */
  	void LinkData(MPCData *data);
+
+ 	/**
+ 	 * Sets a parameter used in the algorithm
+ 	 * @param[in] alpha PFB parameter
+ 	 */
  	void SetAlpha(double alpha);
+
+ 	/**
+ 	 * Sets up and factors the lhs matrix K using a Ricatti recursion.
+ 	 * 
+ 	 * @param[in]  x     Current inner iterate
+ 	 * @param[in]  xbar  Current outer iterate
+ 	 * @param[in]  sigma Regularization parameter
+ 	 * @return       True if the factorization succeeds, false otherwise
+ 	 * 
+ 	 */
  	bool Factor(const MPCVariable &x, const MPCVariable &xbar, double sigma);
+
+ 	/**
+ 	 * Applies the Ricatti factorization to compute dx = inv(K)r
+ 	 * Undefined behaviour if Factor is not called first.
+ 	 * 
+ 	 * @param[in]  r  rhs residual vector
+ 	 * @param[out] dx storage for the solution
+ 	 * @return    true if the solve succeeds, false otherwise
+ 	 */
  	bool Solve(const MPCResidual &r, MPCVariable *dx);
 
+ 	/**
+ 	 * Workspace matrices. Public to enable access for testing purposes.
+ 	 */
  	// barrier augmented cost matrices
  	MatrixSequence Q_; 
  	MatrixSequence R_;
@@ -57,6 +107,10 @@ class RicattiLinearSolver{
  	StaticMatrix r2_;
 
  private:
+ 	/**
+ 	 * Structure used to return two scalars
+ 	 */
+ 	struct Point2D {double x; double y;};
  	int N_, nx_, nu_, nc_;
  	int nz_, nl_, nv_;
 
@@ -65,7 +119,13 @@ class RicattiLinearSolver{
  	bool memory_allocated_ = false;
  	double alpha_ = 0.95;
 
- 	Point2D PFBgrad(double a, double b, double sigma);
+ 	/**
+ 	 * Computes the gradient of the penalized Fischer-Burmeister function at (a,b)
+ 	 * @param  a     input point 1
+ 	 * @param  b     input point 2
+ 	 * @return       Structure containing (d/da phi, d/db phi)
+ 	 */
+ 	Point2D PFBgrad(double a, double b);
 };
 
 }  // namespace fbstab
