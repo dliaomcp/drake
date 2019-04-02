@@ -138,8 +138,6 @@ std::ostream &operator<<(std::ostream& output, const DenseVariable &x){
 
 // // DenseResidual *************************************
 
-// // TODO: throw an error if anything is done before
-// // linking a data object?
 DenseResidual::DenseResidual(QPsize size){
 	n = size.n;
 	q = size.q;
@@ -171,6 +169,8 @@ void DenseResidual::Negate(){
 }
 
 void DenseResidual::NaturalResidual(const DenseVariable& x){
+	if(data == nullptr)
+		throw std::runtime_error("Data not liked in DenseResidual");
 	// rz = H*z + f + A'*v
 	rz.fill(0.0);
 	rz += data->f;
@@ -187,6 +187,8 @@ void DenseResidual::NaturalResidual(const DenseVariable& x){
 }
 
 void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
+	if(data == nullptr)
+		throw std::runtime_error("Data not liked in DenseResidual");
 	// rz = H*z + f + A'*v
 	rz.fill(0.0);
 	rz += data->f;
@@ -206,7 +208,8 @@ void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 
 void DenseResidual::FBresidual(const DenseVariable& x, 
 		const DenseVariable& xbar, double sigma){
-
+	if(data == nullptr)
+		throw std::runtime_error("Data not liked in DenseResidual");
 	// rz = Hz + f + A'v + sigma(z - zbar)
 	rz.fill(0.0);
 	rz += data->f;
@@ -416,7 +419,7 @@ DenseFeasibilityCheck::~DenseFeasibilityCheck(){
 	delete[] v1.data;
 }
 
-DenseFeasibilityCheck::void LinkData(MPCData *data){
+void DenseFeasibilityCheck::LinkData(DenseData *data){
 	int i = 0;
 	i++;
 }

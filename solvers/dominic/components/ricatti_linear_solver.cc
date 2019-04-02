@@ -76,7 +76,6 @@ RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size){
 	Etemp_ = StaticMatrix(Etemp_mem,nc,nx);
 	Linv_ = StaticMatrix(Linv_mem,nx,nx);
 
-
 	tx_ = StaticMatrix(tx_mem,nx,1);
 	tu_ = StaticMatrix(tu_mem,nu,1);
 	tl_ = StaticMatrix(tl_mem,nx,1);
@@ -135,7 +134,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable&x, const MPCVariable &xbar, d
 	Point2D tmp;
 	for(int i = 0;i<nv;i++){
 		double ys = x.y_(i) + sigma*(x.v_(i) - xbar.v_(i));
-		tmp = PFBgrad(ys,x.v_(i),sigma);
+		tmp = PFBgrad(ys,x.v_(i));
 
 		gamma_(i) = tmp.x;
 		mus_(i) = tmp.y + sigma*tmp.x;
@@ -377,7 +376,7 @@ bool RicattiLinearSolver::Solve(const MPCResidual &r, MPCVariable *dx){
 }
 
 RicattiLinearSolver::Point2D RicattiLinearSolver::PFBgrad(double a,
- double b, double sigma){
+ double b){
 	double y = 0;
 	double x = 0;
 	double r = sqrt(a*a + b*b);

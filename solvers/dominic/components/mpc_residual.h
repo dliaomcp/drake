@@ -9,12 +9,25 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
+/**
+ * A class that computes and stores residuals for MPC QPs. See data.h
+ * for the mathematical description.
+ */
 class MPCResidual{
  public:
 
  	/**
- 	 * Allocates memory for computing QP residuals for an MPC
- 	 * problem of a given size
+ 	 * Residuals have 3 fields:
+ 	 * z: Primal/optimality residual
+ 	 * l: Equality constraint residual
+ 	 * v: Inequality constraint residual
+ 	 */
+ 	StaticMatrix z_;
+ 	StaticMatrix l_; 
+ 	StaticMatrix v_;
+
+ 	/**
+ 	 * Allocates memory for computing QP residuals
  	 * 
  	 * size has the following fields
  	 * N:  horizon length
@@ -25,7 +38,7 @@ class MPCResidual{
  	MPCResidual(QPsizeMPC size);
 
  	/**
- 	 * Frees allocated memory
+ 	 * Frees allocated memory.
  	 */
  	~MPCResidual();
 
@@ -49,8 +62,7 @@ class MPCResidual{
  	void Fill(double a);
 
  	/**
- 	 * Deep copy of x into the the object.
- 	 * Overwrites internal storage.
+ 	 * Deep copy of x into this.
  	 * @param[in] x residual to be copied
  	 */
  	void Copy(const MPCResidual &x);
@@ -101,10 +113,6 @@ class MPCResidual{
  	 * @param[in] x primal-dual point to evaluate the KKT conditions
  	 */
  	void PenalizedNaturalResidual(const MPCVariable &x);
- 	
- 	StaticMatrix z_; // primal/optimality residual
- 	StaticMatrix l_; // equality constraint residual
- 	StaticMatrix v_; // inequality constraint residual
 
  	double z_norm = 0.0;
  	double v_norm = 0.0;
