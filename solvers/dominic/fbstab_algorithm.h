@@ -144,6 +144,25 @@ class FBstabAlgorithm{
 		DUAL = 2,
 		BOTH = 3
 	};
+
+	/**
+	 * Attempts to solve a proximal subproblem x = P(xbar,sigma) using
+	 * the semismooth Newton's method.
+	 * 
+	 * @param[both]  x      Initial guess, overwritten with the solution.
+	 * @param[in]    xbar   Current proximal (outer) iterate
+	 * @param[in]    tol    Desired tolerance for the inner residual
+	 * @param[in]    sigma  Regularization strength
+	 * @param[in]    Eouter Current overall problem residual
+	 * @return       Residual for the outer problem evaluated at x
+	 *
+	 *
+	 * Note: Uses
+	 * rk,ri,dx, and xp as workspaces
+	 * 
+	 */
+	double SolveSubproblem(Variable *x,Variable *xbar, double tol, double sigma, double Eouter);
+
 	/**
 	 * Checks if the primal-dual QP pair is feasible
 	 * @param[in]  x Point at which to check for infeasibility
@@ -201,11 +220,15 @@ class FBstabAlgorithm{
 	 * stdout
 	 */
 	void PrintIterHeader();
-	void PrintIterLine(int prox_iters, int newton_iters, const Residual &r, const Residual &r_inner,double itol);
-	void PrintDetailedHeader(int prox_iters, int newton_iters, const Residual &r);
+	void PrintIterLine(int prox_iters_, int newton_iters_, const Residual &r, const Residual &r_inner,double itol);
+	void PrintDetailedHeader(int prox_iters_, int newton_iters_, const Residual &r);
 	void PrintDetailedLine(int iter, double step_length, const Residual &r);
 	void PrintDetailedFooter(double tol, const Residual &r);
-	void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const Residual &r);
+	void PrintFinal(int prox_iters_, int newton_iters_, ExitFlag eflag, const Residual &r);
+
+	// iteration counters
+	int newton_iters_ = 0;
+	int prox_iters_ = 0;
 
 	// variable objects
 	Variable *xk = nullptr;

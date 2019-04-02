@@ -15,6 +15,7 @@ FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 
 	this->rk = r1;
 	this->ri = r2;
+
 	this->linear_solver = lin_sol;
 	this->feas = fcheck;
 }
@@ -64,12 +65,12 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	feas->LinkData(qp_data);
 
 	// initialization
+	double sigma = sigma0;
+
 	x0->InitConstraintMargin();
 	xk->Copy(*x0);
 	xi->Copy(*x0);
 	dx->Fill(1.0);
-
-	double sigma = sigma0;
 
 	rk->NaturalResidual(*xk);
 	ri->Fill(0.0);
@@ -79,8 +80,8 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	double inner_tol = FBstabAlgorithm::min(E0,inner_tol_max);
 	inner_tol = FBstabAlgorithm::max(inner_tol,inner_tol_min);
 
-	int newton_iters = 0;
-	int prox_iters = 0;
+	newton_iters_ = 0;
+	prox_iters_ = 0;
 
 	PrintIterHeader();
 
@@ -96,16 +97,16 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 		if(Ek <= abs_tol + E0*rel_tol || dx->Norm() <= stall_tol){
 			output.eflag = SUCCESS;
 			output.residual = Ek;
-			output.newton_iters = newton_iters;
-			output.prox_iters = prox_iters;
+			output.newton_iters = newton_iters_;
+			output.prox_iters = prox_iters_;
 			x0->Copy(*xk);
 
-			PrintIterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
-			PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
+			PrintIterLine(prox_iters_,newton_iters_,*rk,*ri,inner_tol);
+			PrintFinal(prox_iters_,newton_iters_,output.eflag,*rk);
 			return output;
 		} else{
-			PrintDetailedHeader(prox_iters,newton_iters,*rk);
-			PrintIterLine(prox_iters,newton_iters,*rk,*ri,inner_tol);
+			PrintDetailedHeader(prox_iters_,newton_iters_,*rk);
+			PrintIterLine(prox_iters_,newton_iters_,*rk,*ri,inner_tol);
 		}
 
 		// TODO: add a divergence check
@@ -118,83 +119,25 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 		rk->PenalizedNaturalResidual(*xk);
 
 		double Ekpen = rk->Norm();
-		double t = 1.0; // linesearch parameter
-		ClearBuffer(merit_values,kNonmonotoneLinesearch);
 
-		// TODO, refactor into a subfunction
-		// inner loop *************************************
-		for(int i = 0;i<max_inner_iters;i++){
-			// compute residuals
-			ri->FBresidual(*xi,*xk,sigma);
-			double Ei = ri->Norm();
-			rk->PenalizedNaturalResidual(*xi);
-			double Eo = rk->Norm();
+		// Solve the proximal subproblem
+		double Eo = SolveSubproblem(xi,xk,inner_tol,sigma,Ekpen);
 
-			// The inner loop stops if:
-			// a) The subproblem is solved to the prescribed 
-			// tolerance and the outer residual is reduced
-			// b) The outer residual cannot be decreased 
-			// (happens if problem is infeasible)
-			if((Ei <= inner_tol && Eo < Ekpen) || (Ei <= inner_tol_min)){
-				PrintDetailedLine(i,t,*ri);
-				PrintDetailedFooter(inner_tol,*ri);
-				break;
+		if(newton_iters_ >= max_newton_iters){
+			output.eflag = MAXITERATIONS;
+			if(Eo < Ekpen){
+				x0->Copy(*xi);
+				output.residual = Eo;
 			} else{
-				PrintDetailedLine(i,t,*ri);
+				x0->Copy(*xk);
+				output.residual = Ekpen;
+				rk->PenalizedNaturalResidual(*xk);
 			}
-
-			if(newton_iters >= max_newton_iters){
-				output.eflag = MAXITERATIONS;
-				if(Eo < Ekpen){
-					x0->Copy(*xi);
-					output.residual = Eo;
-				} else{
-					x0->Copy(*xk);
-					output.residual = Ekpen;
-					rk->PenalizedNaturalResidual(*xk);
-				}
-				output.newton_iters = newton_iters;
-				output.prox_iters = prox_iters;
-				PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
-				return output;
-			}
-
-			// evaluate and factor the iteration matrix 
-			linear_solver->Factor(*xi,*xk,sigma);
-
-			// solve for the Newton step
-			ri->Negate(); 
-			linear_solver->Solve(*ri,dx);
-			newton_iters++;
-			// TODO: solver error handling
-
-			// linesearch *************************************
-			double mcurr = ri->Merit();
-			ShiftAndInsert(merit_values, mcurr, kNonmonotoneLinesearch);
-			double m0 = VectorMax(merit_values, kNonmonotoneLinesearch);
-
-			t = 1.0;
-			for(int j = 0;j<max_linesearch_iters;j++){
-				// xp = x + t*dx
-				xp->Copy(*xi);
-				xp->axpy(*dx,t);
-
-				// evaluate the merit function at xp
-				ri->FBresidual(*xp,*xk,sigma);
-				double mp = ri->Merit();
-
-				// acceptance check
-				if(mp <= m0 - 2.0*t*eta*mcurr) 
-					break;
-				else 
-					t *= beta;
-			} // end linesearch
-			xi->axpy(*dx,t); // xi <- xi + t*dx
-
-		} // end inner loop 
-
-		// make duals non-negative
-		xi->ProjectDuals();
+			output.newton_iters = newton_iters_;
+			output.prox_iters = prox_iters_;
+			PrintFinal(prox_iters_,newton_iters_,output.eflag,*rk);
+			return output;
+		}
 
 		// compute dx <- x(k+1) - x(k)
 		dx->Copy(*xi);
@@ -210,10 +153,10 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 					output.eflag = UNBOUNDED_BELOW;
 				}
 				output.residual = Ek;
-				output.newton_iters = newton_iters;
-				output.prox_iters = prox_iters;
+				output.newton_iters = newton_iters_;
+				output.prox_iters = prox_iters_;
 				x0->Copy(*dx);
-				PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
+				PrintFinal(prox_iters_,newton_iters_,output.eflag,*rk);
 				return output;
 			}
 		}
@@ -221,19 +164,95 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 		// x(k+1) = x(i)
 		xk->Copy(*xi);
 
-		prox_iters++;
+		prox_iters_++;
 	} // prox loop
 
 	// timeout exit
 	output.eflag = MAXITERATIONS;
 	output.residual = Ek;
-	output.newton_iters = newton_iters;
-	output.prox_iters = prox_iters;
+	output.newton_iters = newton_iters_;
+	output.prox_iters = prox_iters_;
 	x0->Copy(*xk);
 
-	PrintFinal(prox_iters,newton_iters,output.eflag,*rk);
+	PrintFinal(prox_iters_,newton_iters_,output.eflag,*rk);
 	return output;
 }
+
+template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
+double FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
+::SolveSubproblem(Variable *x,Variable *xbar, 
+	double tol, double sigma, double Eouter){
+
+	double Eo = 0; // residual
+	double t = 1.0; // linesearch parameter
+	ClearBuffer(merit_values,kNonmonotoneLinesearch);
+	
+	for(int i = 0;i<max_inner_iters;i++){
+		// compute inner residual
+		ri->FBresidual(*x,*xbar,sigma);
+		double Ei = ri->Norm();
+
+		// compute outer residual
+		rk->PenalizedNaturalResidual(*x);
+		Eo = rk->Norm();
+
+		// The inner loop stops if:
+		// a) The subproblem is solved to the prescribed 
+		// tolerance and the outer residual is reduced
+		// b) The outer residual cannot be decreased 
+		// (happens if problem is infeasible)
+		if((Ei <= tol && Eo < Eouter) || (Ei <= inner_tol_min)){
+			PrintDetailedLine(i,t,*ri);
+			PrintDetailedFooter(tol,*ri);
+			break;
+		} else{
+			PrintDetailedLine(i,t,*ri);
+		}
+
+		if(newton_iters_ >= max_newton_iters){
+			break;
+		}
+
+		// evaluate and factor the iteration matrix 
+		linear_solver->Factor(*x,*xbar,sigma);
+
+		// solve for the Newton step
+		// TODO: Add solver error handling
+		ri->Negate(); 
+		linear_solver->Solve(*ri,dx);
+		newton_iters_++;
+		
+		// linesearch *************************************
+		double mcurr = ri->Merit();
+		ShiftAndInsert(merit_values, mcurr, kNonmonotoneLinesearch);
+		double m0 = VectorMax(merit_values, kNonmonotoneLinesearch);
+
+		t = 1.0;
+		for(int j = 0;j<max_linesearch_iters;j++){
+			// xp = x + t*dx
+			xp->Copy(*x);
+			xp->axpy(*dx,t);
+
+			// evaluate the merit function at xp
+			ri->FBresidual(*xp,*xbar,sigma);
+			double mp = ri->Merit();
+
+			// acceptance check
+			if(mp <= m0 - 2.0*t*eta*mcurr) 
+				break;
+			else 
+				t *= beta;
+		} // end linesearch
+
+		x->axpy(*dx,t); // x <- x + t*dx
+	} 
+
+	// make duals non-negative
+	x->ProjectDuals();
+
+	return Eo;
+}
+
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 typename FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::InfeasibilityStatus FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
