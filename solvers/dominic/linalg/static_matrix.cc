@@ -193,7 +193,7 @@ void StaticMatrix::SetCap(int cap_){
 //reshape
 void StaticMatrix::reshape(int nrows_,int ncols_){
 	// TODO: checks to make sure nrows and ncols are > 0
-	if(nrows_*ncols_ > cap)
+	if(nrows_*ncols_ > nels)
 		throw std::out_of_range("When reshaping the new size cannot exceed capacity");
 
 	this->nrows = nrows_;
@@ -279,6 +279,12 @@ StaticMatrix& StaticMatrix::operator+=(const StaticMatrix &x){
 
 // y <- a*x + y
 void StaticMatrix::axpy(const StaticMatrix &x, double a){
+	if(this == &x){
+		#ifdef STATICMATRIX_EXCEPTIONS
+		throw std::invalid_argument("A vector can't AXPY itself");
+		#endif
+	}
+
 	StaticMatrix y(*this);
 
 	if( (y.rows() != x.rows()) || (y.cols() != x.cols()) )
@@ -336,6 +342,12 @@ void StaticMatrix::gemv(const StaticMatrix &A,const StaticMatrix &x, double a,do
 
 // C <- a*A*B + b*C
 void StaticMatrix::gemm(const StaticMatrix &A, const StaticMatrix &B, double a, double b, bool transA, bool transB){
+	if(this == &A || this == &B){
+		#ifdef STATICMATRIX_EXCEPTIONS
+		throw std::invalid_argument("A vector can't GEMM itself");
+		#endif
+	}
+
 	int i,j,k;
 	int m,n,p;
 	StaticMatrix C(*this);
