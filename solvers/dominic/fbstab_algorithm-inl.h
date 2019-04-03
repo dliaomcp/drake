@@ -35,6 +35,7 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	delete feas;
 }
 
+// TODO: allow printing to a log file rather than just stdout?
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 ::Solve(Data *qp_data,Variable *x0){
