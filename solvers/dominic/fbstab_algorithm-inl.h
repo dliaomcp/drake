@@ -81,12 +81,13 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 	double inner_tol = FBstabAlgorithm::min(E0,inner_tol_max);
 	inner_tol = FBstabAlgorithm::max(inner_tol,inner_tol_min);
 
+	// iteration counters
 	newton_iters_ = 0;
 	prox_iters_ = 0;
 
 	PrintIterHeader();
 
-	// prox loop *************************************
+	// main prox loop *************************************
 	for(int k = 0;k<max_prox_iters;k++){
 
 		rk->NaturalResidual(*xk);
@@ -104,27 +105,27 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
 
 			PrintIterLine(prox_iters_,newton_iters_,*rk,*ri,inner_tol);
 			PrintFinal(prox_iters_,newton_iters_,output.eflag,*rk);
+
 			return output;
-		} else{
+		} else {
 			PrintDetailedHeader(prox_iters_,newton_iters_,*rk);
 			PrintIterLine(prox_iters_,newton_iters_,*rk,*ri,inner_tol);
 		}
 
 		// TODO: add a divergence check
 
-		// update tolerance
+		// update subproblem tolerance
 		inner_tol = FBstabAlgorithm::min(inner_tol_multiplier*inner_tol,Ek);
 		inner_tol = FBstabAlgorithm::max(inner_tol,inner_tol_min);
 
-		xi->Copy(*xk);
 		rk->PenalizedNaturalResidual(*xk);
-
 		double Ekpen = rk->Norm();
 
 		// Solve the proximal subproblem
+		xi->Copy(*xk);
 		double Eo = SolveSubproblem(xi,xk,inner_tol,sigma,Ekpen);
 
-		if(newton_iters_ >= max_newton_iters){
+		if(newton_iters_ >= max_newton_iters){ // if iteration limit exceeded
 			output.eflag = MAXITERATIONS;
 			if(Eo < Ekpen){
 				x0->Copy(*xi);
