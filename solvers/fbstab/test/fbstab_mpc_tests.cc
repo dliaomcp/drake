@@ -1,11 +1,11 @@
-#include "drake/solvers/dominic/fbstab_mpc.h"
+#include "drake/solvers/fbstab/fbstab_mpc.h"
 
 #include <cmath>
 #include <gtest/gtest.h>
 
-#include "drake/solvers/dominic/linalg/static_matrix.h"
-#include "drake/solvers/dominic/linalg/matrix_sequence.h"
-#include "drake/solvers/dominic/test/test_helpers.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
+#include "drake/solvers/fbstab/test/test_helpers.h"
 
 namespace drake {
 namespace solvers {

@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cstdio>
 
-#include "drake/solvers/dominic/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
@@ -275,4 +275,4 @@ class FBstabAlgorithm{
 }  // namespace solvers
 }  // namespace drake
 
-#include "drake/solvers/dominic/fbstab_algorithm-inl.h"
+#include "drake/solvers/fbstab/fbstab_algorithm-inl.h"
