@@ -1,8 +1,8 @@
-#include "drake/solvers/dominic/components/dense_components.h"
+#include "drake/solvers/fbstab/components/dense_components.h"
 
 #include <cmath>
 
-#include "drake/solvers/dominic/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {

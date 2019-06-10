@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drake/solvers/dominic/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 
 // contains the gereral dense qp specific classes and structures

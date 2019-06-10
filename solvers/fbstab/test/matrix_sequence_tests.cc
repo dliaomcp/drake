@@ -1,5 +1,5 @@
-#include "drake/solvers/dominic/linalg/static_matrix.h"
-#include "drake/solvers/dominic/linalg/matrix_sequence.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
 
 #include <gtest/gtest.h>
 

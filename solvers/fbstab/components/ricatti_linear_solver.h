@@ -1,10 +1,10 @@
 #pragma once
 
-#include "drake/solvers/dominic/linalg/static_matrix.h"
-#include "drake/solvers/dominic/linalg/matrix_sequence.h"
-#include "drake/solvers/dominic/components/mpc_data.h"
-#include "drake/solvers/dominic/components/mpc_variable.h"
-#include "drake/solvers/dominic/components/mpc_residual.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
+#include "drake/solvers/fbstab/components/mpc_data.h"
+#include "drake/solvers/fbstab/components/mpc_variable.h"
+#include "drake/solvers/fbstab/components/mpc_residual.h"
 
 namespace drake {
 namespace solvers {

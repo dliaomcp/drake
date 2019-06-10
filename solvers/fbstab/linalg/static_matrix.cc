@@ -1,4 +1,4 @@
-#include "drake/solvers/dominic/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 #include <cmath>
 #include <iostream>
