@@ -64,9 +64,9 @@ void MPCResidual::Copy(const MPCResidual &x){
 	l_.copy(x.l_);
 	v_.copy(x.v_);
 
-	z_norm = x.z_norm;
-	v_norm = x.v_norm;
-	l_norm = x.l_norm;
+	znorm_= x.znorm_;
+	vnorm_ = x.vnorm_;
+	lnorm_ = x.lnorm_;
 }
 
 void MPCResidual::Negate(){
@@ -76,7 +76,7 @@ void MPCResidual::Negate(){
 }
 
 double MPCResidual::Norm() const{
-	return z_norm + l_norm + v_norm;
+	return znorm_+ lnorm_ + vnorm_;
 }
 
 double MPCResidual::Merit() const{
@@ -88,9 +88,10 @@ double MPCResidual::AbsSum() const{
 	return z_.asum() + l_.asum() + v_.asum();
 }
 
-void MPCResidual::FBresidual(const MPCVariable &x, const MPCVariable &xbar, double sigma){
-	if(data_ == nullptr)
+void MPCResidual::InnerResidual(const MPCVariable &x, const MPCVariable &xbar, double sigma){
+	if(data_ == nullptr){
 		throw std::runtime_error("Data not linked in MPCResidual");
+	}
 
 	// r.z = H*z + f + G'*l + A'*v + sigma*(z-zbar)
 	z_.fill(0.0);
@@ -113,14 +114,15 @@ void MPCResidual::FBresidual(const MPCVariable &x, const MPCVariable &xbar, doub
 		double ys = x.y_(i) + sigma*(x.v_(i)-xbar.v_(i));
 		v_(i) = pfb(ys,x.v_(i),alpha_);
 	}
-	z_norm = z_.norm();
-	l_norm = l_.norm();
-	v_norm = v_.norm();
+	znorm_ = z_.norm();
+	lnorm_ = l_.norm();
+	vnorm_ = v_.norm();
 }
 
 void MPCResidual::NaturalResidual(const MPCVariable &x){
-	if(data_ == nullptr)
+	if(data_ == nullptr){
 		throw std::runtime_error("Data not linked in MPCResidual");
+	}
 
 	// r.z = H*z + f + G'*l + A'*v 
 	z_.fill(0.0);
@@ -138,14 +140,15 @@ void MPCResidual::NaturalResidual(const MPCVariable &x){
 	for(int i =0;i<nv_;i++){
 		v_(i) = min(x.y_(i),x.v_(i));
 	}
-	z_norm = z_.norm();
-	l_norm = l_.norm();
-	v_norm = v_.norm();
+	znorm_= z_.norm();
+	lnorm_ = l_.norm();
+	vnorm_ = v_.norm();
 }
 
 void MPCResidual::PenalizedNaturalResidual(const MPCVariable &x){
-	if(data_ == nullptr)
+	if(data_ == nullptr){
 		throw std::runtime_error("Data not linked in MPCResidual");
+	}
 
 	// r.z = H*z + f + G'*l + A'*v 
 	z_.fill(0.0);
@@ -164,9 +167,9 @@ void MPCResidual::PenalizedNaturalResidual(const MPCVariable &x){
 		double nr = min(x.y_(i),x.v_(i));
 		v_(i) = alpha_*nr + (1-alpha_)*max(0.0,x.y_(i))*max(0,x.v_(i));
 	}
-	z_norm = z_.norm();
-	l_norm = l_.norm();
-	v_norm = v_.norm();
+	znorm_= z_.norm();
+	lnorm_ = l_.norm();
+	vnorm_ = v_.norm();
 }
 
 double MPCResidual::pfb(double a, double b, double alpha){

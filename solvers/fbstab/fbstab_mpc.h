@@ -87,9 +87,9 @@ struct QPDataMPC {
 
 // Conveience type for the templated version of the algorithm
 using FBstabAlgoMPC = FBstabAlgorithm<MPCVariable,MPCResidual,MPCData,RicattiLinearSolver,MPCFeasibility>;
+
 class FBstabMPC {
  public:
-
  	/**
  	 * Allocates workspaces needed when solving (1)
  	 *

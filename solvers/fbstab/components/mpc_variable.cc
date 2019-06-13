@@ -73,12 +73,13 @@ void MPCVariable::Fill(double a){
 	z_.fill(a);
 	l_.fill(a);
 	v_.fill(a);
-	InitConstraintMargin();
+	InitializeConstraintMargin();
 }
 
-void MPCVariable::InitConstraintMargin(){
-	if(data_ == nullptr)
+void MPCVariable::InitializeConstraintMargin(){
+	if(data_ == nullptr){
 		throw std::runtime_error("Data not linked in MPCVariable");
+	}
 	// y = b-A*z
 	y_.fill(0.0);
 	data_->axpyb(1.0,&y_);
@@ -86,8 +87,10 @@ void MPCVariable::InitConstraintMargin(){
 }
 
 void MPCVariable::axpy(const MPCVariable &x, double a){
-	if(data_ == nullptr)
+	if(data_ == nullptr){
 		throw std::runtime_error("Data not linked in MPCVariable");
+	}
+
 	z_.axpy(x.z_,a);
 	l_.axpy(x.l_,a);
 	v_.axpy(x.v_,a);
@@ -109,11 +112,11 @@ void MPCVariable::ProjectDuals(){
 	v_.clip(0.0,1e15);
 }
 
-double MPCVariable::Norm(){
+double MPCVariable::Norm() const {
 	return z_.norm() + l_.norm() + v_.norm();
 }
 
-double MPCVariable::InfNorm(){
+double MPCVariable::InfNorm() const {
 	return z_.infnorm() + l_.infnorm() + v_.infnorm();
 }
 

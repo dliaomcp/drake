@@ -147,16 +147,15 @@ class MPCData{
 	void axpyb(double a, StaticMatrix *y);
 
  private:
- 	int N_;
- 	int nx_;
- 	int nu_;
- 	int nc_;
+ 	int N_ = 0;  // horizon length
+ 	int nx_ = 0; // number of states
+ 	int nu_ = 0; // number of controls
+ 	int nc_ = 0; // constraints per stage
+ 	int nz_ = 0; // number of primal variables
+ 	int nl_ = 0; // number of equality duals
+ 	int nv_ = 0; // number of inequality duals
 
- 	int nz_;
- 	int nl_;
- 	int nv_;
-
- 	// storage
+ 	// workspace variable
  	MatrixSequence Q_,R_,S_,q_,r_;
  	MatrixSequence A_,B_,c_;
  	MatrixSequence E_,L_,d_;

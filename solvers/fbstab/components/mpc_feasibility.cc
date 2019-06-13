@@ -41,9 +41,10 @@ void MPCFeasibility::LinkData(MPCData *data){
 	data_ = data;
 }
 
-void MPCFeasibility::CheckFeasibility(const MPCVariable &x, double tol){
-	if(data_ == nullptr)
+void MPCFeasibility::ComputeFeasibility(const MPCVariable &x, double tol){
+	if(data_ == nullptr){
 		throw std::runtime_error("Data not linked in MPCFeasibility");
+	}
 
 	primal_ = true;
 	dual_ = true;
@@ -90,14 +91,6 @@ void MPCFeasibility::CheckFeasibility(const MPCVariable &x, double tol){
 	if( (p1 <= tol*u) && (p2 < 0) ){
 		primal_ = false;
 	}
-}
-
-bool MPCFeasibility::Primal(){
-	return primal_;
-}
-
-bool MPCFeasibility::Dual(){
-	return dual_;
 }
 
 }  // namespace fbstab
