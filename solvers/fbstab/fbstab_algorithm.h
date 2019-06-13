@@ -23,7 +23,6 @@ enum ExitFlag {
 /**
  * Packages the exit flag, overall residual, 
  * and iteration counts.
- * 
  */
 struct SolverOut {
 	ExitFlag eflag;
@@ -81,7 +80,7 @@ class FBstabAlgorithm{
 		Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck);
 
 	/**
-	 * @details Attempts to solve the QP for the given
+	 * Attempts to solve the QP for the given
 	 * data starting from the supplied initial guess
 	 * 
 	 * @param[in] qp_data Problem data 

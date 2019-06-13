@@ -1,6 +1,8 @@
 #pragma once
 
 #include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_data.h"
 
 
 // contains the gereral dense qp specific classes and structures
@@ -12,7 +14,6 @@ namespace fbstab {
 
 class DenseResidual{
  public:
-	// methods *************************************
 	DenseResidual(DenseQPsize size);
 	~DenseResidual();
 
@@ -35,11 +36,14 @@ class DenseResidual{
 	double Merit() const; // 2 norm squared
 	double AbsSum() const; // 1 norm
 
-	void SetAlpha(double alpha) {alpha_ = alpha};
-	double z_norm() const { return znorm_ };
-	double v_norm() const { return vnorm_ };
-	double l_norm() const { return lnorm_ };
+	void SetAlpha(double alpha) {alpha_ = alpha;}
 
+	double z_norm() const { return znorm_; }
+	double v_norm() const { return vnorm_; }
+	double l_norm() const { return lnorm_; }
+
+	StaticMatrix& z(){ return z_; };
+	StaticMatrix& v(){ return v_; };
 
  private:
  	DenseData *data_ = nullptr; // access to the data object
@@ -54,6 +58,8 @@ class DenseResidual{
 	static double pfb(double a, double b, double alpha);
  	static double max(double a, double b);
  	static double min(double a, double b);
+
+ 	friend class DenseLinearSolver;
 };
 
 }  // namespace fbstab

@@ -24,6 +24,11 @@ class DenseData{
  private:
  	StaticMatrix H_,f_,A_,b_;
 	int n_,q_;
+
+	friend class DenseVariable;
+	friend class DenseResidual;
+	friend class DenseLinearSolver;
+	friend class DenseFeasibility;
 };
 
 }  // namespace fbstab

@@ -10,7 +10,7 @@ load(
 
 package(default_visibility = ["//visibility:public"])
 
-# Libraries *************************************
+# Linear Algebra *************************************
 drake_cc_library(
 	name = "static_matrix",
 	srcs = ["linalg/static_matrix.h",
@@ -22,15 +22,116 @@ drake_cc_library(
             "linalg/matrix_sequence.h"],
 )
 
-drake_cc_library(
-    name = "dense_components",
-    srcs = ["components/dense_components.h",
-            "components/dense_components.cc"
-    ],
-    hdrs = ["components/dense_components.h"],
+drake_cc_binary(
+    name = "static_matrix_build_test",
+    srcs = ["test/static_matrix_build_test.cc"],
     deps = [":static_matrix"],
 )
 
+drake_cc_googletest( # static matrices
+    name = "static_matrix_test",
+    srcs = ["test/static_matrix_test.cc"],
+    deps = [":static_matrix"],
+)
+
+drake_cc_googletest( # matrix sequences
+    name = "matrix_sequence_tests",
+    srcs = ["test/matrix_sequence_tests.cc"],
+    deps = [":static_matrix"],
+)
+
+
+# FBstabDense *************************************
+drake_cc_library( # data
+    name = "dense_data",
+    srcs = ["components/dense_data.h",
+            "components/dense_data.cc"
+    ],
+    hdrs = ["components/dense_data.h"],
+    deps = [":static_matrix"],
+)
+
+drake_cc_library( # variable
+    name = "dense_variable",
+    srcs = ["components/dense_variable.h",
+            "components/dense_variable.cc"
+    ],
+    hdrs = ["components/dense_variable.h"],
+    deps = [":static_matrix",
+            ":dense_data"],
+)
+
+drake_cc_library( # residual
+    name = "dense_residual",
+    srcs = ["components/dense_residual.h",
+            "components/dense_residual.cc"
+    ],
+    hdrs = ["components/dense_data.h"],
+    deps = [":static_matrix",
+            ":dense_variable",
+            ":dense_data"],
+)
+
+drake_cc_library( # feasibility 
+    name = "dense_feasibility",
+    srcs = ["components/dense_feasibility.h",
+            "components/dense_feasibility.cc"
+    ],
+    hdrs = ["components/dense_feasibility.h"],
+    deps = [":static_matrix",
+            ":dense_variable",
+            ":dense_data"],
+)
+
+drake_cc_library( # linear solver
+    name = "dense_linear_solver",
+    srcs = ["components/dense_linear_solver.h",
+            "components/dense_linear_solver.cc"
+    ],
+    hdrs = ["components/dense_linear_solver.h"],
+    deps = [":static_matrix",
+            ":dense_variable",
+            ":dense_residual",
+            ":dense_data"],
+)
+
+drake_cc_library(
+    name = "fbstab_dense",
+    srcs = ["fbstab_dense.h",
+            "fbstab_dense.cc",
+            "fbstab_algorithm.h",
+            "fbstab_algorithm-inl.h"
+    ],
+    hdrs = ["fbstab_dense.h"],
+    deps = [":static_matrix",
+            ":dense_data",
+            ":dense_variable",
+            ":dense_residual",
+            ":dense_feasibility",
+            ":dense_linear_solver"],
+)
+
+drake_cc_googletest( # dense component objects
+    name = "dense_component_tests",
+    srcs = ["test/dense_component_tests.cc"],
+    deps = [":static_matrix",
+            ":dense_data",
+            ":dense_variable",
+            ":dense_residual",
+            ":dense_feasibility",
+            ":dense_linear_solver"],
+)
+
+drake_cc_googletest( # fbstab_dense
+    name = "fbstab_dense_tests",
+    srcs = ["test/dense_fbstab_tests.cc"],
+    deps = [":static_matrix",
+            ":dense_components",
+            ":fbstab_dense"
+    ],
+)
+
+# FBstab MPC *************************************
 drake_cc_library(
     name = "mpc_components",
     srcs = ["components/mpc_data.h",
@@ -53,17 +154,6 @@ drake_cc_library(
     deps = [":static_matrix"],
 )
 
-drake_cc_library(
-    name = "fbstab_dense",
-    srcs = ["fbstab_dense.h",
-            "fbstab_dense.cc",
-            "fbstab_algorithm.h",
-            "fbstab_algorithm-inl.h"
-    ],
-    hdrs = ["fbstab_dense.h"],
-    deps = [":static_matrix",
-            ":dense_components"],
-)
 
 drake_cc_library(
     name = "fbstab_mpc",
@@ -78,11 +168,6 @@ drake_cc_library(
 )
 
 # Build tests *************************************
-drake_cc_binary(
-	name = "static_matrix_build_test",
-	srcs = ["test/static_matrix_build_test.cc"],
-	deps = [":static_matrix"],
-)
 
 drake_cc_binary(
     name = "dense_component_build_test",
@@ -123,26 +208,10 @@ drake_cc_binary(
             ":fbstab_mpc"],
 )
 
+
 # Unit tests *************************************
-drake_cc_googletest( # static matrices
-	name = "static_matrix_test",
-	srcs = ["test/static_matrix_test.cc"],
-	deps = [":static_matrix"],
-)
 
-drake_cc_googletest( # matrix sequences
-    name = "matrix_sequence_tests",
-    srcs = ["test/matrix_sequence_tests.cc"],
-    deps = [":static_matrix"],
-)
 
-drake_cc_googletest( # dense component objects
-    name = "dense_component_tests",
-    srcs = ["test/dense_component_tests.cc"],
-    deps = [":static_matrix",
-            ":dense_components"
-    ],
-)
 
 drake_cc_googletest( # mpc component objects
     name = "mpc_component_tests",
@@ -150,15 +219,6 @@ drake_cc_googletest( # mpc component objects
             "test/test_helpers.h"],
     deps = [":static_matrix",
             ":mpc_components"
-    ],
-)
-
-drake_cc_googletest( # fbstab_dense
-    name = "fbstab_dense_tests",
-    srcs = ["test/dense_fbstab_tests.cc"],
-    deps = [":static_matrix",
-            ":dense_components",
-            ":fbstab_dense"
     ],
 )
 

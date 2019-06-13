@@ -1,4 +1,8 @@
-#include "drake/solvers/fbstab/dense_components.h"
+#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_residual.h"
+#include "drake/solvers/fbstab/components/dense_linear_solver.h"
+#include "drake/solvers/fbstab/components/dense_feasibility.h"
 
 #include <cmath>
 #include <gtest/gtest.h>
@@ -9,36 +13,6 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 namespace test {
-
-GTEST_TEST(FBstabDense, DenseData) {
-	// data for a simple convex qp
-	double H[] = {3,1,1,1};
-	double f[] = {1,6};
-	double A[] = {-1,0,0,1};
-	double b[] = {0,0};
-	int n = 2;
-	int q = 2;
-
-	QPsize size = {n,q};
-
-	DenseData data(H,f,A,b,size);
-
-	for(int i = 0;i< n*n; i++){
-		ASSERT_EQ(data.H.data[i],H[i]);
-	}
-
-	for(int i = 0;i< n; i++){
-		ASSERT_EQ(data.f.data[i],f[i]);
-	}
-
-	for(int i = 0;i< q*q; i++){
-		ASSERT_EQ(data.A.data[i],A[i]);
-	}
-
-	for(int i = 0;i< q; i++){
-		ASSERT_EQ(data.b.data[i],b[i]);
-	}
-}
 
 
 GTEST_TEST(FBstabDense, DenseVariable) {
@@ -51,7 +25,7 @@ GTEST_TEST(FBstabDense, DenseVariable) {
 	int n = 2;
 	int q = 2;
 
-	QPsize size = {n,q};
+	DenseQPsize size = {n,q};
 	DenseData data(H,f,A,b,size);
 
 	DenseVariable x(size);
@@ -69,18 +43,18 @@ GTEST_TEST(FBstabDense, DenseVariable) {
 	y.ProjectDuals();
 
 	for(int i = 0;i<q;i++){
-		ASSERT_EQ(y.v(i),0.0);
+		ASSERT_EQ(y.v()(i),0.0);
 	}
 
 	// constraint margin
-	x.InitConstraintMargin();
-	y.InitConstraintMargin();
+	x.InitializeConstraintMargin();
+	y.InitializeConstraintMargin();
 
 	double resx[] = {1,-2};
 	double resy[] = {-1,0};
 	for(int i = 0;i<q;i++){
-		EXPECT_DOUBLE_EQ(x.y(i),resx[i]);
-		EXPECT_DOUBLE_EQ(y.y(i),resy[i]);
+		EXPECT_DOUBLE_EQ(x.y()(i),resx[i]);
+		EXPECT_DOUBLE_EQ(y.y()(i),resy[i]);
 	}
 
 	// axpy
@@ -90,12 +64,12 @@ GTEST_TEST(FBstabDense, DenseVariable) {
 	double res2[] = {0.35,0.35};
 	double res3[] = {-0.65,-0.35};
 	for(int i = 0;i<n;i++){
-		EXPECT_DOUBLE_EQ(y.z(i),res1[i]);
+		EXPECT_DOUBLE_EQ(y.z()(i),res1[i]);
 	}
 
 	for(int i = 0;i<q;i++){
-		EXPECT_DOUBLE_EQ(y.v(i),res2[i]);
-		EXPECT_DOUBLE_EQ(y.y(i),res3[i]);
+		EXPECT_DOUBLE_EQ(y.v()(i),res2[i]);
+		EXPECT_DOUBLE_EQ(y.y()(i),res3[i]);
 	}
 }
 
@@ -109,7 +83,7 @@ GTEST_TEST(FBstabDense, DenseResidual) {
 	int n = 2;
 	int q = 2;
 
-	QPsize size = {n,q};
+	DenseQPsize size = {n,q};
 	DenseData data(H,f,A,b,size);
 
 	// create variables
@@ -119,32 +93,30 @@ GTEST_TEST(FBstabDense, DenseResidual) {
 	x.LinkData(&data);
 	xbar.LinkData(&data);
 
-	x.z(0) = 1; x.z(1) = 5;
-	x.v(0) = 0.4; x.v(1) = 2;
-	x.InitConstraintMargin();
+	x.z()(0) = 1;   x.z()(1) = 5;
+	x.v()(0) = 0.4; x.v()(1) = 2;
+	x.InitializeConstraintMargin();
 
-	xbar.z(0) = -5; xbar.z(1) = 6;
-	xbar.v(0) = -9; xbar.v(1) = 1;
-	xbar.InitConstraintMargin();
+	xbar.z()(0) = -5; xbar.z()(1) = 6;
+	xbar.v()(0) = -9; xbar.v()(1) = 1;
+	xbar.InitializeConstraintMargin();
 
 	DenseResidual r(size);
 	r.LinkData(&data);
 
 	double sigma = 0.5;
-	double alpha = 0.95;
-	r.alpha = alpha;
 
 	// PFB residual calculation
-	r.FBresidual(x,xbar,sigma);
+	r.InnerResidual(x,xbar,sigma);
 
 	double rz_expected[] = {11.6,13.5};
 	double rv_expected[] = {0.480683041678573,-8.88473245759182};
 
 	for(int i = 0;i<n;i++){
-		EXPECT_NEAR(r.rz(i),rz_expected[i],1e-14);
+		EXPECT_NEAR(r.z()(i),rz_expected[i],1e-14);
 	}
 	for(int i =0;i<q;i++){
-		EXPECT_NEAR(r.rv(i),rv_expected[i],1e-14);
+		EXPECT_NEAR(r.v()(i),rv_expected[i],1e-14);
 	}
 
 	// Natural residual calculation
@@ -156,10 +128,10 @@ GTEST_TEST(FBstabDense, DenseResidual) {
 	rv_expected[1] = -6;
 
 	for(int i = 0;i<n;i++){
-		EXPECT_NEAR(r.rz(i),rz_expected[i],1e-14);
+		EXPECT_NEAR(r.z()(i),rz_expected[i],1e-14);
 	}
 	for(int i =0;i<q;i++){
-		EXPECT_NEAR(r.rv(i),rv_expected[i],1e-14);
+		EXPECT_NEAR(r.v()(i),rv_expected[i],1e-14);
 	}
 
 	// Penalized Natural Residual calculation
@@ -171,10 +143,10 @@ GTEST_TEST(FBstabDense, DenseResidual) {
 	rv_expected[1] = -5.7;
 
 	for(int i = 0;i<n;i++){
-		EXPECT_NEAR(r.rz(i),rz_expected[i],1e-14);
+		EXPECT_NEAR(r.z()(i),rz_expected[i],1e-14);
 	}
 	for(int i =0;i<q;i++){
-		EXPECT_NEAR(r.rv(i),rv_expected[i],1e-14);
+		EXPECT_NEAR(r.v()(i),rv_expected[i],1e-14);
 	}
 
 	// check the norm function
@@ -191,7 +163,7 @@ GTEST_TEST(FBstabDense, DenseLinearSolver) {
 	int n = 2;
 	int q = 2;
 
-	QPsize size = {n,q};
+	DenseQPsize size = {n,q};
 	DenseData data(H,f,A,b,size);
 
 	// create variables
@@ -201,52 +173,29 @@ GTEST_TEST(FBstabDense, DenseLinearSolver) {
 	x.LinkData(&data);
 	dx.LinkData(&data);
 
-	x.z(0) = 1; x.z(1) = 5;
-	x.v(0) = 0.4; x.v(1) = 2;
-	x.InitConstraintMargin();
+	x.z()(0) = 1;   x.z()(1) = 5;
+	x.v()(0) = 0.4; x.v()(1) = 2;
+	x.InitializeConstraintMargin();
 
-	dx.z(0) = -5; dx.z(1) = 6;
-	dx.v(0) = -9; dx.v(1) = 1;
-	dx.InitConstraintMargin();
+	dx.z()(0) = -5; dx.z()(1) = 6;
+	dx.v()(0) = -9; dx.v()(1) = 1;
+	dx.InitializeConstraintMargin();
 
 	DenseResidual r(size);
 	r.LinkData(&data);
 
 	double sigma = 0.5;
-	double alpha = 0.95;
-	r.alpha = alpha;
 
-	// PFB residual calculation
+	// Residual calculation
 	r.PenalizedNaturalResidual(x);
+	r.Negate();
 
 	// create the linear solver object
 	DenseLinearSolver solver(size);
 	solver.LinkData(&data);
 
-	// test factor
+	// factor and solve
 	solver.Factor(x,dx,sigma);
-
-	double mus_exp[] = {1.17966217107061,1.54674596622464};
-	double gamma_exp[] = {0.0223305769546052,1.84280375231402};
-
-	for(int i = 0;i<q;i++){
-		EXPECT_NEAR(solver.mus.data[i],mus_exp[i],1e-14);
-		EXPECT_NEAR(solver.gamma.data[i],gamma_exp[i],1e-14);
-	}
-
-	StaticMatrix K(solver.K);
-
-	double expected_K[] = {1.87588102960501,0.533082847055906,0,1.55152490683952};
-
-	// K need its upper triangle zeroed out for the comparison
-	// by default its left unchanged
-	K.tril();
-	for(int i = 0;i<n;i++){
-		EXPECT_NEAR(K.data[i],expected_K[i],1e-14);
-	}
-
-	r.Negate();
-	// now the solve step
 	solver.Solve(r,&dx);
 
 	double dz_exp[] = {-0.752407327230274,-6.29141168496996};
@@ -254,18 +203,91 @@ GTEST_TEST(FBstabDense, DenseLinearSolver) {
 	double dy_exp[] = {-0.752407327230274,5.29141168496996};
 
 	for(int i = 0;i<n;i++){
-		EXPECT_NEAR(dx.z(i),dz_exp[i],1e-14);
+		EXPECT_NEAR(dx.z()(i),dz_exp[i],1e-14);
 	}
 
 	for(int i = 0;i<q;i++){
-		EXPECT_NEAR(dx.v(i),dv_exp[i],1e-14);
-		EXPECT_NEAR(dx.y(i),dy_exp[i],1e-14);
+		EXPECT_NEAR(dx.v()(i),dv_exp[i],1e-14);
+		EXPECT_NEAR(dx.y()(i),dy_exp[i],1e-14);
 	}	
+}
+
+
+GTEST_TEST(FBstabDense, InfeasibilityDetection) {
+	// this QP is infeasible and has no solution
+	// Example from https://arxiv.org/pdf/1901.04046.pdf
+	double H[] = {1,0,0,0};
+	double f[] = {1,-1};
+	double A[] = {1,1,0,-1,0,1,0,1,0,-1};
+	double b[] = {0,3,3,-1,-1};
+
+	int n = 2;
+	int q = 5;
+
+	DenseQPsize size = {n,q};
+	DenseData data(H,f,A,b,size);
+
+	DenseVariable dx(size);
+	dx.LinkData(&data);
+
+
+	// this vector v = [1 0 0 1 1] is a certificate of primal infeasibility
+	// Its an application of the Friedholm alternative
+	dx.z()(0) = 0;   
+	dx.z()(1) = 0;
+
+	dx.v()(0) = 1;   
+	dx.v()(1) = 0;
+	dx.v()(2) = 0;
+	dx.v()(3) = 1;
+	dx.v()(4) = 1;
+	dx.InitializeConstraintMargin();
+
+	DenseFeasibility feas(size);
+	feas.LinkData(&data);
+	feas.ComputeFeasibility(dx,1e-8);
+
+	ASSERT_TRUE(feas.IsDualFeasible());
+	ASSERT_FALSE(feas.IsPrimalFeasible());
+}
+
+GTEST_TEST(FBstabDense, UnboundednessDetection) {
+	// this QP is unbounded below and has no solution
+	// Example from https://arxiv.org/pdf/1901.04046.pdf
+	double H[] = {1,0,0,0};
+	double f[] = {1,-1};
+	double A[] = {0,1,-1,0,0,0,0,-1};
+	double b[] = {0,3,-1,-1};
+
+	int n = 2;
+	int q = 4;
+
+	DenseQPsize size = {n,q};
+	DenseData data(H,f,A,b,size);
+
+	DenseVariable dx(size);
+	dx.LinkData(&data);
+
+	// The direction x = [0 1] is a direction of unbounded descent 
+	// which certifies dual infeasibility.
+	dx.z()(0) = 0;   
+	dx.z()(1) = 1;
+
+	dx.v().fill(0);
+
+	dx.InitializeConstraintMargin();
+
+	DenseFeasibility feas(size);
+	feas.LinkData(&data);
+	feas.ComputeFeasibility(dx,1e-8);
+
+	ASSERT_FALSE(feas.IsDualFeasible());
+	ASSERT_TRUE(feas.IsPrimalFeasible());
 }
 
 
 
 }  // namespace test
-}  // namespace dominic
+}  // namespace fbstab
 }  // namespace solvers
 }  // namespace drake
