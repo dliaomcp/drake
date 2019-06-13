@@ -221,17 +221,17 @@ GTEST_TEST(MPCComponents,MPCVariable) {
 	double vexp[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 	double yexp[] = {-1,-1,3,3,0,2,-1,-1,3,3,0,2,-1,-1,3,3,0,2};
 
-	for(int i=0;i<x.z_.len();i++){
-		ASSERT_EQ(x.z_(i),zexp[i]);
+	for(int i=0;i<x.z().len();i++){
+		ASSERT_EQ(x.z()(i),zexp[i]);
 	}
-	for(int i=0;i<x.l_.len();i++){
-		ASSERT_EQ(x.l_(i),lexp[i]);
+	for(int i=0;i<x.l().len();i++){
+		ASSERT_EQ(x.l()(i),lexp[i]);
 	}
-	for(int i=0;i<x.v_.len();i++){
-		ASSERT_EQ(x.v_(i),vexp[i]);
+	for(int i=0;i<x.v().len();i++){
+		ASSERT_EQ(x.v()(i),vexp[i]);
 	}
-	for(int i=0;i<x.y_.len();i++){
-		ASSERT_EQ(x.y_(i),yexp[i]);
+	for(int i=0;i<x.y().len();i++){
+		ASSERT_EQ(x.y()(i),yexp[i]);
 	}
 
 	test::free_repmat(Qt,N+1);
@@ -306,20 +306,20 @@ GTEST_TEST(MPCComponents,MPCResidual) {
 
 	MPCResidual res(size);
 	res.LinkData(&data);
-	res.FBresidual(x,y,sigma);
+	res.InnerResidual(x,y,sigma);
 
 	double rz[] = {8,8,14,8,8,14,6,4,12};
 	double rl[] = {6,6,2,2,2,2};
 	double rv[] = {2.19167244568008,2.19167244568008,1.85147084275040,1.85147084275040,2.33389560518351,1.62472628830921,2.19167244568008,2.19167244568008,1.85147084275040,1.85147084275040,2.33389560518351,1.62472628830921,2.19167244568008,2.19167244568008,1.85147084275040,1.85147084275040,2.33389560518351,1.62472628830921};
 
-	for(int i=0;i<res.z_.len();i++){
-		EXPECT_NEAR(res.z_(i),rz[i],1e-14);
+	for(int i=0;i<res.z().len();i++){
+		EXPECT_NEAR(res.z()(i),rz[i],1e-14);
 	}
-	for(int i=0;i<res.l_.len();i++){
-		EXPECT_NEAR(res.l_(i),rl[i],1e-14);
+	for(int i=0;i<res.l().len();i++){
+		EXPECT_NEAR(res.l()(i),rl[i],1e-14);
 	}
-	for(int i=0;i<res.v_.len();i++){
-		EXPECT_NEAR(res.v_(i),rv[i],1e-14);
+	for(int i=0;i<res.v().len();i++){
+		EXPECT_NEAR(res.v()(i),rv[i],1e-14);
 	}
 
 	EXPECT_NEAR(res.Norm(),47.0143886004911,1e-12);
@@ -387,17 +387,17 @@ GTEST_TEST(MPCComponents,RicattiLinearSolver) {
 	x.LinkData(&data);
 	y.LinkData(&data);
 
-	x.z_.fill(1);
-	x.l_.fill(2);
-	x.v_.fill(4);
+	x.z().fill(1);
+	x.l().fill(2);
+	x.v().fill(4);
 
-	y.z_.fill(2);
-	y.l_.fill(1);
-	y.v_.fill(3);
+	y.z().fill(2);
+	y.l().fill(1);
+	y.v().fill(3);
 
 
-	x.InitConstraintMargin();
-	y.InitConstraintMargin();
+	x.InitializeConstraintMargin();
+	y.InitializeConstraintMargin();
 
 	double sigma = 1.0;
 
@@ -409,7 +409,7 @@ GTEST_TEST(MPCComponents,RicattiLinearSolver) {
 	// create the residual then solve
 	MPCResidual res(size);
 	res.LinkData(&data);
-	res.FBresidual(x,y,sigma);
+	res.InnerResidual(x,y,sigma);
 
 	MPCVariable dx(size);
 	ls.Solve(res,&dx);
@@ -424,15 +424,15 @@ GTEST_TEST(MPCComponents,RicattiLinearSolver) {
 
 	double dy[] = {0.0535976427784205,0.467700500428916,1.94640235722158,1.53229949957108,1.98693289763330,0.0130671023667034,-0.193383484498563,0.305367761214063,2.19338348449856,1.69463223878594,1.97887843227010,0.0211215677298969,-0.507027982371936,-0.156718234496897,2.50702798237194,2.15671823449690,1.93467903237502,0.0653209676249814};
 
-	for(int i=0;i<dx.z_.len();i++){
-		EXPECT_NEAR(dx.z_(i),dz[i],1e-12);
+	for(int i=0;i<dx.z().len();i++){
+		EXPECT_NEAR(dx.z()(i),dz[i],1e-12);
 	}
-	for(int i=0;i<dx.l_.len();i++){
-		EXPECT_NEAR(dx.l_(i),dl[i],1e-12);
+	for(int i=0;i<dx.l().len();i++){
+		EXPECT_NEAR(dx.l()(i),dl[i],1e-12);
 	}
-	for(int i=0;i<dx.v_.len();i++){
-		EXPECT_NEAR(dx.v_(i),dv[i],1e-12);
-		EXPECT_NEAR(dx.y_(i),dy[i],1e-12);
+	for(int i=0;i<dx.v().len();i++){
+		EXPECT_NEAR(dx.v()(i),dv[i],1e-12);
+		EXPECT_NEAR(dx.y()(i),dy[i],1e-12);
 	}
 
 	test::free_repmat(Qt,N+1);

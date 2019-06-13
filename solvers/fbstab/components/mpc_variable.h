@@ -14,27 +14,19 @@ namespace fbstab {
  * control QPs. See mpc_data.h for the mathematical description.
  * Stores variables and defines methods implementing useful operations.
  * 
+ * Primal-dual variables have 4 fields:
+ * z: Decision variables (x0,u0,x1,u1, ... xN,uN)
+ * l: Co-states/ equality duals (l0, ... ,lN)
+ * v: Inequality duals (v0, ..., vN)
+ * y: Inequality margins (y0, ..., yN)
+ *
+ * length(z) = (nx*nu)*(N+1)
+ * length(l) = nx*(N+1)
+ * length(v) = nc*(N+1)
+ * length(y) = nc*(N+1)
  */
 class MPCVariable{
  public:
-
- 	/**
- 	 * Primal-dual variables have 4 fields:
- 	 * z: Decision variables (x0,u0,x1,u1, ... xN,uN)
- 	 * l: Co-states/ equality duals (l0, ... ,lN)
- 	 * v: Inequality duals (v0, ..., vN)
- 	 * y: Inequality margins (y0, ..., yN)
- 	 *
- 	 * length(z) = (nx*nu)*(N+1)
- 	 * length(l) = nx*(N+1)
- 	 * length(v) = nc*(N+1)
- 	 * length(y) = nc*(N+1)
- 	 * 
- 	 */
- 	StaticMatrix z_;
- 	StaticMatrix l_; 
- 	StaticMatrix v_; 
- 	StaticMatrix y_; 
 
  	/**
  	 * Allocates memory for a primal-dual variable.
@@ -96,7 +88,7 @@ class MPCVariable{
  	/**
  	 * Sets the constraint margin to y = b - Az
  	 */
- 	void InitConstraintMargin();
+ 	void InitializeConstraintMargin();
 
  	/**
  	 * Sets u <- a*x + u (where u is this object)
@@ -124,24 +116,43 @@ class MPCVariable{
  	 * Computes the Euclidean norm 
  	 * @return ||z|| + ||l|| + ||v||
  	 */
- 	double Norm();
+ 	double Norm() const;
 
  	/**
  	 * Computes the infinity norm
  	 * @return ||z|| + ||l|| + ||v||
  	 */
- 	double InfNorm();
+ 	double InfNorm() const;
 
  	/**
  	 * Allows for writing to a stream, i.e., std::cout << *this
  	 */
  	friend std::ostream &operator<<(std::ostream& output, const MPCVariable &x);
 
+ 	StaticMatrix& z(){ return z_; }
+ 	StaticMatrix& l(){ return l_; }
+ 	StaticMatrix& v(){ return v_; }
+ 	StaticMatrix& y(){ return y_; }
+
  private:
- 	int N_, nx_, nu_, nc_;
- 	int nz_, nl_, nv_;
+ 	StaticMatrix z_; // primal variable
+ 	StaticMatrix l_; // co-state/ equality dual
+ 	StaticMatrix v_; // inequality dual
+ 	StaticMatrix y_; // constraint margin
+
+ 	int N_ = 0;  // horizon length
+ 	int nx_ = 0; // number of states
+ 	int nu_ = 0; // number of controls
+ 	int nc_ = 0; // constraints per stage
+ 	int nz_ = 0; // number of primal variables
+ 	int nl_ = 0; // number of equality duals
+ 	int nv_ = 0; // number of inequality duals
  	bool memory_allocated_ = false;
  	MPCData *data_ = nullptr;
+
+ 	friend class MPCResidual;
+ 	friend class MPCFeasibility;
+ 	friend class RicattiLinearSolver;
 };
 
 }  // namespace fbstab

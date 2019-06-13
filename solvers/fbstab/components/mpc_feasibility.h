@@ -40,19 +40,19 @@ class MPCFeasibility{
  	 * @param[in] x   infeasibility certificate candidate
  	 * @param[in] tol numerical tolerance used when checking the conditions
  	 */
- 	void CheckFeasibility(const MPCVariable &x, double tol);
+ 	void ComputeFeasibility(const MPCVariable &x, double tol);
 
  	/**
  	 * Retrieve the result of the last infeasibility check
  	 * @return false if a dual infeasibility certificate was found, true otherwise
  	 */
- 	bool Dual();
+ 	bool IsDualFeasible() const { return dual_; };
 
  	/**
  	 * Retrieve the result of the last infeasibility check
  	 * @return false if a primal infeasibility certificate was found, true otherwise
  	 */
- 	bool Primal();
+ 	bool IsPrimalFeasible() const { return primal_; }
 
   private:
   	// workspaces

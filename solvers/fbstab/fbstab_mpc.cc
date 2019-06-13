@@ -47,7 +47,6 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc){
 }
 
 SolverOut FBstabMPC::Solve(const QPDataMPC &qp, double *z, double *l, double *v, double *y, bool use_initial_guess){
-
 	QPsizeMPC size;
 	size.nx = nx_;
 	size.nu = nu_;
@@ -58,10 +57,10 @@ SolverOut FBstabMPC::Solve(const QPDataMPC &qp, double *z, double *l, double *v,
 	MPCVariable x0(size,z,l,v,y);
 
 	if(!use_initial_guess){
-		x0.z_.fill(0.0);
-		x0.l_.fill(0.0);
-		x0.v_.fill(0.0);
-		x0.y_.fill(0.0);
+		x0.z().fill(0.0);
+		x0.l().fill(0.0);
+		x0.v().fill(0.0);
+		x0.y().fill(0.0);
 	}
 
 	return algo_->Solve(&data,&x0);
@@ -77,7 +76,7 @@ void FBstabMPC::UpdateOption(const char *option, bool value){
 	algo_->UpdateOption(option,value);
 }
 void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level){
-	algo_->display_level = level;
+	algo_->display_level() = level;
 }
 
 FBstabMPC::~FBstabMPC(){

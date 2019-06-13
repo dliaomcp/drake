@@ -12,20 +12,13 @@ namespace fbstab {
 /**
  * A class that computes and stores residuals for MPC QPs. See data.h
  * for the mathematical description.
+ * Residuals have 3 fields:
+ * z: Optimality residual
+ * l: Equality residual
+ * v: Inequality/complimentarity constraint residual
  */
 class MPCResidual{
  public:
-
- 	/**
- 	 * Residuals have 3 fields:
- 	 * z: Primal/optimality residual
- 	 * l: Equality constraint residual
- 	 * v: Inequality constraint residual
- 	 */
- 	StaticMatrix z_;
- 	StaticMatrix l_; 
- 	StaticMatrix v_;
-
  	/**
  	 * Allocates memory for computing QP residuals
  	 * 
@@ -51,13 +44,13 @@ class MPCResidual{
 
  	/**
  	 * Sets the value of alpha used in residual computations
- 	 * @param alpha value to be set
+ 	 * @param[in] alpha value to be set
  	 */
  	void SetAlpha(double alpha);
 
  	/**
  	 * Filles memory with vectors of a
- 	 * @param a value to fill
+ 	 * @param[in] a value to fill
  	 */
  	void Fill(double a);
 
@@ -93,16 +86,18 @@ class MPCResidual{
  	/**
  	 * Computes the proximal subproblem residual at the point x 
  	 * relative to the reference point xbar with regularization strength sigma.
+ 	 * Corresponds to (20) in https://arxiv.org/pdf/1901.04046.pdf
  	 * Overwrites internal storage
  	 * @param[in] x     inner iterate for evaluating the residual
  	 * @param[in] xbar  outer iterate for evaluating the residual
  	 * @param[in] sigma regularization strength
  	 */
- 	void FBresidual(const MPCVariable &x, const MPCVariable &xbar, double sigma);
+ 	void InnerResidual(const MPCVariable &x, const MPCVariable &xbar, double sigma);
 
  	/**
  	 * Computes the natural residual of the KKT conditions at x.
  	 * Overwrites internal storage.
+ 	 * Corresponds to (23) in https://arxiv.org/pdf/1901.04046.pdf
  	 * @param[in] x primal-dual point to evaluate the KKT conditions
  	 */
  	void NaturalResidual(const MPCVariable &x);
@@ -114,20 +109,37 @@ class MPCResidual{
  	 */
  	void PenalizedNaturalResidual(const MPCVariable &x);
 
- 	double z_norm = 0.0;
- 	double v_norm = 0.0;
- 	double l_norm = 0.0;
+ 	StaticMatrix z(){ return z_; }
+ 	StaticMatrix l(){ return l_; }
+ 	StaticMatrix v(){ return v_; }
+
+ 	double z_norm()const { return znorm_; }
+ 	double l_norm()const { return lnorm_; }
+ 	double v_norm()const { return vnorm_; }
 
  private:
- 	// problem sizes
- 	int N_, nx_, nu_, nc_;
- 	int nz_, nl_, nv_;
+ 	StaticMatrix z_;
+ 	StaticMatrix l_; 
+ 	StaticMatrix v_;
+
+ 	int N_ = 0;  // horizon length
+ 	int nx_ = 0; // number of states
+ 	int nu_ = 0; // number of controls
+ 	int nc_ = 0; // constraints per stage
+ 	int nz_ = 0; // number of primal variables
+ 	int nl_ = 0; // number of equality duals
+ 	int nv_ = 0; // number of inequality duals
 
  	double alpha_ = 0.95;
  	MPCData *data_ = nullptr;
 
+ 	double znorm_ = 0.0;
+ 	double vnorm_ = 0.0;
+ 	double lnorm_ = 0.0;
+
  	/**
- 	 * Computes the penalized Fischer-Burmeister function phi(a,b)
+ 	 * Computes the penalized Fischer-Burmeister function pfb(a,b)
+ 	 * Equation (19) of https://arxiv.org/pdf/1901.04046.pdf
  	 * @param[in]  a     input 1
  	 * @param[in]  b     input 2
  	 * @param[in]  alpha weighting parameter
@@ -138,6 +150,7 @@ class MPCResidual{
  	static double min(double a, double b);
 
  	bool memory_allocated_ = false;
+ 	friend class RicattiLinearSolver;
 };
 
 
