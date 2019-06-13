@@ -15,6 +15,7 @@ class DenseVariable{
  public:
  	
 	DenseVariable(DenseQPsize size);
+	DenseVariable(DenseQPsize size, double* z, double* v, double* y);
 	~DenseVariable();
 
 	// links in a DenseData object

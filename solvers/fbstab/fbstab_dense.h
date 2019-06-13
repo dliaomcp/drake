@@ -1,6 +1,10 @@
 #pragma once
 
-#include "drake/solvers/fbstab/components/dense_components.h"
+#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_residual.h"
+#include "drake/solvers/fbstab/components/dense_linear_solver.h"
+#include "drake/solvers/fbstab/components/dense_feasibility.h"
 #include "drake/solvers/fbstab/fbstab_algorithm.h"
 #include "drake/solvers/fbstab/linalg/static_matrix.h"
 
@@ -9,16 +13,15 @@ namespace solvers {
 namespace fbstab {
 
 // a data to store input data
-struct QPDataDense {
+struct DenseQPData {
 	double *H = nullptr;
 	double *f = nullptr;
 	double *A = nullptr;
 	double *b = nullptr;
-	
 };
 
 // Conveience type for the templated dense version of the algorithm
-using FBstabAlgoDense = FBstabAlgorithm<DenseVariable,DenseResidual,DenseData,DenseLinearSolver,DenseFeasibilityCheck>;
+using FBstabAlgoDense = FBstabAlgorithm<DenseVariable,DenseResidual,DenseData,DenseLinearSolver,DenseFeasibility>;
 
 // the main object for the C++ API
 class FBstabDense {
@@ -34,7 +37,7 @@ class FBstabDense {
  	// z = new double[n]
  	// v,y = new double[q]
  	// the solution is stored in z and v with y = b - Az
- 	SolverOut Solve(const QPDataDense &qp, double *z, double *v, double *y, bool use_initial_guess = true);
+ 	SolverOut Solve(const DenseQPData &qp, double *z, double *v, double *y, bool use_initial_guess = true);
 
  	~FBstabDense();
  	
@@ -45,8 +48,8 @@ class FBstabDense {
 
 
  private:
- 	int n = 0;
- 	int q = 0;
+ 	int n_ = 0;
+ 	int q_ = 0;
  	FBstabAlgoDense *algo = nullptr;
 };
 

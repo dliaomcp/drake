@@ -95,7 +95,7 @@ drake_cc_library( # linear solver
             ":dense_data"],
 )
 
-drake_cc_library(
+drake_cc_library( 
     name = "fbstab_dense",
     srcs = ["fbstab_dense.h",
             "fbstab_dense.cc",
@@ -111,7 +111,7 @@ drake_cc_library(
             ":dense_linear_solver"],
 )
 
-drake_cc_googletest( # dense component objects
+drake_cc_googletest( # dense component unit tests
     name = "dense_component_tests",
     srcs = ["test/dense_component_tests.cc"],
     deps = [":static_matrix",
@@ -122,11 +122,18 @@ drake_cc_googletest( # dense component objects
             ":dense_linear_solver"],
 )
 
-drake_cc_googletest( # fbstab_dense
+drake_cc_binary( # build test
+    name = "fbstab_dense_build_test",
+    srcs = ["test/dense_fbstab_build_test.cc"],
+    deps = [":static_matrix",
+            ":dense_data",
+            ":fbstab_dense"],
+)
+
+drake_cc_googletest( # unit tests
     name = "fbstab_dense_tests",
     srcs = ["test/dense_fbstab_tests.cc"],
     deps = [":static_matrix",
-            ":dense_components",
             ":fbstab_dense"
     ],
 )
@@ -169,20 +176,6 @@ drake_cc_library(
 
 # Build tests *************************************
 
-drake_cc_binary(
-    name = "dense_component_build_test",
-    srcs = ["test/dense_component_build_test.cc"],
-    deps = [":static_matrix",
-            ":dense_components"],
-)
-
-drake_cc_binary(
-    name = "fbstab_dense_build_test",
-    srcs = ["test/dense_fbstab_build_test.cc"],
-    deps = [":static_matrix",
-            ":dense_components",
-            ":fbstab_dense"],
-)
 
 drake_cc_binary(
     name = "matrix_sequence_build_test",
