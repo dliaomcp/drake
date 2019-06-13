@@ -66,7 +66,6 @@ class FBstabAlgorithm{
 		ITER = 2, // basic information at each outer loop iteration
 		ITER_DETAILED = 3 // print inner loop information
 	};
-	FBstabAlgorithm::Display display_level = FINAL;
 
 	/**
 	 * Saves the components objects needed by the solver.
@@ -124,6 +123,7 @@ class FBstabAlgorithm{
 	void UpdateOption(const char *option, double value);
 	void UpdateOption(const char *option, int value);
 	void UpdateOption(const char *option, bool value);
+	Display& display_level(){ return display_level_ ;}
 
 	/**
 	 * Deletes all the component objects. CALLS DELETE USE WITH CARE.
@@ -132,7 +132,7 @@ class FBstabAlgorithm{
 
  private:
 	enum { kNonmonotoneLinesearch = 3 }; 
-	double merit_values[kNonmonotoneLinesearch] = { 0.0 };
+	double merit_values_[kNonmonotoneLinesearch] = { 0.0 };
 
 	/**
 	 * Codes for infeasibility detection
@@ -146,7 +146,7 @@ class FBstabAlgorithm{
 
 	/**
 	 * Attempts to solve a proximal subproblem x = P(xbar,sigma) using
-	 * the semismooth Newton's method.
+	 * the semismooth Newton's method. See (11) in https://arxiv.org/pdf/1901.04046.pdf
 	 * 
 	 * @param[both]  x      Initial guess, overwritten with the solution.
 	 * @param[in]    xbar   Current proximal (outer) iterate
@@ -219,54 +219,57 @@ class FBstabAlgorithm{
 	 * stdout
 	 */
 	void PrintIterHeader();
-	void PrintIterLine(int prox_iters_, int newton_iters_, const Residual &r, const Residual &r_inner,double itol);
-	void PrintDetailedHeader(int prox_iters_, int newton_iters_, const Residual &r);
+	void PrintIterLine(int prox_iters, int newton_iters, const Residual &rk, const Residual &ri,double itol);
+	void PrintDetailedHeader(int prox_iters, int newton_iters, const Residual &r);
 	void PrintDetailedLine(int iter, double step_length, const Residual &r);
 	void PrintDetailedFooter(double tol, const Residual &r);
-	void PrintFinal(int prox_iters_, int newton_iters_, ExitFlag eflag, const Residual &r);
+	void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag, const Residual &r);
+
+	FBstabAlgorithm::Display display_level_ = FINAL;
 
 	// iteration counters
 	int newton_iters_ = 0;
 	int prox_iters_ = 0;
 
 	// variable objects
-	Variable *xk = nullptr;
-	Variable *xi = nullptr;
-	Variable *xp = nullptr;
-	Variable *dx = nullptr;
+	Variable *xk_ = nullptr; // outer loop variable
+	Variable *xi_ = nullptr; // inner loop variable
+	Variable *xp_ = nullptr; // workspace
+	Variable *dx_ = nullptr; // workspace
 
 	// residual objects
-	Residual *rk = nullptr;
-	Residual *ri = nullptr;
+	Residual *rk_ = nullptr; // outer loop residual
+	Residual *ri_ = nullptr; // inner loop residual
 
 	// linear system solver object
-	LinearSolver *linear_solver = nullptr;
-	Feasibility *feas = nullptr;
+	LinearSolver *linear_solver_ = nullptr;
+	Feasibility *feasibility_ = nullptr;
 
-	// algorithm parameters
-	double sigma0 = 1e-8;
-	double alpha = 0.95;
-	double beta = 0.7;
-	double eta = 1e-8;
-	double inner_tol_multiplier = 1.0/5;
+	// Algorithm parameters
+	// See https://arxiv.org/pdf/1901.04046.pdf
+	double sigma0_ = 1e-8;
+	double alpha_ = 0.95;
+	double beta_ = 0.7;
+	double eta_ = 1e-8;
+	double inner_tol_multiplier_ = 1.0/5;
 
 	// tolerances
-	double abs_tol = 1e-6;
-	double rel_tol = 1e-12;
-	double stall_tol = 1e-10;
-	double infeas_tol = 1e-8;
+	double abs_tol_ = 1e-6;
+	double rel_tol_ = 1e-12;
+	double stall_tol_ = 1e-10;
+	double infeasibility_tol_ = 1e-8;
 
 	// tolerance guards
-	double inner_tol_max = 1.0;
-	double inner_tol_min = 1e-12;
+	double inner_tol_max_ = 1.0;
+	double inner_tol_min_ = 1e-12;
 	
 	// maximum iterations
-	int max_newton_iters = 200;
-	int max_prox_iters = 30;
-	int max_inner_iters = 50;
-	int max_linesearch_iters = 20;
+	int max_newton_iters_ = 200;
+	int max_prox_iters_ = 30;
+	int max_inner_iters_ = 50;
+	int max_linesearch_iters_ = 20;
 
-	bool check_feasibility = true;
+	bool check_feasibility_ = true;
 
 };
 

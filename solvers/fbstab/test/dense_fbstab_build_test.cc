@@ -18,7 +18,7 @@ int main(){
 
 	FBstabDense solver(2,2);
 
-	QPDataDense data;
+	DenseQPData data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -43,7 +43,7 @@ int main(){
 	double A2[] = {0,1,-1,0,0,0,0,-1};
 	double b2[] = {0,3,-1,-1};
 
-	QPDataDense data2;
+	DenseQPData data2;
 	data2.H = H2;
 	data2.f = f2;
 	data2.A = A2;

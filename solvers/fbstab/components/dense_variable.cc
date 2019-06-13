@@ -28,6 +28,17 @@ DenseVariable::DenseVariable(DenseQPsize size){
 	memory_allocated_ = true;
 }
 
+DenseVariable::DenseVariable(DenseQPsize size, double* z, double* v, double* y){
+	n_ = size.n;
+	q_ = size.q;
+	
+	z_ = StaticMatrix(z,n_);
+	v_ = StaticMatrix(v,q_);
+	y_ = StaticMatrix(y,q_);
+
+	memory_allocated_ = false;
+}
+
 DenseVariable::~DenseVariable(){
 	if(memory_allocated_){
 		delete[] z_.data;

@@ -22,7 +22,7 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
 	
 	FBstabDense solver(n,q);
 
-	QPDataDense data;
+	DenseQPData data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -60,7 +60,7 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
 	int q = 5;
 	FBstabDense solver(n,q);
 
-	QPDataDense data;
+	DenseQPData data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -98,7 +98,7 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
 	int q = 5;
 	FBstabDense solver(n,q);
 
-	QPDataDense data;
+	DenseQPData data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
@@ -126,7 +126,7 @@ GTEST_TEST(FBstabDense, UnboundedQP) {
 	int q = 4;
 	FBstabDense solver(n,q);
 
-	QPDataDense data;
+	DenseQPData data;
 	data.H = H;
 	data.f = f;
 	data.A = A;
