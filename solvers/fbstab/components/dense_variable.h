@@ -13,6 +13,7 @@ namespace fbstab {
 // TODO: More documentation
 class DenseVariable{
  public:
+ 	
 	DenseVariable(DenseQPsize size);
 	~DenseVariable();
 
@@ -23,7 +24,7 @@ class DenseVariable{
 	// set the y field = b - Az
 	void InitializeConstraintMargin();
 	// y <- a*x + y
-	void ScaledAccumulate(const DenseVariable &x, double a);
+	void axpy(const DenseVariable &x, double a);
 	// deep copy
 	void Copy(const DenseVariable &x);
 	// projects inequality duals onto the nonnegative orthant
@@ -42,9 +43,13 @@ class DenseVariable{
 	DenseData *data_ = nullptr;
 	bool memory_allocated_ = false;
 
-	StaticMatrix z_; // primal
-	StaticMatrix v_; // dual
-	StaticMatrix y_; // ieq margin
+	StaticMatrix z_; // primal variable
+	StaticMatrix v_; // dual variable
+	StaticMatrix y_; // inequality margin
+
+	friend class DenseResidual;
+	friend class DenseLinearSolver;
+	friend class DenseFeasibility;
 };
 
 
