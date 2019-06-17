@@ -48,7 +48,7 @@ drake_cc_library( # data
             "components/dense_data.cc"
     ],
     hdrs = ["components/dense_data.h"],
-    deps = [":static_matrix"],
+    deps = ["@eigen"],
 )
 
 drake_cc_library( # variable
@@ -93,6 +93,7 @@ drake_cc_library( # linear solver
             ":dense_variable",
             ":dense_residual",
             ":dense_data"],
+    copts = ["-UNDEBUG"]
 )
 
 drake_cc_library( 
@@ -109,6 +110,16 @@ drake_cc_library(
             ":dense_residual",
             ":dense_feasibility",
             ":dense_linear_solver"],
+)
+
+drake_cc_binary(
+    name = "dense_component_build_test",
+    srcs = ["test/dense_component_build_test.cc"],
+    deps = [":dense_data",
+            ":dense_variable",
+            ":dense_residual",
+            ":dense_linear_solver"],
+    copts = ["-UNDEBUG"]
 )
 
 drake_cc_googletest( # dense component unit tests

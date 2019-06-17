@@ -1,6 +1,7 @@
 #pragma once
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include <Eigen/Dense>
+
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_residual.h"
 #include "drake/solvers/fbstab/components/dense_data.h"
@@ -18,7 +19,6 @@ class DenseLinearSolver{
  	struct Point2D {double x; double y;};
 
  	DenseLinearSolver(DenseQPsize size);
- 	~DenseLinearSolver();
 
  	void LinkData(DenseData *data);
  	void SetAlpha(double alpha);
@@ -26,6 +26,7 @@ class DenseLinearSolver{
 	bool Factor(const DenseVariable &x, const DenseVariable &xbar, double sigma);
 	bool Solve(const DenseResidual &r, DenseVariable *x);
 
+	Eigen::MatrixXd& K(){ return K_; };
 	
  private:
  	int n_,q_;
@@ -33,18 +34,19 @@ class DenseLinearSolver{
 	double zero_tolerance_ = 1e-13;
 
 	// workspace variables
-	StaticMatrix K_; // memory for the augmented Hessian
-	StaticMatrix r1_; // residual
- 	StaticMatrix r2_; // residual
-
- 	StaticMatrix Gamma_;
- 	StaticMatrix mus_;
- 	StaticMatrix gamma_;
+	Eigen::MatrixXd K_; 
+	Eigen::VectorXd r1_;
+	Eigen::VectorXd r2_;
+	Eigen::VectorXd Gamma_;
+	Eigen::VectorXd mus_;
+	Eigen::VectorXd gamma_;
+	Eigen::MatrixXd B_;
 
  	DenseData *data_ = nullptr;
-
  	// computes the PFB function gradient at (a,b)
- 	Point2D PFBGradient(double a, double b, double sigma);
+ 	Point2D PFBGradient(double a, double b);
+
+ 	void CholeskySolve(const Eigen::MatrixXd& A, Eigen::VectorXd* b);
 };
 
 }  // namespace fbstab

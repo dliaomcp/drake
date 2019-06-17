@@ -1,24 +1,20 @@
 #include "drake/solvers/fbstab/components/dense_data.h"
 
 #include <cmath>
+#include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-DenseData::DenseData(double *H,double *f, 
-	double *A,double *b, DenseQPsize size){
+using MatrixXd = Eigen::MatrixXd;
+using VectorXd = Eigen::VectorXd;
 
+DenseData::DenseData(const MatrixXd& H,const VectorXd& f, const MatrixXd& A,const VectorXd& b, DenseQPsize size)
+	: H_(H), f_(f), A_(A), b_(b){
 	n_ = size.n;
 	q_ = size.q;
-
-	// create static matrices over the inputs
-	H_.map(H,n_,n_);
-	f_.map(f,n_);
-	A_.map(A,q_,n_);
-	b_.map(b,q_);
 }
 
 }  // namespace fbstab

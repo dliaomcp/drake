@@ -1,6 +1,8 @@
+#define EIGEN_RUNTIME_NO_MALLOC 
 #include "drake/solvers/fbstab/components/dense_residual.h"
 
 #include <cmath>
+#include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/linalg/static_matrix.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
@@ -12,21 +14,13 @@ namespace fbstab {
 
 
 DenseResidual::DenseResidual(DenseQPsize size){
+	Eigen::internal::set_is_malloc_allowed(true);
 	n_ = size.n;
 	q_ = size.q;
 
-	// allocate memory
-	// TODO Eigen me
-	double *r1 = new double[n_];
-	double *r2 = new double[q_];
-
-	z_ = StaticMatrix(r1,n_);
-	v_ = StaticMatrix(r2,q_);
-}
-
-DenseResidual::~DenseResidual(){
-	delete[] z_.data;
-	delete[] v_.data;
+	z_.resize(n_);
+	v_.resize(q_);
+	Eigen::internal::set_is_malloc_allowed(false);
 }
 
 void DenseResidual::LinkData(DenseData *data){
@@ -40,19 +34,13 @@ void DenseResidual::Negate(){
 
 void DenseResidual::NaturalResidual(const DenseVariable& x){
 	if(data_ == nullptr){
-		throw std::runtime_error("Data not liked in DenseResidual");
+		throw std::runtime_error("DenseResidual::NaturalResidual cannot be used unless data is linked");
 	}
-
-	// rv = H*z + f + A'*v
-	z_.fill(0.0);
-	z_ += data_->f_;
-	z_.gemv(data_->H_,x.z_,1.0,1.0); // += H*z
-	z_.gemv(data_->A_,x.v_,1.0,1.0,true); // += A'*v
+	// rz = H*z + f + A'*v
+	z_.noalias() = data_->H_*x.z_ + data_->f_ + data_->A_.transpose()*x.v_;
 
 	// rv = min(y,v)
-	for(int i = 0;i<q_;i++){
-		v_(i) = min(x.y_(i),x.v_(i));
-	}
+	v_ = x.y_.cwiseMin(x.v_);
 
 	znorm_ = z_.norm();
 	vnorm_ = v_.norm();
@@ -60,17 +48,13 @@ void DenseResidual::NaturalResidual(const DenseVariable& x){
 
 void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 	if(data_ == nullptr){
-		throw std::runtime_error("Data not liked in DenseResidual");
+		throw std::runtime_error("DenseResidual::PenalizedNaturalResidual cannot be used unless data is linked");
 	}
-
 	// rz = H*z + f + A'*v
-	z_.fill(0.0);
-	z_ += data_->f_;
-	z_.gemv(data_->H_,x.z_,1.0,1.0); // += H*z
-	z_.gemv(data_->A_,x.v_,1.0,1.0,true); // += A'*v
+	z_.noalias() = data_->H_*x.z_ + data_->f_ + data_->A_.transpose()*x.v_;
 
 	// rv = min(y,v) + max(0,y)*max(0,v)
-	for(int i = 0;i<q_;i++){
+	for(int i = 0; i < q_; i++){
 		v_(i) = min(x.y_(i),x.v_(i));
 		v_(i) = alpha_*v_(i) + (1.0-alpha_)*max(0.0,x.y_(i))*max(0.0,x.v_(i));
 	}
@@ -81,19 +65,14 @@ void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 
 void DenseResidual::InnerResidual(const DenseVariable& x, const DenseVariable& xbar, double sigma){
 	if(data_ == nullptr){
-		throw std::runtime_error("Data not liked in DenseResidual");
+		throw std::runtime_error("DenseResidual::InerResidual cannot be used unless data is linked");
 	}
-
-	// z_ = Hz + f + A'v + sigma(z - zbar)
-	z_.fill(0.0);
-	z_ += data_->f_;
-	z_.gemv(data_->H_,x.z_,1.0,1.0); // += H*z
-	z_.gemv(data_->A_,x.v_,1.0,1.0,true); // += A'*v
-	z_.axpy(x.z_,sigma);
-	z_.axpy(xbar.z_,-1.0*sigma);
+	// rz = Hz + f + A'v + sigma(z - zbar)
+	z_.noalias() = data_->H_*x.z_ + data_->f_ + data_->A_.transpose()*x.v_;
+	z_.noalias() += sigma*(x.z_ - xbar.z_);
 
 	// v_ = phi(ys,v), ys = y + sigma(x.v - xbar.v)
-	for(int i = 0;i<q_;i++){
+	for(int i = 0; i < q_; i++){
 		double ys = x.y_(i) + sigma*(x.v_(i) - xbar.v_(i));
 		v_(i) = pfb(ys,x.v_(i),alpha_);
 	}
@@ -103,8 +82,11 @@ void DenseResidual::InnerResidual(const DenseVariable& x, const DenseVariable& x
 }
 
 void DenseResidual::Copy(const DenseResidual &x){
-	z_.copy(x.z_);
-	v_.copy(x.v_);
+	if(n_ != x.n_ || q_ != x.q_){
+		throw std::runtime_error("Sizes not equal in DenseResidual::Copy");
+	}
+	z_ = x.z_;
+	v_ = x.v_;
 }
 
 void DenseResidual::Fill(double a){
@@ -114,10 +96,6 @@ void DenseResidual::Fill(double a){
 
 double DenseResidual::Norm() const{
 	return znorm_ + vnorm_;
-}
-
-double DenseResidual::AbsSum() const{
-	return z_.asum() + v_.asum();
 }
 
 double DenseResidual::Merit() const{

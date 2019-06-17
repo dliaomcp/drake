@@ -1,8 +1,10 @@
+#define EIGEN_RUNTIME_NO_MALLOC 1
 #include "drake/solvers/fbstab/components/dense_linear_solver.h"
 
 #include <cmath>
+#include <iostream>
+#include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_residual.h"
 #include "drake/solvers/fbstab/components/dense_data.h"
@@ -11,38 +13,20 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
+// using namespace Eigen;
 DenseLinearSolver::DenseLinearSolver(DenseQPsize size){
+	Eigen::internal::set_is_malloc_allowed(true);
 	n_ = size.n;
 	q_ = size.q;
 
-	// fb derivatives
-	double *a1 = new double[q_];
-	double *a2 = new double[q_];
-	double *a3 = new double[q_];
-	gamma_ = StaticMatrix(a1,q_);
-	mus_ = StaticMatrix(a2,q_);
-	Gamma_ = StaticMatrix(a3,q_);
-
-	// workspace residuals
-	double *b1 = new double[n_];
-	double *b2 = new double[q_];
-	r1_ = StaticMatrix(b1,n_);
-	r2_ = StaticMatrix(b2,q_);
-
-	// workspace hessian
-	double *c = new double[n_*n_];
-	K_ = StaticMatrix(c,n_,n_);
-}
-
-DenseLinearSolver::~DenseLinearSolver(){
-	delete[] gamma_.data;
-	delete[] mus_.data;
-	delete[] Gamma_.data;
-
-	delete[] r1_.data;
-	delete[] r2_.data;
-
-	delete[] K_.data;
+	K_.resize(n_,n_);
+	r1_.resize(n_);
+	r2_.resize(q_);
+	Gamma_.resize(q_);
+	mus_.resize(q_);
+	gamma_.resize(q_);
+	B_.resize(q_,n_);
+	Eigen::internal::set_is_malloc_allowed(false);
 }
 
 void DenseLinearSolver::LinkData(DenseData *data){
@@ -54,68 +38,75 @@ void DenseLinearSolver::SetAlpha(double alpha){
 }
 
 bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar, double sigma){
+	// References to make the expressions clearer
+	const Eigen::MatrixXd& H = data_->H_;
+	const Eigen::MatrixXd& A = data_->A_;
 
-	// compute K = H + sigma I
-	K_.copy(data_->H_);
-	K_.AddDiag(sigma);
+	// compute K <- H + sigma I
+	K_ = H + sigma*Eigen::MatrixXd::Identity(n_,n_); // does this create a temporary?
 	
 	// K <- K + A'*diag(Gamma(x))*A
-	Point2D tmp;
-	for(int i = 0;i<q_;i++){
+	Point2D pfb_gradient;
+	for(int i = 0; i < q_; i++){
 		double ys = x.y_(i) + sigma*(x.v_(i) - xbar.v_(i));
-		tmp = PFBGradient(ys,x.v_(i),sigma);
+		pfb_gradient = PFBGradient(ys,x.v_(i));
 
-		gamma_(i) = tmp.x;
-		mus_(i) = tmp.y + sigma*tmp.x;
+		gamma_(i) = pfb_gradient.x;
+		mus_(i) = pfb_gradient.y + sigma*pfb_gradient.x;
 		Gamma_(i) = gamma_(i)/mus_(i);
 	}
-	K_.gram(data_->A_,Gamma_);
 
-	// K = LL' in place
-	int chol_flag = K_.llt();
+	// K += A' * Gamma * A
+	// The variable B is used to avoid dynamic allocation of temporaries
+	B_.noalias() = Gamma_.asDiagonal()*A;
+	K_.noalias() += A.transpose()*B_;
 
-	if(chol_flag == 0){ return true; }
-	else{ return false; }
-}
-
-bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
-	// solve the system
-	// K z = rz - A'*diag(1/mus)*rv
-	// diag(mus) v = rv + diag(gamma)*A*z
-
-	for(int i = 0;i<q_;i++){
-		mus_(i) = 1.0/mus_(i);
-	}
-
-	r1_.copy(r.z_);
-	r2_.copy(r.v_);
-	// r2 = rv./mus
-	r2_.RowScale(mus_);
-	// r1 = -A'*r2 + r1
-	r1_.gemv(data_->A_,r2_,-1.0,1.0,true); 
-
-	// solve K z = r1
-	r1_.CholSolve(K_);
-	(x->z_).copy(r1_);
-
-	// r2 = rv + diag(gamma)*A*z
-	r2_.gemv(data_->A_,x->z_,1.0);
-	r2_.RowScale(gamma_);
-	r2_.axpy(r.v_,1.0);
-
-	// v = diag(1/mus)*r2
-	r2_.RowScale(mus_);
-	(x->v_).copy(r2_);
-
-	// y = b - Az
-	(x->y_).copy(data_->b_);
-	(x->y_).gemv(data_->A_,x->z_,-1.0,1.0);
+	// Factor K = LL' in place
+	Eigen::LLT<Eigen::Ref<Eigen::MatrixXd> > L(K_);
 
 	return true;
 }
 
-DenseLinearSolver::Point2D DenseLinearSolver::PFBGradient(double a,
- double b, double sigma){
+bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
+	if(r.n_ != x->n_ || r.q_ != x->q_){
+		throw std::runtime_error("In DenseLinearSolver::Solve residual and variable objects must be the same size");
+	}
+	// Solve the system:
+	// (H + sigma*I + A'*Gamma*A) z = rz - A'*diag(1/mus)*rv
+	// diag(mus) v = rv + diag(gamma)*A*z
+
+	// References for clarity
+	const Eigen::MatrixXd& A = data_->A_;
+	const Eigen::VectorXd& b = data_->b_;
+
+	// compute r1 = rz - A'*(rv./mus)
+	r2_ = r.v_.cwiseQuotient(mus_);
+	r1_.noalias() =  r.z_ - A.transpose()*r2_;
+
+	// Solve KK'*z = r1
+	// Where K = cholesky(H + sigma*I + A'*Gamma*A) and is assumed to have been computed during the factor phase
+	CholeskySolve(K_,&(x->z_));
+
+	// Compute v = diag(1/mus) * (rv + diag(gamma)*A*z)
+	// written so as to avoid temporary creation
+	r2_.noalias() = A*x->z_;
+	r2_.noalias() += r2_.cwiseProduct(gamma_);
+	r2_ += r.v_;
+
+	// v = diag(1/mus)*r2
+	x->v_ = r2_.cwiseQuotient(mus_);
+
+	// y = b - Az
+	x->y_ = b - A*x->z_;
+	return true;
+}
+
+void DenseLinearSolver::CholeskySolve(const Eigen::MatrixXd& A, Eigen::VectorXd* b){
+	A.triangularView<Eigen::Lower>().solveInPlace(*b);
+	A.triangularView<Eigen::Lower>().transpose().solveInPlace(*b);
+}
+
+DenseLinearSolver::Point2D DenseLinearSolver::PFBGradient(double a, double b){
 	double y = 0;
 	double x = 0;
 	double r = sqrt(a*a + b*b);

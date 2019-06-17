@@ -1,14 +1,10 @@
 #pragma once
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
-
-
-// contains the gereral dense qp specific classes and structures
+#include <Eigen/Dense>
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
-
 
 // stores the size of the qp
 struct DenseQPsize {
@@ -16,14 +12,21 @@ struct DenseQPsize {
 	int q; // number of inequalities
 };
 
-// stores the problem data
+// contains the gereral dense qp specific classes and structures
 class DenseData{
  public:
-	DenseData(double *H,double *f, double *A,double *b, DenseQPsize size);
+	// fixme, this breaks if I use e.g., Vector4f or similar instead of VectorXd
+	// not the end of the world but not ideal....
+	DenseData(const Eigen::MatrixXd& H,const Eigen::VectorXd& f, const Eigen::MatrixXd& A,const Eigen::VectorXd& b, DenseQPsize size);
+
+	const Eigen::MatrixXd& H_; 
+ 	const Eigen::VectorXd& f_;
+ 	const Eigen::MatrixXd& A_;
+ 	const Eigen::VectorXd& b_;
 
  private:
- 	StaticMatrix H_,f_,A_,b_;
-	int n_,q_;
+	int n_ = 0;
+	int q_ = 0;
 
 	friend class DenseVariable;
 	friend class DenseResidual;

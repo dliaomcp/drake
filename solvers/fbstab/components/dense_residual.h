@@ -1,24 +1,22 @@
 #pragma once
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include <Eigen/Dense>
+
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_data.h"
-
-
-// contains the gereral dense qp specific classes and structures
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-
 class DenseResidual{
  public:
 	DenseResidual(DenseQPsize size);
-	~DenseResidual();
 
 	void LinkData(DenseData *data);
-	void Negate(); // y <- -1*y
+
+	// y <- -1*y
+	void Negate(); 
 
 	// compute the residual for the proximal subproblem at (x,xbar,sigma)
 	void InnerResidual(const DenseVariable& x, 
@@ -34,7 +32,6 @@ class DenseResidual{
 	void Fill(double a);
 	double Norm() const; // 2 norm
 	double Merit() const; // 2 norm squared
-	double AbsSum() const; // 1 norm
 
 	void SetAlpha(double alpha) {alpha_ = alpha;}
 
@@ -42,14 +39,15 @@ class DenseResidual{
 	double v_norm() const { return vnorm_; }
 	double l_norm() const { return lnorm_; }
 
-	StaticMatrix& z(){ return z_; };
-	StaticMatrix& v(){ return v_; };
+	Eigen::VectorXd& z(){ return z_; };
+	Eigen::VectorXd& v(){ return v_; };
 
  private:
  	DenseData *data_ = nullptr; // access to the data object
- 	int n_,q_;
- 	StaticMatrix z_; // stationarity residual
-	StaticMatrix v_; // complimentarity residual
+ 	int n_ = 0;
+ 	int q_ = 0;
+ 	Eigen::VectorXd z_; // stationarity residual
+	Eigen::VectorXd v_; // complimentarity residual
 	double alpha_ = 0.95; 
 	double znorm_ = 0.0;
 	double vnorm_ = 0.0;

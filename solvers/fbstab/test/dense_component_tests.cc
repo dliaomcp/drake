@@ -5,15 +5,17 @@
 #include "drake/solvers/fbstab/components/dense_feasibility.h"
 
 #include <cmath>
+#include <Eigen/Dense>
 #include <gtest/gtest.h>
-
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 namespace test {
 
+
+using MatrixXd = Eigen::MatrixXd;
+using VectorXd = Eigen::VectorXd;
 
 GTEST_TEST(FBstabDense, DenseVariable) {
 

@@ -14,49 +14,49 @@ DenseFeasibility::DenseFeasibility(DenseQPsize size){
 	n_ = size.n;
 	q_ = size.q;
 
-	// allocate memory
-	double *r1 = new double[n_];
-	double *r2 = new double[n_];
-	double *r3 = new double[q_];
-
-	z1_ = StaticMatrix(r1,n_);
-	z2_ = StaticMatrix(r2,n_);
-	v1_ = StaticMatrix(r3,q_);
-}
-
-DenseFeasibility::~DenseFeasibility(){
-	delete[] z1_.data;
-	delete[] z2_.data;
-	delete[] v1_.data;
+	z1_.resize(n_);
+	v1_.resize(q_);
 }
 
 void DenseFeasibility::LinkData(DenseData *data){
 	data_ = data;
 }
 
+// Check for dual infeasibility i.e.,
+// max(Az) <= 0 and f'*z < 0 and ||Hz|| <= tol * ||z||
+// and primal infeasibility
+// v'*b < 0 and ||A'*v|| \leq tol * ||v||
 void DenseFeasibility::ComputeFeasibility(const DenseVariable &x, double tol){
-	// check dual
-	double w = x.z_.infnorm();
+	// References to make the expressions cleaner
+	const Eigen::MatrixXd& H = data_->H_;
+	const Eigen::MatrixXd& A = data_->A_;
+	const Eigen::VectorXd& f = data_->f_;
+	const Eigen::VectorXd& b = data_->b_;
+
 	// max(Az)
-	v1_.gemv(x.data_->A_,x.z_);
-	double d1 = v1_.max();
+	v1_ = A * x.z_;
+	double d1 = v1_.maxCoeff();
+
 	// f'*z
-	double d2 = StaticMatrix::dot(x.data_->f_,x.z_);
+	double d2 = f.dot(x.z_);
+
 	// ||Hz||_inf
-	z1_.gemv(x.data_->H_,x.z_);
-	double d3 = z1_.infnorm();
+	double w = x.z_.lpNorm<Infinity>();
+	z1_ = H*x.z_;
+	double d3 = z1_.lpNorm<Infinity>();
 
 	if( (d1 <=0) && (d2 < 0) && (d3 <= tol*w) ){
 		dual_feasible_ = false;
 	}
 
-	// check primal 
-	double u = x.v_.infnorm();
 	// v'*b
-	double p1 = StaticMatrix::dot(x.v_,x.data_->b_);
+	double p1 = b.dot(x.v_);
+
 	// ||A'v||_inf
-	z2_.gemv(x.data_->A_,x.v_,1.0,0.0,true);
-	double p2 = x.z_.infnorm();
+	z1_ = A.transpose()*x.v_;
+	double p2 = z1_.lpNorm<Infinity>();
+	double u = x.v_.infnorm();
+
 	if( (p1 < 0) && (p2 <= tol*u) ){
 		primal_feasible_ = false;
 	}
