@@ -114,17 +114,20 @@ drake_cc_library(
 
 drake_cc_binary(
     name = "dense_component_build_test",
-    srcs = ["test/dense_component_build_test.cc"],
+    srcs = ["test/dense_component_build_test.cc",
+            "test/dense_component_unit_tests.h"],
     deps = [":dense_data",
             ":dense_variable",
             ":dense_residual",
-            ":dense_linear_solver"],
+            ":dense_linear_solver",
+            ":dense_feasibility"],
     copts = ["-UNDEBUG"]
 )
 
 drake_cc_googletest( # dense component unit tests
     name = "dense_component_tests",
-    srcs = ["test/dense_component_tests.cc"],
+    srcs = ["test/dense_component_tests.cc",
+            "test/dense_component_unit_tests.h"],
     deps = [":static_matrix",
             ":dense_data",
             ":dense_variable",

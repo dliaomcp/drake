@@ -1,9 +1,8 @@
-#define EIGEN_RUNTIME_NO_MALLOC 1
-
 #include "drake/solvers/fbstab/components/dense_data.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_residual.h"
 #include "drake/solvers/fbstab/components/dense_linear_solver.h"
+#include "drake/solvers/fbstab/test/dense_component_unit_tests.h"
 
 #include <Eigen/Dense>
 #include <iostream>
@@ -13,7 +12,6 @@ using namespace std;
 using namespace Eigen;
 
 int main(){
-	Eigen::internal::set_is_malloc_allowed(true);
 	MatrixXd H(2,2);
 	MatrixXd A(2,2);
 	VectorXd f(2);
@@ -26,13 +24,12 @@ int main(){
 	f << 1,6;
 	b << 0,0;
 
-	Eigen::internal::set_is_malloc_allowed(false);
 	int n = 2;
 	int q = 2;
 
 	DenseQPsize size = {n,q};
 	// create data object
-	DenseData data(H,f,A,b,size);
+	DenseData data(H,f,A,b);
 
 	cout << data.H_ << endl;
 	cout << data.f_ << endl;
@@ -40,14 +37,12 @@ int main(){
 	cout << data.b_ << endl;
 
 	// variable testing *************************************
-	Eigen::internal::set_is_malloc_allowed(true);
 	
 	DenseVariable x(size);
 	DenseVariable y(size);
 	x.LinkData(&data);
 	y.LinkData(&data);
 
-	Eigen::internal::set_is_malloc_allowed(false);
 
 	x.Fill(1.0);
 	y.Fill(-1);
@@ -72,10 +67,8 @@ int main(){
 	y.Copy(x);
 
 	// residual testing *************************************
-	Eigen::internal::set_is_malloc_allowed(true);
 	DenseResidual r(size);
 	r.LinkData(&data);
-	Eigen::internal::set_is_malloc_allowed(false);
 
 	r.NaturalResidual(x);
 	r.PenalizedNaturalResidual(x);
@@ -83,14 +76,13 @@ int main(){
 
 
 	// Linear solver testing
-	Eigen::internal::set_is_malloc_allowed(true);
 	DenseLinearSolver ls(size);
 	ls.LinkData(&data);
-	Eigen::internal::set_is_malloc_allowed(false);
 
 	ls.Factor(x,y,1.0);
 
 	ls.Solve(r,&y);
+
 
 
 	return 0;

@@ -5,8 +5,7 @@ namespace solvers {
 namespace fbstab {
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
-FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>
-::FBstabAlgorithm(Variable *x1,Variable *x2, Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck){
+FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility> ::FBstabAlgorithm(Variable *x1,Variable *x2, Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck){
 
 	xk_ = x1;
 	xi_ = x2;

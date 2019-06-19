@@ -12,7 +12,7 @@ namespace fbstab {
 
 class DenseFeasibility{
  public:
- 	DenseFeasibility(DenseQPsize size);
+ 	DenseFeasibility(int n, int q);
 
  	void LinkData(DenseData *data);
  	void ComputeFeasibility(const DenseVariable &x, double tol);

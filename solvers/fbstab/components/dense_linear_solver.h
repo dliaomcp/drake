@@ -14,19 +14,17 @@ namespace solvers {
 namespace fbstab {
 
 // methods for solving linear systems + extra memory if needed
-class DenseLinearSolver{
- public:
- 	struct Point2D {double x; double y;};
+class DenseLinearSolver {
+	struct Point2D {double x; double y;};
 
- 	DenseLinearSolver(DenseQPsize size);
+ public:
+ 	DenseLinearSolver(int n, int q);
 
  	void LinkData(DenseData *data);
  	void SetAlpha(double alpha);
  	
 	bool Factor(const DenseVariable &x, const DenseVariable &xbar, double sigma);
 	bool Solve(const DenseResidual &r, DenseVariable *x);
-
-	Eigen::MatrixXd& K(){ return K_; };
 	
  private:
  	int n_,q_;
@@ -47,6 +45,8 @@ class DenseLinearSolver{
  	Point2D PFBGradient(double a, double b);
 
  	void CholeskySolve(const Eigen::MatrixXd& A, Eigen::VectorXd* b);
+
+ 	friend class DenseComponentUnitTests;
 };
 
 }  // namespace fbstab

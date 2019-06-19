@@ -243,6 +243,7 @@ class FBstabAlgorithm{
 
 	// linear system solver object
 	LinearSolver *linear_solver_ = nullptr;
+	// feasibility checker object
 	Feasibility *feasibility_ = nullptr;
 
 	// Algorithm parameters

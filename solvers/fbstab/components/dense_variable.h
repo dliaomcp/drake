@@ -12,8 +12,9 @@ namespace fbstab {
 // TODO: Documentation
 class DenseVariable{
  public:
-	DenseVariable(DenseQPsize size); // allocates memory
-
+	DenseVariable(int n, int q); // allocates memory
+	DenseVariable(Eigen::VectorXd* z, Eigen::VectorXd* v, Eigen::VectorXd* y);
+	~DenseVariable();
 	// links in a DenseData object
 	void LinkData(DenseData *data);
 	// x <- a*ones
@@ -28,9 +29,13 @@ class DenseVariable{
 	void ProjectDuals();
 	double Norm() const;
 
-	Eigen::VectorXd& z(){ return z_; };
-	Eigen::VectorXd& v(){ return v_; };
-	Eigen::VectorXd& y(){ return y_; }; 
+	Eigen::VectorXd& z(){ return *z_; };
+	Eigen::VectorXd& v(){ return *v_; };
+	Eigen::VectorXd& y(){ return *y_; }; 
+
+	const Eigen::VectorXd& z() const { return *z_; };
+	const Eigen::VectorXd& v() const { return *v_; };
+	const Eigen::VectorXd& y() const { return *y_; }; 
 
 	friend std::ostream &operator<<(std::ostream& output, const DenseVariable &x);
 
@@ -38,9 +43,11 @@ class DenseVariable{
 	int n_,q_; // sizes
 	DenseData *data_ = nullptr;
 
-	Eigen::VectorXd z_; // primal variable
-	Eigen::VectorXd v_; // dual variable
-	Eigen::VectorXd y_; // inequality margin
+	Eigen::VectorXd* z_ = nullptr; // primal variable
+	Eigen::VectorXd* v_ = nullptr; // dual variable
+	Eigen::VectorXd* y_ = nullptr; // inequality margin
+
+	bool memory_allocated_ = false;
 
 	friend class DenseResidual;
 	friend class DenseLinearSolver;

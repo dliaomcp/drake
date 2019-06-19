@@ -13,11 +13,13 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-// using namespace Eigen;
-DenseLinearSolver::DenseLinearSolver(DenseQPsize size){
+DenseLinearSolver::DenseLinearSolver(int n, int q){
+	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(true);
-	n_ = size.n;
-	q_ = size.q;
+	#endif
+
+	n_ = n;
+	q_ = q;
 
 	K_.resize(n_,n_);
 	r1_.resize(n_);
@@ -26,7 +28,10 @@ DenseLinearSolver::DenseLinearSolver(DenseQPsize size){
 	mus_.resize(q_);
 	gamma_.resize(q_);
 	B_.resize(q_,n_);
+
+	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(false);
+	#endif
 }
 
 void DenseLinearSolver::LinkData(DenseData *data){
@@ -43,13 +48,13 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 	const Eigen::MatrixXd& A = data_->A_;
 
 	// compute K <- H + sigma I
-	K_ = H + sigma*Eigen::MatrixXd::Identity(n_,n_); // does this create a temporary?
+	K_ = H + sigma*Eigen::MatrixXd::Identity(n_,n_);
 	
 	// K <- K + A'*diag(Gamma(x))*A
 	Point2D pfb_gradient;
 	for(int i = 0; i < q_; i++){
-		double ys = x.y_(i) + sigma*(x.v_(i) - xbar.v_(i));
-		pfb_gradient = PFBGradient(ys,x.v_(i));
+		double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
+		pfb_gradient = PFBGradient(ys,x.v()(i));
 
 		gamma_(i) = pfb_gradient.x;
 		mus_(i) = pfb_gradient.y + sigma*pfb_gradient.x;
@@ -67,37 +72,42 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 	return true;
 }
 
+// Solve the system:
+// KK'z = rz - A'*diag(1/mus)*rv
+// diag(mus) v = rv + diag(gamma)*A*z
+// Where K = cholesky((H + sigma*I + A'*Gamma*A)) is precomputed
+// by the factor routine
 bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	if(r.n_ != x->n_ || r.q_ != x->q_){
 		throw std::runtime_error("In DenseLinearSolver::Solve residual and variable objects must be the same size");
 	}
-	// Solve the system:
-	// (H + sigma*I + A'*Gamma*A) z = rz - A'*diag(1/mus)*rv
-	// diag(mus) v = rv + diag(gamma)*A*z
 
 	// References for clarity
 	const Eigen::MatrixXd& A = data_->A_;
 	const Eigen::VectorXd& b = data_->b_;
 
-	// compute r1 = rz - A'*(rv./mus)
+	// compute rz - A'*(rv./mus) and store it in r1_
 	r2_ = r.v_.cwiseQuotient(mus_);
 	r1_.noalias() =  r.z_ - A.transpose()*r2_;
 
-	// Solve KK'*z = r1
-	// Where K = cholesky(H + sigma*I + A'*Gamma*A) and is assumed to have been computed during the factor phase
-	CholeskySolve(K_,&(x->z_));
+	// Solve KK'*z = rz - A'*(rv./mus)
+	// Where K = cholesky(H + sigma*I + A'*Gamma*A)
+	// is assumed to have been computed during the factor phase
+	x->z() = r1_;
+	CholeskySolve(K_,x->z_);
 
 	// Compute v = diag(1/mus) * (rv + diag(gamma)*A*z)
 	// written so as to avoid temporary creation
-	r2_.noalias() = A*x->z_;
-	r2_.noalias() += r2_.cwiseProduct(gamma_);
+	r2_.noalias() = A*x->z();
+	r2_.noalias() = gamma_.asDiagonal()*r2_;
 	r2_ += r.v_;
 
 	// v = diag(1/mus)*r2
-	x->v_ = r2_.cwiseQuotient(mus_);
+	x->v() = r2_.cwiseQuotient(mus_);
 
 	// y = b - Az
-	x->y_ = b - A*x->z_;
+	x->y() = b - A*x->z();
+
 	return true;
 }
 

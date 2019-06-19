@@ -13,13 +13,31 @@ namespace fbstab {
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
 
-DenseVariable::DenseVariable(DenseQPsize size){
-	n_ = size.n;
-	q_ = size.q;
+DenseVariable::DenseVariable(int n, int q){
+	n_ = n;
+	q_ = q;
 
-	z_.resize(n_);
-	v_.resize(q_);
-	y_.resize(q_);
+	z_ = new VectorXd(n_);
+	v_ = new VectorXd(q_);
+	y_ = new VectorXd(q_);
+
+	memory_allocated_ = true;
+}
+
+DenseVariable::DenseVariable(VectorXd* z, VectorXd* v, VectorXd* y){
+	// TODO add null checking
+	n_ = z->size();
+	q_ = v->size();
+
+	memory_allocated_ = false;
+}
+
+DenseVariable::~DenseVariable(){
+	if(memory_allocated_){
+		delete z_;
+		delete v_;
+		delete y_;
+	}
 }
 
 void DenseVariable::LinkData(DenseData *data){
@@ -30,14 +48,14 @@ void DenseVariable::Fill(double a){
 	if(data_ == nullptr){
 		throw std::runtime_error("Cannot call DenseVariable::Fill unless data is linked");
 	}
-	z_.fill(a);
-	v_.fill(a);
+	z_->fill(a);
+	v_->fill(a);
 	
 	// Compute y = b - A*z
 	if(a == 0.0){
-		y_ = data_->b_;
+		*y_ = data_->b_;
 	} else{
-		y_.noalias() = data_->b_ - data_->A_ * z_;
+		y_->noalias() = data_->b_ - data_->A_ * (*z_);
 	}
 }
 
@@ -45,34 +63,34 @@ void DenseVariable::InitializeConstraintMargin(){
 	if(data_ == nullptr){
 		throw std::runtime_error("Cannot call DenseVariable::InitializeConstraintMargin unless data is linked");
 	}
-	y_.noalias() = data_->b_ - data_->A_ * z_;
+	y_->noalias() = data_->b_ - data_->A_ * (*z_);
 }
 
 void DenseVariable::axpy(const DenseVariable &x, double a){
 	if(data_ == nullptr){
 		throw std::runtime_error("Cannot call DenseVariable::axpy unless data is linked");
 	}
-	z_ += a*x.z_;
-	v_ += a*x.v_;
-	y_ += a*(x.y_ - data_->b_);
+	(*z_) += a*x.z();
+	(*v_) += a*x.v();
+	(*y_) += a*(x.y() - data_->b_);
 }
 
 void DenseVariable::Copy(const DenseVariable &x){
 	if(n_ != x.n_ || q_ != x.q_){
 		throw std::runtime_error("Sizes not equal in DenseVariable::Copy");
 	}
-	z_ = x.z_;
-	v_ = x.v_;
-	y_ = x.y_;
+	(*z_) = x.z();
+	(*v_) = x.v();
+	(*y_) = x.y();
 	data_ = x.data_;
 }
 
 void DenseVariable::ProjectDuals(){
-	v_ = v_.cwiseMax(0);
+	*v_ = v_->cwiseMax(0);
 }
 
 double DenseVariable::Norm() const{
-	return z_.norm() + v_.norm();
+	return z_->norm() + v_->norm();
 }
 
 std::ostream &operator<<(std::ostream& output, const DenseVariable &x){

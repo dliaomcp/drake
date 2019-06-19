@@ -1,4 +1,4 @@
-#define EIGEN_RUNTIME_NO_MALLOC 
+// #define EIGEN_RUNTIME_NO_MALLOC 
 #include "drake/solvers/fbstab/components/dense_residual.h"
 
 #include <cmath>
@@ -13,14 +13,19 @@ namespace solvers {
 namespace fbstab {
 
 
-DenseResidual::DenseResidual(DenseQPsize size){
+DenseResidual::DenseResidual(int n, int q){
+	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(true);
-	n_ = size.n;
-	q_ = size.q;
+	#endif
 
+	n_ = n;
+	q_ = q;
 	z_.resize(n_);
 	v_.resize(q_);
+
+	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(false);
+	#endif
 }
 
 void DenseResidual::LinkData(DenseData *data){
@@ -37,10 +42,10 @@ void DenseResidual::NaturalResidual(const DenseVariable& x){
 		throw std::runtime_error("DenseResidual::NaturalResidual cannot be used unless data is linked");
 	}
 	// rz = H*z + f + A'*v
-	z_.noalias() = data_->H_*x.z_ + data_->f_ + data_->A_.transpose()*x.v_;
+	z_.noalias() = data_->H_*x.z() + data_->f_ + data_->A_.transpose()*x.v();
 
 	// rv = min(y,v)
-	v_ = x.y_.cwiseMin(x.v_);
+	v_ = x.y().cwiseMin(x.v());
 
 	znorm_ = z_.norm();
 	vnorm_ = v_.norm();
@@ -51,12 +56,12 @@ void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 		throw std::runtime_error("DenseResidual::PenalizedNaturalResidual cannot be used unless data is linked");
 	}
 	// rz = H*z + f + A'*v
-	z_.noalias() = data_->H_*x.z_ + data_->f_ + data_->A_.transpose()*x.v_;
+	z_.noalias() = data_->H_*x.z() + data_->f_ + data_->A_.transpose()*x.v();
 
 	// rv = min(y,v) + max(0,y)*max(0,v)
 	for(int i = 0; i < q_; i++){
-		v_(i) = min(x.y_(i),x.v_(i));
-		v_(i) = alpha_*v_(i) + (1.0-alpha_)*max(0.0,x.y_(i))*max(0.0,x.v_(i));
+		v_(i) = min(x.y()(i),x.v()(i));
+		v_(i) = alpha_*v()(i) + (1.0-alpha_)*max(0.0,x.y()(i))*max(0.0,x.v()(i));
 	}
 
 	znorm_ = z_.norm();
@@ -68,13 +73,13 @@ void DenseResidual::InnerResidual(const DenseVariable& x, const DenseVariable& x
 		throw std::runtime_error("DenseResidual::InerResidual cannot be used unless data is linked");
 	}
 	// rz = Hz + f + A'v + sigma(z - zbar)
-	z_.noalias() = data_->H_*x.z_ + data_->f_ + data_->A_.transpose()*x.v_;
-	z_.noalias() += sigma*(x.z_ - xbar.z_);
+	z_.noalias() = data_->H_*x.z() + data_->f_ + data_->A_.transpose()*x.v();
+	z_.noalias() += sigma*(x.z() - xbar.z());
 
 	// v_ = phi(ys,v), ys = y + sigma(x.v - xbar.v)
 	for(int i = 0; i < q_; i++){
-		double ys = x.y_(i) + sigma*(x.v_(i) - xbar.v_(i));
-		v_(i) = pfb(ys,x.v_(i),alpha_);
+		double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
+		v_(i) = pfb(ys,x.v()(i),alpha_);
 	}
 
 	znorm_ = z_.norm();

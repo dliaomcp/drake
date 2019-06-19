@@ -11,7 +11,7 @@ namespace fbstab {
 
 class DenseResidual{
  public:
-	DenseResidual(DenseQPsize size);
+	DenseResidual(int n, int q);
 
 	void LinkData(DenseData *data);
 
