@@ -20,7 +20,7 @@ FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility> ::FBstabAlgorit
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
-void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::DeleteComponents(){
+FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::~FBstabAlgorithm(){
 	delete xk_;
 	delete xi_;
 	delete xp_;
@@ -35,7 +35,7 @@ void FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::DeleteCom
 
 // TODO(dliaomcp@umich.edu): Enable printing to a log file rather than just stdout?
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
-SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solve(Data *qp_data,Variable *x0){
+SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solve(Data* qp_data, Variable* x0){
 	// harmonize the alpha value
 	rk_->SetAlpha(alpha_);
 	ri_->SetAlpha(alpha_);

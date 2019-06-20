@@ -3,8 +3,6 @@
 #include <cmath>
 #include <cstdio>
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
-
 namespace drake {
 namespace solvers {
 namespace fbstab {
@@ -78,6 +76,11 @@ class FBstabAlgorithm{
 	FBstabAlgorithm(Variable *x1, Variable *x2, 
 		Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck);
 
+	/** 
+	 * Calls the component object destructors.
+	 */
+	~FBstabAlgorithm();
+
 	/**
 	 * Attempts to solve the QP for the given
 	 * data starting from the supplied initial guess
@@ -87,7 +90,7 @@ class FBstabAlgorithm{
 	 * 
 	 * @return Details on the solver output
 	 */
-	SolverOut Solve(Data *qp_data, Variable *x0);
+	SolverOut Solve(Data* qp_data, Variable* x0);
 
 	/**
 	 * Allows setting of algorithm options
@@ -124,11 +127,6 @@ class FBstabAlgorithm{
 	void UpdateOption(const char *option, int value);
 	void UpdateOption(const char *option, bool value);
 	Display& display_level(){ return display_level_ ;}
-
-	/**
-	 * Deletes all the component objects. CALLS DELETE USE WITH CARE.
-	 */
-	void DeleteComponents();
 
  private:
 	enum { kNonmonotoneLinesearch = 3 }; 

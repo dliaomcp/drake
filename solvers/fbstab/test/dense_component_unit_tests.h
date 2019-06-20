@@ -27,9 +27,8 @@ using VectorXd = Eigen::VectorXd;
  * DenseLinearSolver
  */
 class DenseComponentUnitTests {
-
  public:
- 	DenseComponentUnitTests(){
+    DenseComponentUnitTests(){
  		H_.resize(2,2);
  		A_.resize(2,2);
  		f_.resize(2);
@@ -48,7 +47,7 @@ class DenseComponentUnitTests {
  	}
 
  	void DenseVariableTests(){
- 		DenseData data(H_,f_,A_,b_);
+ 		DenseData data(&H_,&f_,&A_,&b_);
 
  		DenseVariable x(n_,q_);
 		x.LinkData(&data);
@@ -104,7 +103,7 @@ class DenseComponentUnitTests {
 	// where phi(a,b) = 0.95* (a+b - sqrt(a^2 + b^2)) + 0.5*(max(0,a)*max(0,b))
 	// is applied element-wise.
  	void InnerResidualCalculation(){
- 		DenseData data(H_,f_,A_,b_);
+ 		DenseData data(&H_,&f_,&A_,&b_);
 
  		DenseVariable x(n_,q_);
 		x.LinkData(&data);
@@ -139,7 +138,7 @@ class DenseComponentUnitTests {
  	}
 
  	void NaturalResidualCalculation(){
- 		DenseData data(H_,f_,A_,b_);
+ 		DenseData data(&H_,&f_,&A_,&b_);
 
 		DenseVariable x(n_,q_);
 		x.LinkData(&data);
@@ -178,7 +177,7 @@ class DenseComponentUnitTests {
 	// are diagonal weighting matrices computed from the derivatives
 	// of the Penalized Fischer-Burmeister Function
  	void LinearSolverResidual(){
- 		DenseData data(H_,f_,A_,b_);
+ 		DenseData data(&H_,&f_,&A_,&b_);
 
  		DenseVariable x(n_,q_);
 		x.LinkData(&data);
@@ -246,7 +245,7 @@ class DenseComponentUnitTests {
 	int n = f.size();
 	int q = b.size();
 
-	DenseData data(H,f,A,b);
+	DenseData data(&H,&f,&A,&b);
 
 	DenseVariable dx(n,q);
 	dx.LinkData(&data);
@@ -288,7 +287,7 @@ class DenseComponentUnitTests {
 	int n = f.size();
 	int q = b.size();
 
-	DenseData data(H,f,A,b);
+	DenseData data(&H,&f,&A,&b);
 
 	DenseVariable dx(n,q);
 	dx.LinkData(&data);

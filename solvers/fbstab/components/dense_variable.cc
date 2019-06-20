@@ -4,7 +4,6 @@
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/components/dense_data.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
@@ -13,22 +12,27 @@ namespace fbstab {
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
 
-DenseVariable::DenseVariable(int n, int q){
-	n_ = n;
-	q_ = q;
-
-	z_ = new VectorXd(n_);
-	v_ = new VectorXd(q_);
-	y_ = new VectorXd(q_);
-
+DenseVariable::DenseVariable(int nz, int nv){
+	nz_ = nz;
+	nv_ = nv;
+	z_ = new VectorXd(nz_);
+	v_ = new VectorXd(nv_);
+	y_ = new VectorXd(nv_);
 	memory_allocated_ = true;
 }
 
 DenseVariable::DenseVariable(VectorXd* z, VectorXd* v, VectorXd* y){
-	// TODO add null checking
-	n_ = z->size();
-	q_ = v->size();
-
+	if(z == nullptr || v == nullptr || y == nullptr){
+		throw std::runtime_error("DenseVariable::DenseVariable requires non-null pointers.");
+	}
+	if(y->size() != v->size()){
+		throw std::runtime_error("In DenseVariable::DenseVariable: v and y input size mismatch");
+	}
+	nz_ = z->size();
+	nv_ = v->size();
+	z_ = z;
+	v_ = v;
+	y_ = y;
 	memory_allocated_ = false;
 }
 
@@ -53,9 +57,9 @@ void DenseVariable::Fill(double a){
 	
 	// Compute y = b - A*z
 	if(a == 0.0){
-		*y_ = data_->b_;
+		*y_ = data_->b();
 	} else{
-		y_->noalias() = data_->b_ - data_->A_ * (*z_);
+		y_->noalias() = data_->b() - data_->A() * (*z_);
 	}
 }
 
@@ -63,7 +67,7 @@ void DenseVariable::InitializeConstraintMargin(){
 	if(data_ == nullptr){
 		throw std::runtime_error("Cannot call DenseVariable::InitializeConstraintMargin unless data is linked");
 	}
-	y_->noalias() = data_->b_ - data_->A_ * (*z_);
+	y_->noalias() = data_->b() - data_->A() * (*z_);
 }
 
 void DenseVariable::axpy(const DenseVariable &x, double a){
@@ -72,11 +76,11 @@ void DenseVariable::axpy(const DenseVariable &x, double a){
 	}
 	(*z_) += a*x.z();
 	(*v_) += a*x.v();
-	(*y_) += a*(x.y() - data_->b_);
+	(*y_) += a*(x.y() - data_->b());
 }
 
 void DenseVariable::Copy(const DenseVariable &x){
-	if(n_ != x.n_ || q_ != x.q_){
+	if(nz_ != x.nz_ || nv_ != x.nv_){
 		throw std::runtime_error("Sizes not equal in DenseVariable::Copy");
 	}
 	(*z_) = x.z();
@@ -91,15 +95,6 @@ void DenseVariable::ProjectDuals(){
 
 double DenseVariable::Norm() const{
 	return z_->norm() + v_->norm();
-}
-
-std::ostream &operator<<(std::ostream& output, const DenseVariable &x){
-	std::cout << "Printing DenseVariable\n"; 
-
-	std::cout << x.z_ << std::endl;
-	std::cout << x.v_ << std::endl;
-
-	return output;
 }
 
 }  // namespace fbstab

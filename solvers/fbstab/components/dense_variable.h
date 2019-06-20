@@ -4,7 +4,6 @@
 
 #include "drake/solvers/fbstab/components/dense_data.h"
 
-
 namespace drake {
 namespace solvers {
 namespace fbstab {
@@ -12,7 +11,7 @@ namespace fbstab {
 // TODO: Documentation
 class DenseVariable{
  public:
-	DenseVariable(int n, int q); // allocates memory
+	DenseVariable(int nz, int nv); // allocates memory
 	DenseVariable(Eigen::VectorXd* z, Eigen::VectorXd* v, Eigen::VectorXd* y);
 	~DenseVariable();
 	// links in a DenseData object
@@ -35,13 +34,15 @@ class DenseVariable{
 
 	const Eigen::VectorXd& z() const { return *z_; };
 	const Eigen::VectorXd& v() const { return *v_; };
-	const Eigen::VectorXd& y() const { return *y_; }; 
+	const Eigen::VectorXd& y() const { return *y_; };
 
-	friend std::ostream &operator<<(std::ostream& output, const DenseVariable &x);
+	int num_constraints() { return nv_; }
+	int num_variables() { return nz_; }
 
  private:
-	int n_,q_; // sizes
-	DenseData *data_ = nullptr;
+	int nz_ = 0; // number of decision variable
+	int nv_ = 0; // number of inequality constraints
+	DenseData* data_ = nullptr;
 
 	Eigen::VectorXd* z_ = nullptr; // primal variable
 	Eigen::VectorXd* v_ = nullptr; // dual variable

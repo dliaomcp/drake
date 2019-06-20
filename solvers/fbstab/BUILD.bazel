@@ -10,37 +10,6 @@ load(
 
 package(default_visibility = ["//visibility:public"])
 
-# Linear Algebra *************************************
-drake_cc_library(
-	name = "static_matrix",
-	srcs = ["linalg/static_matrix.h",
-			"linalg/static_matrix.cc",
-            "linalg/matrix_sequence.h",
-            "linalg/matrix_sequence.cc"
-	],
-	hdrs = ["linalg/static_matrix.h",
-            "linalg/matrix_sequence.h"],
-)
-
-drake_cc_binary(
-    name = "static_matrix_build_test",
-    srcs = ["test/static_matrix_build_test.cc"],
-    deps = [":static_matrix"],
-)
-
-drake_cc_googletest( # static matrices
-    name = "static_matrix_test",
-    srcs = ["test/static_matrix_test.cc"],
-    deps = [":static_matrix"],
-)
-
-drake_cc_googletest( # matrix sequences
-    name = "matrix_sequence_tests",
-    srcs = ["test/matrix_sequence_tests.cc"],
-    deps = [":static_matrix"],
-)
-
-
 # FBstabDense *************************************
 drake_cc_library( # data
     name = "dense_data",
@@ -57,8 +26,7 @@ drake_cc_library( # variable
             "components/dense_variable.cc"
     ],
     hdrs = ["components/dense_variable.h"],
-    deps = [":static_matrix",
-            ":dense_data"],
+    deps = [":dense_data"],
 )
 
 drake_cc_library( # residual
@@ -67,9 +35,9 @@ drake_cc_library( # residual
             "components/dense_residual.cc"
     ],
     hdrs = ["components/dense_data.h"],
-    deps = [":static_matrix",
-            ":dense_variable",
+    deps = [":dense_variable",
             ":dense_data"],
+    copts = ["-UNDEBUG"]
 )
 
 drake_cc_library( # feasibility 
@@ -78,9 +46,9 @@ drake_cc_library( # feasibility
             "components/dense_feasibility.cc"
     ],
     hdrs = ["components/dense_feasibility.h"],
-    deps = [":static_matrix",
-            ":dense_variable",
+    deps = [":dense_variable",
             ":dense_data"],
+    copts = ["-UNDEBUG"]
 )
 
 drake_cc_library( # linear solver
@@ -89,8 +57,7 @@ drake_cc_library( # linear solver
             "components/dense_linear_solver.cc"
     ],
     hdrs = ["components/dense_linear_solver.h"],
-    deps = [":static_matrix",
-            ":dense_variable",
+    deps = [":dense_variable",
             ":dense_residual",
             ":dense_data"],
     copts = ["-UNDEBUG"]
@@ -104,8 +71,7 @@ drake_cc_library(
             "fbstab_algorithm-inl.h"
     ],
     hdrs = ["fbstab_dense.h"],
-    deps = [":static_matrix",
-            ":dense_data",
+    deps = [":dense_data",
             ":dense_variable",
             ":dense_residual",
             ":dense_feasibility",
@@ -114,8 +80,7 @@ drake_cc_library(
 
 drake_cc_binary(
     name = "dense_component_build_test",
-    srcs = ["test/dense_component_build_test.cc",
-            "test/dense_component_unit_tests.h"],
+    srcs = ["test/dense_component_build_test.cc"],
     deps = [":dense_data",
             ":dense_variable",
             ":dense_residual",
@@ -126,10 +91,9 @@ drake_cc_binary(
 
 drake_cc_googletest( # dense component unit tests
     name = "dense_component_tests",
-    srcs = ["test/dense_component_tests.cc",
+    srcs = ["test/dense_component_unit_tests.cc",
             "test/dense_component_unit_tests.h"],
-    deps = [":static_matrix",
-            ":dense_data",
+    deps = [":dense_data",
             ":dense_variable",
             ":dense_residual",
             ":dense_feasibility",
@@ -139,17 +103,16 @@ drake_cc_googletest( # dense component unit tests
 drake_cc_binary( # build test
     name = "fbstab_dense_build_test",
     srcs = ["test/dense_fbstab_build_test.cc"],
-    deps = [":static_matrix",
-            ":dense_data",
+    deps = [":dense_data",
             ":fbstab_dense"],
 )
 
 drake_cc_googletest( # unit tests
-    name = "fbstab_dense_tests",
-    srcs = ["test/dense_fbstab_tests.cc"],
-    deps = [":static_matrix",
-            ":fbstab_dense"
+    name = "dense_unit_tests",
+    srcs = ["test/fbstab_dense_unit_tests.cc"],
+    deps = [":fbstab_dense"
     ],
+    copts = ["-g"]
 )
 
 # FBstab MPC *************************************

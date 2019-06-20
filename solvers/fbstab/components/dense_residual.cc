@@ -4,7 +4,6 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_data.h"
 
@@ -13,15 +12,15 @@ namespace solvers {
 namespace fbstab {
 
 
-DenseResidual::DenseResidual(int n, int q){
+DenseResidual::DenseResidual(int nz, int nv){
 	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(true);
 	#endif
 
-	n_ = n;
-	q_ = q;
-	z_.resize(n_);
-	v_.resize(q_);
+	nz_ = nz;
+	nv_ = nv;
+	z_.resize(nz_);
+	v_.resize(nv_);
 
 	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(false);
@@ -42,7 +41,7 @@ void DenseResidual::NaturalResidual(const DenseVariable& x){
 		throw std::runtime_error("DenseResidual::NaturalResidual cannot be used unless data is linked");
 	}
 	// rz = H*z + f + A'*v
-	z_.noalias() = data_->H_*x.z() + data_->f_ + data_->A_.transpose()*x.v();
+	z_.noalias() = data_->H()*x.z() + data_->f() + data_->A().transpose()*x.v();
 
 	// rv = min(y,v)
 	v_ = x.y().cwiseMin(x.v());
@@ -56,10 +55,10 @@ void DenseResidual::PenalizedNaturalResidual(const DenseVariable& x){
 		throw std::runtime_error("DenseResidual::PenalizedNaturalResidual cannot be used unless data is linked");
 	}
 	// rz = H*z + f + A'*v
-	z_.noalias() = data_->H_*x.z() + data_->f_ + data_->A_.transpose()*x.v();
+	z_.noalias() = data_->H()*x.z() + data_->f() + data_->A().transpose()*x.v();
 
 	// rv = min(y,v) + max(0,y)*max(0,v)
-	for(int i = 0; i < q_; i++){
+	for(int i = 0; i < nv_; i++){
 		v_(i) = min(x.y()(i),x.v()(i));
 		v_(i) = alpha_*v()(i) + (1.0-alpha_)*max(0.0,x.y()(i))*max(0.0,x.v()(i));
 	}
@@ -73,11 +72,11 @@ void DenseResidual::InnerResidual(const DenseVariable& x, const DenseVariable& x
 		throw std::runtime_error("DenseResidual::InerResidual cannot be used unless data is linked");
 	}
 	// rz = Hz + f + A'v + sigma(z - zbar)
-	z_.noalias() = data_->H_*x.z() + data_->f_ + data_->A_.transpose()*x.v();
+	z_.noalias() = data_->H()*x.z() + data_->f() + data_->A().transpose()*x.v();
 	z_.noalias() += sigma*(x.z() - xbar.z());
 
 	// v_ = phi(ys,v), ys = y + sigma(x.v - xbar.v)
-	for(int i = 0; i < q_; i++){
+	for(int i = 0; i < nv_; i++){
 		double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
 		v_(i) = pfb(ys,x.v()(i),alpha_);
 	}
@@ -87,7 +86,7 @@ void DenseResidual::InnerResidual(const DenseVariable& x, const DenseVariable& x
 }
 
 void DenseResidual::Copy(const DenseResidual &x){
-	if(n_ != x.n_ || q_ != x.q_){
+	if(nz_ != x.nz_ || nv_ != x.nv_){
 		throw std::runtime_error("Sizes not equal in DenseResidual::Copy");
 	}
 	z_ = x.z_;

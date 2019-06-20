@@ -13,21 +13,21 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-DenseLinearSolver::DenseLinearSolver(int n, int q){
+DenseLinearSolver::DenseLinearSolver(int nz, int nv){
 	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(true);
 	#endif
 
-	n_ = n;
-	q_ = q;
+	nz_ = nz;
+	nv_ = nv;
 
-	K_.resize(n_,n_);
-	r1_.resize(n_);
-	r2_.resize(q_);
-	Gamma_.resize(q_);
-	mus_.resize(q_);
-	gamma_.resize(q_);
-	B_.resize(q_,n_);
+	K_.resize(nz_,nz_);
+	r1_.resize(nz_);
+	r2_.resize(nv_);
+	Gamma_.resize(nv_);
+	mus_.resize(nv_);
+	gamma_.resize(nv_);
+	B_.resize(nv_,nz_);
 
 	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(false);
@@ -43,16 +43,16 @@ void DenseLinearSolver::SetAlpha(double alpha){
 }
 
 bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar, double sigma){
-	// References to make the expressions clearer
-	const Eigen::MatrixXd& H = data_->H_;
-	const Eigen::MatrixXd& A = data_->A_;
+	// References for clarity
+	const Eigen::MatrixXd& H = data_->H();
+	const Eigen::MatrixXd& A = data_->A();
 
 	// compute K <- H + sigma I
-	K_ = H + sigma*Eigen::MatrixXd::Identity(n_,n_);
+	K_ = H + sigma*Eigen::MatrixXd::Identity(nz_,nz_);
 	
 	// K <- K + A'*diag(Gamma(x))*A
 	Point2D pfb_gradient;
-	for(int i = 0; i < q_; i++){
+	for(int i = 0; i < nv_; i++){
 		double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
 		pfb_gradient = PFBGradient(ys,x.v()(i));
 
@@ -78,13 +78,12 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 // Where K = cholesky((H + sigma*I + A'*Gamma*A)) is precomputed
 // by the factor routine
 bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
-	if(r.n_ != x->n_ || r.q_ != x->q_){
+	if(r.nz_ != x->nz_ || r.nv_ != x->nv_){
 		throw std::runtime_error("In DenseLinearSolver::Solve residual and variable objects must be the same size");
 	}
-
 	// References for clarity
-	const Eigen::MatrixXd& A = data_->A_;
-	const Eigen::VectorXd& b = data_->b_;
+	const Eigen::MatrixXd& A = data_->A();
+	const Eigen::VectorXd& b = data_->b();
 
 	// compute rz - A'*(rv./mus) and store it in r1_
 	r2_ = r.v_.cwiseQuotient(mus_);

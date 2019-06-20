@@ -2,7 +2,6 @@
 
 #include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_data.h"
 
@@ -12,7 +11,7 @@ namespace fbstab {
 
 class DenseFeasibility{
  public:
- 	DenseFeasibility(int n, int q);
+ 	DenseFeasibility(int nz, int nv);
 
  	void LinkData(DenseData *data);
  	void ComputeFeasibility(const DenseVariable &x, double tol);
@@ -20,7 +19,8 @@ class DenseFeasibility{
  	bool IsDualFeasible();
  	bool IsPrimalFeasible();
   private:
-  	int n_,q_;
+  	int nz_ = 0;
+  	int nv_ = 0;
 
   	// workspace
   	Eigen::VectorXd z1_;

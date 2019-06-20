@@ -35,10 +35,10 @@ GTEST_TEST(FBstabDense, InfeasibilityDetection) {
 
 }
 
-// GTEST_TEST(FBstabDense, UnboundednessDetection) {
-// 	DenseComponentUnitTests test;
-// 	test.UnboundednessDetection();
-// }
+GTEST_TEST(FBstabDense, UnboundednessDetection) {
+	DenseComponentUnitTests test;
+	test.UnboundednessDetection();
+}
 
 
 

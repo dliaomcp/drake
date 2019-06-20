@@ -13,19 +13,15 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-// a data to store input data
-// these should be
+// This structure stores the input data.
 struct DenseQPData {
-	const Eigen::MatrixXd& H;
-	const Eigen::MatrixXd& A;
-	const Eigen::VectorXd& f;
-	const Eigen::VectorXd& b;
-
-	DenseQPData(const Eigen::MatrixXd& H_, const Eigen::MatrixXd& A_, const Eigen::VectorXd& f, const Eigen::VectorXd& b)
-	: H(H_), A(A_), f(f_), b(b_) {}
+	const Eigen::MatrixXd* H = nullptr;
+	const Eigen::MatrixXd* A = nullptr;
+	const Eigen::VectorXd* f = nullptr;
+	const Eigen::VectorXd* b = nullptr;
 };
 
-struct DenseQPSolution {
+struct DenseQPVariable {
 	Eigen::VectorXd* z = nullptr;
 	Eigen::VectorXd* v = nullptr;
 	Eigen::VectorXd* y = nullptr;
@@ -36,32 +32,26 @@ using FBstabAlgoDense = FBstabAlgorithm<DenseVariable,DenseResidual,DenseData,De
 
 // the main object for the C++ API
 class FBstabDense {
-
  public:
  	// dynamically initializes component classes 
  	// n: number of decision variables
  	// q: number of constraints
- 	FBstabDense(int n, int q);
+ 	FBstabDense(int num_variables, int num_constraints);
+ 	~FBstabDense();
 
  	// Solve an instance of the QP
  	// Inputs are the QP data
- 	// z = new double[n]
- 	// v,y = new double[q]
- 	// the solution is stored in z and v with y = b - Az
- 	SolverOut Solve(const DenseQPData &qp, const DenseQPSolution& x, bool use_initial_guess = true);
+ 	SolverOut Solve(const DenseQPData& qp, const DenseQPVariable& x, bool use_initial_guess = true);
 
- 	~FBstabDense();
- 	
  	void UpdateOption(const char *option, double value);
  	void UpdateOption(const char *option, int value);
  	void UpdateOption(const char *option, bool value);
  	void SetDisplayLevel(FBstabAlgoDense::Display level);
 
-
  private:
  	int n_ = 0;
  	int q_ = 0;
- 	FBstabAlgoDense *algo = nullptr;
+ 	FBstabAlgoDense *algorithm_ = nullptr;
 };
 
 }  // namespace fbstab

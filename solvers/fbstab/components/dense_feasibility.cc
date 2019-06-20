@@ -3,7 +3,6 @@
 
 #include <cmath>
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
 #include "drake/solvers/fbstab/components/dense_data.h"
 
@@ -11,15 +10,15 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-DenseFeasibility::DenseFeasibility(int n, int q){
+DenseFeasibility::DenseFeasibility(int nz, int nv){
 	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(true);
 	#endif
 
-	n_ = n;
-	q_ = q;
-	z1_.resize(n_);
-	v1_.resize(q_);
+	nz_ = nz;
+	nv_ = nv;
+	z1_.resize(nz_);
+	v1_.resize(nv_);
 
 	#ifdef EIGEN_RUNTIME_NO_MALLOC
 	Eigen::internal::set_is_malloc_allowed(false);
@@ -36,10 +35,10 @@ void DenseFeasibility::LinkData(DenseData *data){
 // v'*b < 0 and ||A'*v|| \leq tol * ||v||
 void DenseFeasibility::ComputeFeasibility(const DenseVariable &x, double tol){
 	// References to make the expressions cleaner
-	const Eigen::MatrixXd& H = data_->H_;
-	const Eigen::MatrixXd& A = data_->A_;
-	const Eigen::VectorXd& f = data_->f_;
-	const Eigen::VectorXd& b = data_->b_;
+	const Eigen::MatrixXd& H = data_->H();
+	const Eigen::MatrixXd& A = data_->A();
+	const Eigen::VectorXd& f = data_->f();
+	const Eigen::VectorXd& b = data_->b();
 
 	// max(Az)
 	v1_ = A * x.z();

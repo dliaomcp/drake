@@ -11,7 +11,7 @@ namespace fbstab {
 
 class DenseResidual{
  public:
-	DenseResidual(int n, int q);
+	DenseResidual(int nz, int nv);
 
 	void LinkData(DenseData *data);
 
@@ -44,8 +44,8 @@ class DenseResidual{
 
  private:
  	DenseData *data_ = nullptr; // access to the data object
- 	int n_ = 0;
- 	int q_ = 0;
+ 	int nz_ = 0;
+ 	int nv_ = 0;
  	Eigen::VectorXd z_; // stationarity residual
 	Eigen::VectorXd v_; // complimentarity residual
 	double alpha_ = 0.95; 

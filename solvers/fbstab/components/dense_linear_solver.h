@@ -18,7 +18,7 @@ class DenseLinearSolver {
 	struct Point2D {double x; double y;};
 
  public:
- 	DenseLinearSolver(int n, int q);
+ 	DenseLinearSolver(int nz, int nv);
 
  	void LinkData(DenseData *data);
  	void SetAlpha(double alpha);
@@ -27,7 +27,8 @@ class DenseLinearSolver {
 	bool Solve(const DenseResidual &r, DenseVariable *x);
 	
  private:
- 	int n_,q_;
+ 	int nz_ = 0;
+ 	int nv_ = 0;
  	double alpha_ = 0.95;
 	double zero_tolerance_ = 1e-13;
 
