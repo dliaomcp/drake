@@ -22,6 +22,9 @@ DenseData::DenseData(const MatrixXd* H,const VectorXd* f, const MatrixXd* A,cons
 	if(A->cols() != H->rows() || A->rows() != b->size()){
 		throw std::runtime_error("In DenseData::DenseData: Sizing of data defining Az <= b is inconsistent.");
 	}
+	
+	nz_ = f->size();
+	nv_ = b->size();
 
 	H_ = H;
 	A_ = A;

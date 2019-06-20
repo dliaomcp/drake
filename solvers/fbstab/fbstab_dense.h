@@ -49,8 +49,8 @@ class FBstabDense {
  	void SetDisplayLevel(FBstabAlgoDense::Display level);
 
  private:
- 	int n_ = 0;
- 	int q_ = 0;
+ 	int nz_ = 0;
+ 	int nv_ = 0;
  	FBstabAlgoDense *algorithm_ = nullptr;
 };
 
