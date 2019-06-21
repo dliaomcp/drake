@@ -13,7 +13,63 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-// This structure stores the input data.
+/** 
+ * FBstabDense implements the Proximally Stabilized Semismooth Algorithms for solving 
+ * convex quadratic programs of the following form (1):
+ * 
+ * min.    1/2  z'Hz + f'z
+ * s.t.         Az <= b
+ * 
+ * where H is symmetric and positive semidefinite. 
+ * Or equivalently for solving its KKT system
+ * 
+ * Hz + f + A' v = 0
+ * Az <= b, v >= 0
+ * (b - Az)' v = 0
+ * 
+ * where v is a dual variable. 
+ * 
+ * The algorithm is described in https://arxiv.org/pdf/1901.04046.pdf 
+ * Aside from convexity there are no assumptions made about the problem.
+ * This method can detect unboundedness/infeasibility
+ * and accepts arbitrary initial guesses. 
+ *
+ * The problem is of size (nz,nv) where
+ * nz > 0 is the number of decision variables
+ * nv > 0 is the number of inequality constraints
+ * 
+ * Usage example:
+ * 
+ * MatrixXd H(2,2);
+ * MatrixXd A(1,2);
+ * VectorXd f(2);
+ * VectorXd b(1);
+ * 
+ * H << 1,0,1,0;
+ * A << 1,0;
+ * f << 1,-1;
+ * b << 0;
+ * 
+ * DenseQPData data = {&H, &A, &f, &b};
+ * 
+ * VectorXd x0 = VectorXd::Zero(2);
+ * VectorXd v0 = VectorXd::Zero(1);
+ * VectorXd y0 = VectorXd::Zero(1);
+ * 
+ * DenseQPVariable x = {&x0, &v0, &y0};
+ * 
+ * FBstabDense solver(2,1);
+ * solver.Solve(data,x); // x is used as an initial guess then overwritten
+ */
+
+/** 
+ * Structure to hold the problem data.
+ * Fields:
+ * H \in \reals^{nx x nx} is the Hessian
+ * A \in \reals^{nv x nx} is the constraint matrix
+ * f \in \reals^nx is the linear term
+ * b \in \reals^nv is the constraint vector
+ */
 struct DenseQPData {
 	const Eigen::MatrixXd* H = nullptr;
 	const Eigen::MatrixXd* A = nullptr;
@@ -21,31 +77,83 @@ struct DenseQPData {
 	const Eigen::VectorXd* b = nullptr;
 };
 
+/** 
+ * Structure to hold the initial guess.
+ * The vectors pointed to by z,v, and y WILL BE OVERWRITTEN 
+ * with the solution.
+ * 
+ * Fields:
+ * z \in \reals^nz are the decision variables
+ * v \in \reals^nv are the inequality duals
+ * y \in \reals^nv are the constraint margins, i.e., y = b - Az  
+ */
 struct DenseQPVariable {
 	Eigen::VectorXd* z = nullptr;
 	Eigen::VectorXd* v = nullptr;
 	Eigen::VectorXd* y = nullptr;
 };
 
-// Conveience type for the templated dense version of the algorithm
+// Convenience type for the templated dense version of the algorithm.
 using FBstabAlgoDense = FBstabAlgorithm<DenseVariable,DenseResidual,DenseData,DenseLinearSolver,DenseFeasibility>;
 
-// the main object for the C++ API
 class FBstabDense {
  public:
- 	// dynamically initializes component classes 
- 	// n: number of decision variables
- 	// q: number of constraints
+ 	/** 
+ 	 * Allocates needed workspace.
+ 	 * 
+ 	 * @param[in] num_variables 
+ 	 * @param[in] num_constraints
+ 	 */
  	FBstabDense(int num_variables, int num_constraints);
+
+ 	/** 
+ 	 * Frees workspace memory.
+ 	 */
  	~FBstabDense();
 
- 	// Solve an instance of the QP
- 	// Inputs are the QP data
+ 	/**
+ 	 * Solves an instance of (1)
+ 	 * 
+ 	 * @param[in]   qp 				Structure containing the problem data.
+ 	 * 	
+ 	 * @param[both] x   			Structure containing an initial guess for the primal and dual variables. 
+ 	 *           	    			Overwritten with the solution.
+ 	 *           
+ 	 * @param[in] use_initial_guess If false the solver is initialized at the origin.
+ 	 * 
+ 	 * @return 						A structure containing a summary of the optimizer
+ 	 *                           	output. Has the following fields:
+ 	 *                           
+ 	 *                           	eflag: ExitFlag enum (see fbstab_algorithm.h)
+ 	 *                            	indicating success or failure
+ 	 *                             	residual: Norm of the KKT residual
+ 	 *                             	newton_iters: Number of Newton steps taken
+ 	 *                              prox_iters: Number of proximal iterations
+ 	 */
  	SolverOut Solve(const DenseQPData& qp, const DenseQPVariable& x, bool use_initial_guess = true);
 
+ 	/**
+ 	 * Allows for setting of solver options. See fbstab_algorithm.h for 
+ 	 * a list of adjustable options
+ 	 * @param[in] option Option name
+ 	 * @param[in] value  New value
+ 	 */
  	void UpdateOption(const char *option, double value);
  	void UpdateOption(const char *option, int value);
  	void UpdateOption(const char *option, bool value);
+
+ 	/**
+ 	 * Controls the verbosity of the algorithm.
+ 	 * @param[in] level new display level
+ 	 *
+ 	 * Possible values are
+ 	 * OFF: Silent operation
+ 	 * FINAL: Prints a summary at the end
+ 	 * ITER: Major iterations details
+ 	 * ITER_DETAILED: Major and minor iteration details
+ 	 *
+ 	 * The default value is FINAL
+ 	 */
  	void SetDisplayLevel(FBstabAlgoDense::Display level);
 
  private:

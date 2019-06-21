@@ -8,40 +8,109 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-// TODO: Documentation
+/** 
+ * Implements primal-dual variables for inequality constrained QPs. 
+ * See dense_data.h for a mathematical description.
+ * This class stores variables and defines methods implementing useful operations.
+ * 
+ * Fields:
+ * z: Decision variables
+ * v: Inequality duals
+ * y: Inequality margins
+ * 
+ * length(z) = nz
+ * length(v) = nv
+ * length(y) = nv
+ */
 class DenseVariable{
  public:
-	DenseVariable(int nz, int nv); // allocates memory
+ 	/** 
+ 	 * Allocates memory for a primal-dual variables.
+ 	 * 
+ 	 * @param[in] nz Number of decision variables
+ 	 * @param[in] nv Number of inequality constraints
+ 	 */
+	DenseVariable(int nz, int nv);
+
+	/** 
+	 * Creates a primal-dual variable using preallocated memory.
+	 * @param[in] z    A vector to store the decision variables
+	 * @param[in] v    A vector to store the dual variables
+	 * @param[in] y    A vector to store the inequality margin
+	 * 
+	 * Checks to ensure that v.size() == y.size().
+	 */
 	DenseVariable(Eigen::VectorXd* z, Eigen::VectorXd* v, Eigen::VectorXd* y);
+
+	/** 
+	 * Frees memory if it was allocated.
+	 */
 	~DenseVariable();
-	// links in a DenseData object
+
+	/**
+ 	 * Links to problem data needed to perform calculations
+ 	 * Calculations cannot be performed until a data object is provided
+ 	 * @param[in] data Pointer to the problem data
+ 	 */
 	void LinkData(DenseData *data);
-	// x <- a*ones
+
+	/** 
+	 * Filles the variable with one value,
+	 * i.e., x <- a * ones
+	 * @param[in] a 
+	 */
 	void Fill(double a);
-	// set the y field = b - Az
+
+	/** 
+	 * Sets the field x.y = b - A* x.z
+	 */
 	void InitializeConstraintMargin();
-	// y <- a*x + y
+
+	/**
+ 	 * Performs the operation u <- a*x + u 
+ 	 * (where u is this object)
+ 	 * This is a level 1 BLAS operation for this object,
+ 	 * see http://www.netlib.org/blas/blasqr.pdf
+ 	 * 
+ 	 * @param[in] x the other variable
+ 	 * @param[in] a scalar
+ 	 *
+ 	 * Note that this handles the constraint margin correctly, i.e., after the
+ 	 * operation u.y = b - A*(u.z + a*x.z)
+ 	 */
 	void axpy(const DenseVariable &x, double a);
-	// deep copy
+
+	/**
+ 	 * Deep copy
+ 	 * @param[in] x variable to be copied
+ 	 */
 	void Copy(const DenseVariable &x);
-	// projects inequality duals onto the nonnegative orthant
+
+	/**
+ 	 * Projects the inequality duals onto the non-negative orthant,
+ 	 * i.e., v <- max(0,v)
+ 	 */
 	void ProjectDuals();
+
+	/**
+	 * Compute the Euclidean norm
+	 * @return ||z|| + ||v||
+	 */
 	double Norm() const;
 
+	/** Accessors */
 	Eigen::VectorXd& z(){ return *z_; };
 	Eigen::VectorXd& v(){ return *v_; };
 	Eigen::VectorXd& y(){ return *y_; }; 
-
 	const Eigen::VectorXd& z() const { return *z_; };
 	const Eigen::VectorXd& v() const { return *v_; };
 	const Eigen::VectorXd& y() const { return *y_; };
-
 	int num_constraints() { return nv_; }
 	int num_variables() { return nz_; }
 
  private:
-	int nz_ = 0; // number of decision variable
-	int nv_ = 0; // number of inequality constraints
+	int nz_ = 0; // Number of decision variable
+	int nv_ = 0; // Number of inequality constraints
 	DenseData* data_ = nullptr;
 
 	Eigen::VectorXd* z_ = nullptr; // primal variable

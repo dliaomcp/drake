@@ -55,7 +55,6 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 	for(int i = 0; i < nv_; i++){
 		double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
 		pfb_gradient = PFBGradient(ys,x.v()(i));
-
 		gamma_(i) = pfb_gradient.x;
 		mus_(i) = pfb_gradient.y + sigma*pfb_gradient.x;
 		Gamma_(i) = gamma_(i)/mus_(i);
@@ -76,7 +75,9 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 // KK'z = rz - A'*diag(1/mus)*rv
 // diag(mus) v = rv + diag(gamma)*A*z
 // Where K = cholesky((H + sigma*I + A'*Gamma*A)) is precomputed
-// by the factor routine
+// by the factor routine.
+// 
+// See (28) and (29) in https://arxiv.org/pdf/1901.04046.pdf
 bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	if(r.nz_ != x->nz_ || r.nv_ != x->nv_){
 		throw std::runtime_error("In DenseLinearSolver::Solve residual and variable objects must be the same size");
@@ -90,8 +91,8 @@ bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	r1_.noalias() =  r.z_ - A.transpose()*r2_;
 
 	// Solve KK'*z = rz - A'*(rv./mus)
-	// Where K = cholesky(H + sigma*I + A'*Gamma*A)
-	// is assumed to have been computed during the factor phase
+	// where K = chol(H + sigma*I + A'*Gamma*A)
+	// is assumed to have been computed during the factor phase.
 	x->z() = r1_;
 	CholeskySolve(K_,x->z_);
 
@@ -101,7 +102,7 @@ bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	r2_.noalias() = gamma_.asDiagonal()*r2_;
 	r2_ += r.v_;
 
-	// v = diag(1/mus)*r2
+	// v = r2./mus
 	x->v() = r2_.cwiseQuotient(mus_);
 
 	// y = b - Az
