@@ -13,11 +13,12 @@ namespace fbstab {
  * See dense_data.h for a mathematical description.
  * This class stores variables and defines methods implementing useful operations.
  * 
- * Fields:
+ * Primal-dual variables have 3 components:
  * z: Decision variables
  * v: Inequality duals
  * y: Inequality margins
  * 
+ * where
  * length(z) = nz
  * length(v) = nv
  * length(y) = nv
@@ -52,7 +53,7 @@ class DenseVariable{
  	 * Calculations cannot be performed until a data object is provided
  	 * @param[in] data Pointer to the problem data
  	 */
-	void LinkData(DenseData *data);
+	void LinkData(const DenseData *data);
 
 	/** 
 	 * Filles the variable with one value,
@@ -111,12 +112,10 @@ class DenseVariable{
  private:
 	int nz_ = 0; // Number of decision variable
 	int nv_ = 0; // Number of inequality constraints
-	DenseData* data_ = nullptr;
-
+	const DenseData* data_ = nullptr;
 	Eigen::VectorXd* z_ = nullptr; // primal variable
 	Eigen::VectorXd* v_ = nullptr; // dual variable
 	Eigen::VectorXd* y_ = nullptr; // inequality margin
-
 	bool memory_allocated_ = false;
 
 	friend class DenseResidual;

@@ -1,6 +1,7 @@
 #include "drake/solvers/fbstab/fbstab_dense.h"
 
-#include <cmath>
+#include <Eigen/Dense>
+#include <memory>
 
 #include "drake/solvers/fbstab/components/dense_data.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
@@ -18,23 +19,18 @@ FBstabDense::FBstabDense(int num_variables, int num_constraints){
 	nz_ = num_variables;
 	nv_ = num_constraints;
 
-	DenseVariable *x1 = new DenseVariable(nz_,nv_);
-	DenseVariable *x2 = new DenseVariable(nz_,nv_);
-	DenseVariable *x3 = new DenseVariable(nz_,nv_);
-	DenseVariable *x4 = new DenseVariable(nz_,nv_);
+	x1_ = std::make_unique<DenseVariable>(nz_, nv_);
+	x2_ = std::make_unique<DenseVariable>(nz_, nv_);
+	x3_ = std::make_unique<DenseVariable>(nz_, nv_);
+	x4_ = std::make_unique<DenseVariable>(nz_, nv_);
 
-	DenseResidual *r1 = new DenseResidual(nz_,nv_);
-	DenseResidual *r2 = new DenseResidual(nz_,nv_);
+	r1_ = std::make_unique<DenseResidual>(nz_, nv_);
+	r2_ = std::make_unique<DenseResidual>(nz_, nv_);
 
-	DenseLinearSolver *linsolve = new DenseLinearSolver(nz_,nv_);
-	DenseFeasibility *fcheck = new DenseFeasibility(nz_,nv_);
+	linear_solver_ = std::make_unique<DenseLinearSolver>(nz_, nv_);
+	feasibility_checker_ = std::make_unique<DenseFeasibility>(nz_, nv_);
 
-	// link these objects to the algorithm object
-	algorithm_ = new FBstabAlgoDense(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
-}
-
-FBstabDense::~FBstabDense(){
-	delete algorithm_;
+	algorithm_ = std::make_unique<FBstabAlgoDense>(x1_.get(),x2_.get(),x3_.get(),x4_.get(),r1_.get(),r2_.get(),linear_solver_.get(),feasibility_checker_.get());
 }
 
 SolverOut FBstabDense::Solve(const DenseQPData &qp, const DenseQPVariable& x, bool use_initial_guess){
@@ -69,6 +65,6 @@ void FBstabDense::SetDisplayLevel(FBstabAlgoDense::Display level){
 }
 
 
-}  // namespace dominic
+}  // namespace fbstab
 }  // namespace solvers
 }  // namespace drake

@@ -1,6 +1,5 @@
 #include "drake/solvers/fbstab/test/dense_component_unit_tests.h"
 
-#include <cmath>
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
@@ -9,6 +8,10 @@ namespace solvers {
 namespace fbstab {
 namespace test {
 
+/** 
+ * @file Runs unit tests for the Dense MPC components. See
+ * dense_component_unit_tests.h for documentation.
+ */
 GTEST_TEST(FBstabDense, DenseVariable) {
 	DenseComponentUnitTests test;
 	test.DenseVariableTests();
@@ -39,8 +42,6 @@ GTEST_TEST(FBstabDense, UnboundednessDetection) {
 	DenseComponentUnitTests test;
 	test.UnboundednessDetection();
 }
-
-
 
 }  // namespace test
 }  // namespace fbstab

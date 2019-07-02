@@ -17,7 +17,6 @@ namespace fbstab {
  */
 class DenseData{
  public:
-
  	/**
  	 * Store the problem data and perform input validation.
  	 * This class assumes that the pointers to the data remain valid.

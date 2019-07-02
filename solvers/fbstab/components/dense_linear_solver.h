@@ -44,7 +44,7 @@ class DenseLinearSolver {
  	 * Links to problem data needed to perform calculations.
  	 * @param[in] data  Pointer to problem data
  	 */
- 	void LinkData(DenseData *data);
+ 	void LinkData(const DenseData *data){ data_ = data; };
  	
  	/** 
  	 * Factors the matrix V(x,xbar,sigma) using a Schur complement approach 
@@ -91,7 +91,7 @@ class DenseLinearSolver {
 	Eigen::VectorXd gamma_;
 	Eigen::MatrixXd B_;
 
- 	DenseData *data_ = nullptr;
+ 	const DenseData *data_ = nullptr;
 
  	struct Point2D {double x; double y;};
 

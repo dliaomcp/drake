@@ -41,10 +41,10 @@ struct SolverOut {
  *       Az <= b
  *
  * The algorithm is implemented using to abstract objects 
- * representing variables, residuals etc. 
+ * representing variables, residuals etc.
  * These are template parameters for the class and
  * should be written so as to be efficient for specific classes
- * of QPs.
+ * of QPs, e.g., model predictive control QPs or sparse QPs.
  * 
  * @tparam Variable storage and methods for working with primal-dual variables 
  * @tparam Residual storage and methods for computing QP residuals
@@ -62,7 +62,7 @@ class FBstabAlgorithm{
 		OFF = 0, // no display
 		FINAL = 1, // prints message upon completion
 		ITER = 2, // basic information at each outer loop iteration
-		ITER_DETAILED = 3 // print inner loop information
+		ITER_DETAILED = 3 // print detailed inner loop information
 	};
 
 	/**
@@ -72,14 +72,9 @@ class FBstabAlgorithm{
 	 * @param[in] r1,r2 Residual objects used by the solver
 	 * @param[in] lin_sol Linear solver used by the solver
 	 * @param[in] fcheck Feasibility checker used by the solver
-	 */
+	 */ 
 	FBstabAlgorithm(Variable *x1, Variable *x2, 
 		Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck);
-
-	/** 
-	 * Calls the component object destructors.
-	 */
-	~FBstabAlgorithm();
 
 	/**
 	 * Attempts to solve the QP for the given
@@ -90,7 +85,7 @@ class FBstabAlgorithm{
 	 * 
 	 * @return Details on the solver output
 	 */
-	SolverOut Solve(Data* qp_data, Variable* x0);
+	SolverOut Solve(const Data* qp_data, Variable* x0);
 
 	/**
 	 * Allows setting of algorithm options

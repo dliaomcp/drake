@@ -1,3 +1,4 @@
+#define EIGEN_RUNTIME_NO_MALLOC
 #include "drake/solvers/fbstab/components/dense_variable.h"
 
 #include <cmath>
@@ -15,10 +16,18 @@ using VectorXd = Eigen::VectorXd;
 DenseVariable::DenseVariable(int nz, int nv){
 	nz_ = nz;
 	nv_ = nv;
+	#ifdef EIGEN_RUNTIME_NO_MALLOC
+	Eigen::internal::set_is_malloc_allowed(true);
+	#endif
+
 	z_ = new VectorXd(nz_);
 	v_ = new VectorXd(nv_);
 	y_ = new VectorXd(nv_);
 	memory_allocated_ = true;
+
+	#ifdef EIGEN_RUNTIME_NO_MALLOC
+	Eigen::internal::set_is_malloc_allowed(false);
+	#endif
 }
 
 DenseVariable::DenseVariable(VectorXd* z, VectorXd* v, VectorXd* y){
@@ -44,7 +53,7 @@ DenseVariable::~DenseVariable(){
 	}
 }
 
-void DenseVariable::LinkData(DenseData *data){
+void DenseVariable::LinkData(const DenseData *data){
 	data_ = data;
 }
 

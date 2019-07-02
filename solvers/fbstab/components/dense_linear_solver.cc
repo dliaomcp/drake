@@ -1,4 +1,4 @@
-#define EIGEN_RUNTIME_NO_MALLOC 1
+#define EIGEN_RUNTIME_NO_MALLOC 
 #include "drake/solvers/fbstab/components/dense_linear_solver.h"
 
 #include <cmath>
@@ -34,20 +34,17 @@ DenseLinearSolver::DenseLinearSolver(int nz, int nv){
 	#endif
 }
 
-void DenseLinearSolver::LinkData(DenseData *data){
-	data_ = data;
-}
-
 void DenseLinearSolver::SetAlpha(double alpha){
 	alpha_ = alpha;
 }
 
 bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar, double sigma){
-	// References for clarity
+	if(xbar.nz_ != x.nz_ || xbar.nv_ != x.nv_){
+		throw std::runtime_error("In DenseLinearSolver::Factor inputs must be the same size");
+	}
 	const Eigen::MatrixXd& H = data_->H();
 	const Eigen::MatrixXd& A = data_->A();
 
-	// compute K <- H + sigma I
 	K_ = H + sigma*Eigen::MatrixXd::Identity(nz_,nz_);
 	
 	// K <- K + A'*diag(Gamma(x))*A
@@ -59,10 +56,8 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 		mus_(i) = pfb_gradient.y + sigma*pfb_gradient.x;
 		Gamma_(i) = gamma_(i)/mus_(i);
 	}
-
-	// K += A' * Gamma * A
-	// The variable B is used to avoid dynamic allocation of temporaries
-	B_.noalias() = Gamma_.asDiagonal()*A;
+	// B is used to avoid temporaries
+	B_.noalias() = Gamma_.asDiagonal()*A; 
 	K_.noalias() += A.transpose()*B_;
 
 	// Factor K = LL' in place
@@ -71,20 +66,18 @@ bool DenseLinearSolver::Factor(const DenseVariable &x,const DenseVariable &xbar,
 	return true;
 }
 
-// Solve the system:
-// KK'z = rz - A'*diag(1/mus)*rv
-// diag(mus) v = rv + diag(gamma)*A*z
-// Where K = cholesky((H + sigma*I + A'*Gamma*A)) is precomputed
-// by the factor routine.
-// 
-// See (28) and (29) in https://arxiv.org/pdf/1901.04046.pdf
 bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	if(r.nz_ != x->nz_ || r.nv_ != x->nv_){
 		throw std::runtime_error("In DenseLinearSolver::Solve residual and variable objects must be the same size");
 	}
-	// References for clarity
 	const Eigen::MatrixXd& A = data_->A();
 	const Eigen::VectorXd& b = data_->b();
+
+	// This method solves the system:
+	// KK'z = rz - A'*diag(1/mus)*rv
+	// diag(mus) v = rv + diag(gamma)*A*z
+	// Where K has been precomputed by the factor routine.
+	// See (28) and (29) in https://arxiv.org/pdf/1901.04046.pdf
 
 	// compute rz - A'*(rv./mus) and store it in r1_
 	r2_ = r.v_.cwiseQuotient(mus_);
@@ -100,7 +93,7 @@ bool DenseLinearSolver::Solve(const DenseResidual &r, DenseVariable *x){
 	// written so as to avoid temporary creation
 	r2_.noalias() = A*x->z();
 	r2_.noalias() = gamma_.asDiagonal()*r2_;
-	r2_ += r.v_;
+	r2_.noalias() += r.v_;
 
 	// v = r2./mus
 	x->v() = r2_.cwiseQuotient(mus_);

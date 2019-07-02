@@ -33,7 +33,7 @@ class DenseResidual{
 	 * perform calculations.
 	 * @param[in] data Pointer to the problem data.
 	 */
-	void LinkData(DenseData *data);
+	void LinkData(const DenseData *data){ data_ = data; };
 
 	/**
 	 * Performs the operation
@@ -122,7 +122,7 @@ class DenseResidual{
 	double l_norm() const { return 0; }
 
  private:
- 	DenseData *data_ = nullptr; // access to the data object
+ 	const DenseData *data_ = nullptr; // access to the data object
  	int nz_ = 0; // number of decision variables
  	int nv_ = 0; // number of inequality constraints
  	Eigen::VectorXd z_; // storage for the stationarity residual

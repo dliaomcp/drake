@@ -46,6 +46,12 @@ class DenseComponentUnitTests {
 		b_ << 0,-1;
  	}
 
+ 	/** 
+ 	 * This methods implements a unit test for the variable object.
+ 	 * It checks the computation of the constraint margin y = b - A*z against
+ 	 * Eigen and operations of the form y <- a*x + y
+ 	 * where x and y are DenseVariables.
+ 	 */
  	void DenseVariableTests(){
  		DenseData data(&H_,&f_,&A_,&b_);
 
@@ -64,13 +70,6 @@ class DenseComponentUnitTests {
 		VectorXd margin_expected = b_ - A_*x.z();
 		for(int i = 0;i<q_;i++){
 			EXPECT_DOUBLE_EQ(x.y()(i),margin_expected(i));
-		}
-
-		// Test projection of the dual variables onto the non-negative orthant
-		// i.e., of the operation y.v <- max(0,y.v)
-		y.ProjectDuals();
-		for(int i = 0;i<q_;i++){
-			ASSERT_EQ(y.v()(i),0.0);
 		}
 
 		// Test computation of the expression
@@ -122,7 +121,6 @@ class DenseComponentUnitTests {
 
 		double sigma = 0.5;
 
-	
 		r.InnerResidual(x,y,sigma);
 		VectorXd rz_expected(n_);
 		rz_expected << 11.6,13.5;
@@ -137,6 +135,10 @@ class DenseComponentUnitTests {
 		}
  	}
 
+ 	// Compute the natural residual and compare against hand
+	// calculations.
+	// rz = H*x.z + f + A'*x.v
+	// rv = min(x.y,x.v)
  	void NaturalResidualCalculation(){
  		DenseData data(&H_,&f_,&A_,&b_);
 
@@ -149,10 +151,6 @@ class DenseComponentUnitTests {
 		DenseResidual r(n_,q_);
 		r.LinkData(&data);
 
-		// Compute the natural residual and compare against hand
-		// calculations.
-		// rz = H*x.z + f + A'*x.v
-		// rv = min(x.y,x.v)
 		r.NaturalResidual(x);
 		VectorXd rz_expected(n_);
 		VectorXd rv_expected(q_);
@@ -167,7 +165,8 @@ class DenseComponentUnitTests {
 		}
  	}
 
- 	// check that dz and dv do indeed solve the system
+ 	// Verifies that the outputs of the Solve and
+ 	// Factor methods do indeed solve the system
 	//
 	//      [ Hs   A']  dz  =  rz 
 	//      [-C*A  D ]  dv     rv
@@ -175,7 +174,7 @@ class DenseComponentUnitTests {
 	// where Hs = H + sigma*I, and
 	// C = diag(gamma), D = diag(mus)
 	// are diagonal weighting matrices computed from the derivatives
-	// of the Penalized Fischer-Burmeister Function
+	// of the Penalized Fischer-Burmeister Function.
  	void LinearSolverResidual(){
  		DenseData data(&H_,&f_,&A_,&b_);
 
@@ -222,9 +221,15 @@ class DenseComponentUnitTests {
 		EXPECT_NEAR(residual.norm(),0,1e-12);
  	}
 
+ 	/** 
+ 	 * This test checks that the infeasibility checker class correctly 
+ 	 * identifies certificates of primal infeasibility.
+ 	 * The QP used in this example has no solution
+ 	 * and the vector [1 0 0 1 1] is a certificate of
+ 	 * infeasibility, i.e., it seperates Range(A) and b.
+ 	 * The example is from https://arxiv.org/pdf/1901.04046.pdf
+ 	 */
  	void InfeasibilityDetection() {
- 	// this QP is infeasible and has no solution
-	// Example from https://arxiv.org/pdf/1901.04046.pdf
  	MatrixXd H(2,2);
  	MatrixXd A(5,2);
  	VectorXd f(2);
@@ -264,10 +269,14 @@ class DenseComponentUnitTests {
 
  	}
 
+ 	/** 
+ 	 * This test checks that the infeasibility checker class correctly 
+ 	 * identifies certificates of  unboundedness.
+ 	 * The QP used in this example has a direction of infinite descent
+ 	 * given by [0 1].
+ 	 * The example is taken from https://arxiv.org/pdf/1901.04046.pdf
+ 	 */
  	void UnboundednessDetection() {
-
- 	// this QP is infeasible and has no solution
-	// Example from https://arxiv.org/pdf/1901.04046.pdf
  	MatrixXd H(2,2);
  	MatrixXd A(4,2);
  	VectorXd f(2);

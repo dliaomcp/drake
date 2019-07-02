@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <memory>
 
 #include "drake/solvers/fbstab/components/dense_data.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
@@ -99,17 +100,13 @@ using FBstabAlgoDense = FBstabAlgorithm<DenseVariable,DenseResidual,DenseData,De
 class FBstabDense {
  public:
  	/** 
- 	 * Allocates needed workspace.
+ 	 * Allocates needed workspace given the dimensions of the QPs to
+ 	 * be solved.
  	 * 
  	 * @param[in] num_variables 
  	 * @param[in] num_constraints
  	 */
  	FBstabDense(int num_variables, int num_constraints);
-
- 	/** 
- 	 * Frees workspace memory.
- 	 */
- 	~FBstabDense();
 
  	/**
  	 * Solves an instance of (1)
@@ -159,7 +156,16 @@ class FBstabDense {
  private:
  	int nz_ = 0;
  	int nv_ = 0;
- 	FBstabAlgoDense *algorithm_ = nullptr;
+
+ 	std::unique_ptr<FBstabAlgoDense> algorithm_;
+ 	std::unique_ptr<DenseVariable> x1_;
+ 	std::unique_ptr<DenseVariable> x2_;
+ 	std::unique_ptr<DenseVariable> x3_;
+ 	std::unique_ptr<DenseVariable> x4_;
+ 	std::unique_ptr<DenseResidual> r1_;
+ 	std::unique_ptr<DenseResidual> r2_;
+ 	std::unique_ptr<DenseLinearSolver> linear_solver_;
+ 	std::unique_ptr<DenseFeasibility> feasibility_checker_;
 };
 
 }  // namespace fbstab

@@ -6,6 +6,18 @@ namespace fbstab {
 
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
 FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility> ::FBstabAlgorithm(Variable *x1,Variable *x2, Variable *x3, Variable *x4, Residual *r1, Residual *r2, LinearSolver *lin_sol, Feasibility *fcheck){
+	if(x1 == nullptr || x2 == nullptr || x3 == nullptr || x4 == nullptr){
+		throw std::runtime_error("A Variable supplied to FBstabAlgorithm is invalid.");
+	}
+	if(r1 == nullptr || r2 == nullptr){
+		throw std::runtime_error("A Residual supplied to FBstabAlgorithm is invalid");
+	}
+	if(lin_sol == nullptr){
+		throw std::runtime_error("The LinearSolver supplied to FBstabAlgorithm is invalid.");
+	}
+	if(fcheck == nullptr){
+		throw std::runtime_error("The Feasibility object supplied to FBstabAlgorithm is invalid.");
+	}
 
 	xk_ = x1;
 	xi_ = x2;
@@ -19,46 +31,30 @@ FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility> ::FBstabAlgorit
 	feasibility_ = fcheck;
 }
 
+// TODO(dliaomcp@umich.edu): Enable printing to a log file rather than just stdout
 template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
-FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::~FBstabAlgorithm(){
-	delete xk_;
-	delete xi_;
-	delete xp_;
-	delete dx_;
-
-	delete rk_;
-	delete ri_;
-
-	delete linear_solver_;
-	delete feasibility_;
-}
-
-// TODO(dliaomcp@umich.edu): Enable printing to a log file rather than just stdout?
-template <class Variable, class Residual, class Data, class LinearSolver, class Feasibility>
-SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solve(Data* qp_data, Variable* x0){
-	// harmonize the alpha value
+SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solve(const Data* qp_data, Variable* x0){
+	// Make sure the linear solver and residuals objects are using the same value
+	// for the alpha parameter.
 	rk_->SetAlpha(alpha_);
 	ri_->SetAlpha(alpha_);
 	linear_solver_->SetAlpha(alpha_);
 
-	// Output structure
 	struct SolverOut output = {
-		MAXITERATIONS, // eflag
+		MAXITERATIONS, // exit flag
 		0.0, // residual
 		0, // prox iters
 	    0 // newton iters
 	};
 
-	// link the data object
+	// Supply a pointer to the data object
 	xk_->LinkData(qp_data);
 	xi_->LinkData(qp_data);
 	dx_->LinkData(qp_data);
 	xp_->LinkData(qp_data);
 	x0->LinkData(qp_data);
-
 	rk_->LinkData(qp_data);
 	ri_->LinkData(qp_data);
-
 	linear_solver_->LinkData(qp_data);
 	feasibility_->LinkData(qp_data);
 
@@ -78,7 +74,6 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solv
 	double inner_tol = FBstabAlgorithm::min(E0,inner_tol_max_);
 	inner_tol = FBstabAlgorithm::max(inner_tol,inner_tol_min_);
 
-	// iteration counters
 	newton_iters_ = 0;
 	prox_iters_ = 0;
 
@@ -86,11 +81,10 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solv
 
 	// main prox loop *************************************
 	for(int k = 0; k < max_prox_iters_; k++){
-
 		rk_->NaturalResidual(*xk_);
 		Ek = rk_->Norm();
 
-		// Solver stops if:
+		// The solver stops if:
 		// a) the desired precision is obtained
 		// b) the iterations stall, ie., ||x(k) - x(k-1)|| \leq tol
 		if(Ek <= abs_tol_ + E0*rel_tol_ || dx_->Norm() <= stall_tol_){
@@ -109,17 +103,16 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solv
 			PrintIterLine(prox_iters_,newton_iters_,*rk_,*ri_,inner_tol);
 		}
 
-		// TODO: add a divergence check
+		// TODO(dliaomcp@umich.edu): add a divergence check
 
-		// update subproblem tolerance
+		// Update subproblem tolerance
 		inner_tol = FBstabAlgorithm::min(inner_tol_multiplier_*inner_tol,Ek);
 		inner_tol = FBstabAlgorithm::max(inner_tol,inner_tol_min_);
 
-		rk_->PenalizedNaturalResidual(*xk_);
-		double Ekpen = rk_->Norm();
-
 		// Solve the proximal subproblem
 		xi_->Copy(*xk_);
+		rk_->PenalizedNaturalResidual(*xk_);
+		double Ekpen = rk_->Norm();
 		double Eo = SolveSubproblem(xi_,xk_,inner_tol,sigma_,Ekpen);
 
 		if(newton_iters_ >= max_newton_iters_){ // if iteration limit exceeded
@@ -162,11 +155,10 @@ SolverOut FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::Solv
 
 		// x(k+1) = x(i)
 		xk_->Copy(*xi_);
-
 		prox_iters_++;
-	} // prox loop
+	} // end proximal loop
 
-	// timeout exit
+	// Execute a timeout exit
 	output.eflag = MAXITERATIONS;
 	output.residual = Ek;
 	output.newton_iters = newton_iters_;
@@ -206,16 +198,13 @@ double FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::SolveSu
 		} else{
 			PrintDetailedLine(i,t,*ri_);
 		}
-
 		if(newton_iters_ >= max_newton_iters_){
 			break;
 		}
 
-		// evaluate and factor the iteration matrix 
-		linear_solver_->Factor(*x,*xbar,sigma);
-
 		// solve for the Newton step
-		// TODO: Add solver error handling
+		linear_solver_->Factor(*x,*xbar,sigma);
+		// TODO(dliaomcp@umich.edu): Add solver error handling
 		ri_->Negate(); 
 		linear_solver_->Solve(*ri_,dx_);
 		newton_iters_++;
@@ -227,15 +216,14 @@ double FBstabAlgorithm<Variable,Residual,Data,LinearSolver,Feasibility>::SolveSu
 		t = 1.0;
 
 		for(int j = 0; j < max_linesearch_iters_; j++){
-			// xp = x + t*dx
+			// Compute trial point xp = x + t*dx
+			// and evaluate the merit function at xp
 			xp_->Copy(*x);
 			xp_->axpy(*dx_,t);
-
-			// evaluate the merit function at xp
 			ri_->InnerResidual(*xp_,*xbar,sigma);
 			double mp = ri_->Merit();
 
-			// acceptance check
+			// Armijo descent check
 			if(mp <= m0 - 2.0*t*eta_*current_merit) {
 				break;
 			} else {

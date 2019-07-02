@@ -31,7 +31,7 @@ class DenseFeasibility{
  	 * Links to problem data needed to perform calculations.
  	 * @param[in] data  Pointer to problem data
  	 */
- 	void LinkData(DenseData *data);
+ 	void LinkData(const DenseData *data){ data_ = data; };
 
  	/** 
  	 * Checks if the primal-dual variable x
@@ -69,7 +69,7 @@ class DenseFeasibility{
 
   	bool primal_feasible_ = true;
   	bool dual_feasible_ = true;
-  	DenseData *data_ = nullptr;
+  	const DenseData *data_ = nullptr;
 };
 
 
