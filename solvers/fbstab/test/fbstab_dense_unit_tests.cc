@@ -24,7 +24,7 @@ using VectorXd = Eigen::VectorXd;
 
 
 /** 
- * Tests FBstab by solving a QP
+ * Tests FBstab with
  * 
  * H = [3 1]  f = [10]
  *     [1 1]      [5 ]
@@ -88,7 +88,7 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
 }
 
 /** 
- * Tests FBstab by solving a QP
+ * Tests FBstab with
  * 
  * H = [1 0]  f = [1]
  *     [0 0]      [0]
@@ -149,7 +149,7 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
 }
 
 /** 
- * Tests FBstab by solving a QP
+ * Tests FBstab with
  * 
  * H = [1 0]  f = [1 ]
  *     [0 0]      [-1]
@@ -161,8 +161,7 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
  *     [0 -1]     [-1]
  *     
  * This QP is infeasible, i.e.,
- * there is no z satisfying
- * Az <= b
+ * there is no z satisfying Az <= b
  */
 GTEST_TEST(FBstabDense, InfeasibleQP) {
 	MatrixXd H(2,2);
@@ -209,7 +208,7 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
 }
 
 /** 
- * Tests FBstab by solving a QP
+ * Tests FBstab with
  * 
  * H = [1 0]  f = [1 ]
  *     [0 0]      [-1]

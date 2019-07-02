@@ -11,53 +11,57 @@ package(default_visibility = ["//visibility:public"])
 # FBstabDense *************************************
 drake_cc_library( # data
     name = "dense_data",
-    srcs = ["components/dense_data.h",
-            "components/dense_data.cc"
+    srcs = ["dense_components/dense_data.h",
+            "dense_components/dense_data.cc"
     ],
-    hdrs = ["components/dense_data.h"],
+    hdrs = ["dense_components/dense_data.h"],
     deps = ["@eigen"],
 )
 
 drake_cc_library( # variable
     name = "dense_variable",
-    srcs = ["components/dense_variable.h",
-            "components/dense_variable.cc"
+    srcs = ["dense_components/dense_variable.h",
+            "dense_components/dense_variable.cc"
     ],
-    hdrs = ["components/dense_variable.h"],
-    deps = [":dense_data"],
+    hdrs = ["dense_components/dense_variable.h"],
+    deps = [":dense_data",
+            "@eigen"],
 )
 
 drake_cc_library( # residual
     name = "dense_residual",
-    srcs = ["components/dense_residual.h",
-            "components/dense_residual.cc"
+    srcs = ["dense_components/dense_residual.h",
+            "dense_components/dense_residual.cc"
     ],
-    hdrs = ["components/dense_data.h"],
+    hdrs = ["dense_components/dense_data.h"],
     deps = [":dense_variable",
-            ":dense_data"],
+            ":dense_data",
+            "@eigen"],
     copts = ["-UNDEBUG"]
 )
 
 drake_cc_library( # feasibility 
     name = "dense_feasibility",
-    srcs = ["components/dense_feasibility.h",
-            "components/dense_feasibility.cc"
+    srcs = ["dense_components/dense_feasibility.h",
+            "dense_components/dense_feasibility.cc"
     ],
-    hdrs = ["components/dense_feasibility.h"],
+    hdrs = ["dense_components/dense_feasibility.h"],
     deps = [":dense_variable",
-            ":dense_data"],
+            ":dense_data",
+            "@eigen"],
     copts = ["-UNDEBUG"]
 )
 
 drake_cc_library( # linear solver
     name = "dense_linear_solver",
-    srcs = ["components/dense_linear_solver.h",
-            "components/dense_linear_solver.cc"
+    srcs = ["dense_components/dense_linear_solver.h",
+            "dense_components/dense_linear_solver.cc"
     ],
-    hdrs = ["components/dense_linear_solver.h"],
+    hdrs = ["dense_components/dense_linear_solver.h"],
     deps = [":dense_variable",
             ":dense_residual",
-            ":dense_data"],
+            ":dense_data",
+            "@eigen"],
     copts = ["-UNDEBUG"]
 )
 
@@ -65,8 +69,8 @@ drake_cc_library(
     name = "fbstab_dense",
     srcs = ["fbstab_dense.h",
             "fbstab_dense.cc",
-            "fbstab_algorithm.h",
-            "fbstab_algorithm-inl.h"
+            "algorithm/fbstab_algorithm.h",
+            "algorithm/fbstab_algorithm-inl.h"
     ],
     hdrs = ["fbstab_dense.h"],
     deps = [":dense_data",

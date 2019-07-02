@@ -1,10 +1,10 @@
 #define EIGEN_RUNTIME_NO_MALLOC
-#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/dense_components/dense_variable.h"
 
 #include <cmath>
 #include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/dense_components/dense_data.h"
 
 namespace drake {
 namespace solvers {
