@@ -1,4 +1,3 @@
-#define EIGEN_RUNTIME_NO_MALLOC
 #include "drake/solvers/fbstab/dense_components/dense_feasibility.h"
 
 #include <cmath>
@@ -12,20 +11,11 @@ namespace solvers {
 namespace fbstab {
 
 DenseFeasibility::DenseFeasibility(int nz, int nv){
-	#ifdef EIGEN_RUNTIME_NO_MALLOC
-	Eigen::internal::set_is_malloc_allowed(true);
-	#endif
-
 	nz_ = nz;
 	nv_ = nv;
 	z1_.resize(nz_);
 	v1_.resize(nv_);
-
-	#ifdef EIGEN_RUNTIME_NO_MALLOC
-	Eigen::internal::set_is_malloc_allowed(false);
-	#endif
 }
-
 
 void DenseFeasibility::ComputeFeasibility(const DenseVariable &x, double tol){
 	const Eigen::MatrixXd& H = data_->H();

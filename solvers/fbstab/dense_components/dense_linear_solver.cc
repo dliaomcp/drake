@@ -1,4 +1,3 @@
-#define EIGEN_RUNTIME_NO_MALLOC 
 #include "drake/solvers/fbstab/dense_components/dense_linear_solver.h"
 
 #include <cmath>
@@ -14,10 +13,6 @@ namespace solvers {
 namespace fbstab {
 
 DenseLinearSolver::DenseLinearSolver(int nz, int nv){
-	#ifdef EIGEN_RUNTIME_NO_MALLOC
-	Eigen::internal::set_is_malloc_allowed(true);
-	#endif
-
 	nz_ = nz;
 	nv_ = nv;
 
@@ -28,10 +23,6 @@ DenseLinearSolver::DenseLinearSolver(int nz, int nv){
 	mus_.resize(nv_);
 	gamma_.resize(nv_);
 	B_.resize(nv_,nz_);
-
-	#ifdef EIGEN_RUNTIME_NO_MALLOC
-	Eigen::internal::set_is_malloc_allowed(false);
-	#endif
 }
 
 void DenseLinearSolver::SetAlpha(double alpha){

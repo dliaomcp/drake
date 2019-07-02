@@ -92,7 +92,7 @@ drake_cc_binary(
 )
 
 drake_cc_googletest( # dense component unit tests
-    name = "dense_component_tests",
+    name = "dense_component_unit_tests",
     srcs = ["test/dense_component_unit_tests.cc",
             "test/dense_component_unit_tests.h"],
     deps = [":dense_data",
