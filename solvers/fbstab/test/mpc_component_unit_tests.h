@@ -85,9 +85,7 @@ class MPCComponentUnitTests {
  	}
 
  	/** 
- 	 * Tests the operation y <- a*H*x + b*y where
- 	 * H is defined in https://arxiv.org/pdf/1901.04046.pdf Eq. (1)
- 	 * and is never formed explicitly.
+ 	 * Tests against hand calculations.
  	 */
  	void GEMVH() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
@@ -110,6 +108,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void GEMVA() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nv = data.nv_;
@@ -131,6 +132,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void GEMVG() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nl = data.nl_;
@@ -152,6 +156,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void GEMVGT() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nl = data.nl_;
@@ -173,6 +180,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void GEMVAT() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nv = data.nv_;
@@ -194,6 +204,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void AXPYF() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nz = data.nz_;
@@ -210,6 +223,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void AXPYH() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nl = data.nl_;
@@ -226,6 +242,9 @@ class MPCComponentUnitTests {
  		}
  	}
 
+ 	/** 
+ 	 * Tests against hand calculations.
+ 	 */
  	void AXPYB() {
  		MPCData data(&Q_,&R_,&S_,&q_,&r_,&A_,&B_,&c_,&E_,&L_,&d_,&x0_);
  		int nv = data.nv_;
@@ -241,9 +260,7 @@ class MPCComponentUnitTests {
  			ASSERT_EQ(y(i),y_expected(i));
  		}
  	}
-
-
-
+ 	
  private:
  	std::vector<Eigen::MatrixXd> Q_;
  	std::vector<Eigen::MatrixXd> R_;
