@@ -118,26 +118,12 @@ drake_cc_googletest( # unit tests
 )
 
 # FBstab MPC *************************************
-drake_cc_library(
-    name = "mpc_components",
-    srcs = ["components/mpc_data.h",
-            "components/mpc_variable.h",
-            "components/mpc_residual.h",
-            "components/ricatti_linear_solver.h",
-            "components/mpc_feasibility.h",
-            "components/mpc_data.cc",
-            "components/mpc_variable.cc",
-            "components/mpc_residual.cc",
-            "components/ricatti_linear_solver.cc",
-            "components/mpc_feasibility.cc"
-    ],
-    hdrs = ["components/mpc_data.h",
-            "components/mpc_variable.h",
-            "components/mpc_residual.h",
-            "components/ricatti_linear_solver.h",
-            "components/mpc_feasibility.h"
-    ],
-    deps = [":static_matrix"],
+drake_cc_library( # data
+    name = "mpc_data",
+    srcs = ["mpc_components/mpc_data.cc"],
+    hdrs = ["mpc_components/mpc_data.h"],
+    deps = ["@eigen",
+            "//common:essential"],
 )
 
 drake_cc_library(
@@ -153,21 +139,12 @@ drake_cc_library(
 )
 
 drake_cc_googletest(
-    name = "mpc_component_tests",
-    srcs = ["test/mpc_component_tests.cc",
-            "test/test_helpers.h"],
-    deps = [":static_matrix",
-            ":mpc_components"
+    name = "mpc_component_unit_tests",
+    srcs = ["test/mpc_component_unit_tests.cc",
+            "test/mpc_component_unit_tests.h"],
+    deps = ["@eigen",
+            ":mpc_data"
     ],
-)
-
-
-drake_cc_binary(
-    name = "mpc_build_test",
-    srcs = ["test/fbstab_mpc_build_test.cc",
-            "test/test_helpers.h"],
-    deps = [":static_matrix",
-            ":fbstab_mpc"],
 )
 
 drake_cc_googletest( # fbstab_mpc
