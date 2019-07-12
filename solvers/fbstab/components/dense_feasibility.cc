@@ -1,8 +1,9 @@
 #include "drake/solvers/fbstab/components/dense_feasibility.h"
 
 #include <cmath>
-#include <Eigen/Dense>
+#include <stdexcept>
 
+#include <Eigen/Dense>
 #include "drake/solvers/fbstab/components/dense_data.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
 
@@ -11,6 +12,10 @@ namespace solvers {
 namespace fbstab {
 
 DenseFeasibility::DenseFeasibility(int nz, int nv) {
+  if (nz <= 0 || nv <= 0) {
+    throw std::runtime_error(
+        "Inputs to DenseFeasibility::DenseFeasibility must be positive.");
+  }
   nz_ = nz;
   nv_ = nv;
   z1_.resize(nz_);
@@ -18,6 +23,10 @@ DenseFeasibility::DenseFeasibility(int nz, int nv) {
 }
 
 void DenseFeasibility::ComputeFeasibility(const DenseVariable& x, double tol) {
+  if (data_ == nullptr) {
+    throw std::runtime_error(
+        "In DenseFeasibility::ComputeFeasibility: data not linked.");
+  }
   const Eigen::MatrixXd& H = data_->H();
   const Eigen::MatrixXd& A = data_->A();
   const Eigen::VectorXd& f = data_->f();
@@ -36,6 +45,8 @@ void DenseFeasibility::ComputeFeasibility(const DenseVariable& x, double tol) {
 
   if ((d1 <= 0) && (d2 < 0) && (d3 <= tol * w)) {
     dual_feasible_ = false;
+  } else {
+    dual_feasible_ = true;
   }
 
   // The conditions for primal infeasibility are:
@@ -48,11 +59,10 @@ void DenseFeasibility::ComputeFeasibility(const DenseVariable& x, double tol) {
 
   if ((p1 < 0) && (p2 <= tol * u)) {
     primal_feasible_ = false;
+  } else {
+    primal_feasible_ = true;
   }
 }
-
-bool DenseFeasibility::IsDualFeasible() { return dual_feasible_; }
-bool DenseFeasibility::IsPrimalFeasible() { return primal_feasible_; }
 
 }  // namespace fbstab
 }  // namespace solvers

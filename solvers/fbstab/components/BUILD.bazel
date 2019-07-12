@@ -1,5 +1,5 @@
 load(
-    "@drake//tools/skylark:drake_cc.bzl", 
+    "@drake//tools/skylark:drake_cc.bzl",
     "drake_cc_googletest",
     "drake_cc_library",
 )
@@ -27,93 +27,109 @@ drake_cc_library(
     ],
 )
 
-drake_cc_library( # residual
+drake_cc_library(
     name = "dense_residual",
-    srcs = ["dense_residual.h",
-            "dense_residual.cc"
+    srcs = [
+        "dense_residual.cc",
     ],
-    hdrs = ["dense_data.h"],
-    deps = [":dense_variable",
-            ":dense_data",
-            "@eigen"],
+    hdrs = ["dense_residual.h"],
+    deps = [
+        ":dense_data",
+        ":dense_variable",
+        "//common:essential",
+        "@eigen",
+    ],
 )
 
-drake_cc_library( # feasibility 
+drake_cc_library(
     name = "dense_feasibility",
-    srcs = ["dense_feasibility.h",
-            "dense_feasibility.cc"
+    srcs = [
+        "dense_feasibility.cc",
     ],
     hdrs = ["dense_feasibility.h"],
-    deps = [":dense_variable",
-            ":dense_data",
-            "@eigen"],
+    deps = [
+        ":dense_data",
+        ":dense_variable",
+        "//common:essential",
+        "@eigen",
+    ],
 )
 
-drake_cc_library( # linear solver
+drake_cc_library(
     name = "dense_linear_solver",
-    srcs = ["dense_linear_solver.h",
-            "dense_linear_solver.cc"
+    srcs = [
+        "dense_linear_solver.cc",
     ],
     hdrs = ["dense_linear_solver.h"],
-    deps = [":dense_variable",
-            ":dense_residual",
-            ":dense_data",
-            "@eigen"],
+    deps = [
+        ":dense_data",
+        ":dense_residual",
+        ":dense_variable",
+        "//common:essential",
+        "@eigen",
+    ],
 )
 
-drake_cc_googletest( # dense component unit tests
+drake_cc_googletest(
     name = "dense_component_unit_tests",
-    srcs = ["test/dense_component_unit_tests.cc",
-            "test/dense_component_unit_tests.h"],
-    deps = [":dense_data",
-            ":dense_variable",
-            ":dense_residual",
-            ":dense_feasibility",
-            ":dense_linear_solver",
-            "//common:essential"],
+    srcs = [
+        "test/dense_component_unit_tests.cc",
+        "test/dense_component_unit_tests.h",
+    ],
+    deps = [
+        ":dense_data",
+        ":dense_feasibility",
+        ":dense_linear_solver",
+        ":dense_residual",
+        ":dense_variable",
+        "//common:essential",
+    ],
 )
 
 # FBstab MPC *************************************
-drake_cc_library( # data
+drake_cc_library(
     name = "mpc_data",
     srcs = ["mpc_data.cc"],
     hdrs = ["mpc_data.h"],
-    deps = ["@eigen",
-            "//common:essential"],
-)
-
-drake_cc_library( # variable
-    name = "mpc_variable",
-    srcs = ["mpc_variable.cc"],
-    hdrs = ["mpc_variable.h"],
-    deps = ["@eigen",
-            ":mpc_data",
-            "//common:essential"],
-)
-
-drake_cc_library( # residual
-    name = "mpc_residual",
-    srcs = ["mpc_residual.cc"],
-    hdrs = ["mpc_residual.h"],
-    deps = ["@eigen",
-            ":mpc_data",
-            ":mpc_variable",
-            "//common:essential"],
-)
-
-
-drake_cc_googletest(
-    name = "mpc_component_unit_tests",
-    srcs = ["test/mpc_component_unit_tests.cc",
-            "test/mpc_component_unit_tests.h"],
-    deps = ["@eigen",
-            ":mpc_data",
-            ":mpc_variable",
-            ":mpc_residual"
+    deps = [
+        "//common:essential",
+        "@eigen",
     ],
 )
 
+drake_cc_library(
+    name = "mpc_variable",
+    srcs = ["mpc_variable.cc"],
+    hdrs = ["mpc_variable.h"],
+    deps = [
+        ":mpc_data",
+        "//common:essential",
+        "@eigen",
+    ],
+)
 
+drake_cc_library(
+    name = "mpc_residual",
+    srcs = ["mpc_residual.cc"],
+    hdrs = ["mpc_residual.h"],
+    deps = [
+        ":mpc_data",
+        ":mpc_variable",
+        "//common:essential",
+        "@eigen",
+    ],
+)
 
-
-
+drake_cc_googletest(
+    name = "mpc_component_unit_tests",
+    srcs = [
+        "test/mpc_component_unit_tests.cc",
+        "test/mpc_component_unit_tests.h",
+    ],
+    deps = [
+        ":mpc_data",
+        ":mpc_residual",
+        ":mpc_variable",
+        "@eigen",
+    ],
+)

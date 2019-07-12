@@ -18,7 +18,7 @@ class MPCComponentUnitTests;
 /**
  * This class computes and stores residuals for MPC QPs. See mpc_data.h
  * for the mathematical description.
- * 
+ *
  * Residuals have 3 components:
  * z: Optimality residual
  * l: Equality residual
@@ -28,13 +28,13 @@ class MPCResidual {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCResidual);
   /**
-  * Allocates memory for the residual.
-  *
-  * @param[in] N  horizon length
-  * @param[in] nx number of states
-  * @param[in] nu number of control input
-  * @param[in] nc number of constraints per stage
-  */
+   * Allocates memory for the residual.
+   *
+   * @param[in] N  horizon length
+   * @param[in] nx number of states
+   * @param[in] nu number of control input
+   * @param[in] nc number of constraints per stage
+   */
   MPCResidual(int N, int nx, int nu, int nc);
 
   /**
@@ -52,7 +52,7 @@ class MPCResidual {
 
   /**
    * Fills the storage with all a.
-   * @param[in] a 
+   * @param[in] a
    */
   void Fill(double a);
 
@@ -108,9 +108,9 @@ class MPCResidual {
   double v_norm() const { return vnorm_; }
 
  private:
-  Eigen::VectorXd z_; // stationarity residual
-  Eigen::VectorXd l_; // equality residual
-  Eigen::VectorXd v_; // complimentarity residual
+  Eigen::VectorXd z_;  // stationarity residual
+  Eigen::VectorXd l_;  // equality residual
+  Eigen::VectorXd v_;  // complimentarity residual
 
   int N_ = 0;   // horizon length
   int nx_ = 0;  // number of states
@@ -123,15 +123,15 @@ class MPCResidual {
   double alpha_ = 0.95;
   MPCData* data_ = nullptr;
 
-  double znorm_ = 0.0; // cached norm of z_
-  double lnorm_ = 0.0; // cached norm of l_
-  double vnorm_ = 0.0; // cached norm of v_
+  double znorm_ = 0.0;  // cached norm of z_
+  double lnorm_ = 0.0;  // cached norm of l_
+  double vnorm_ = 0.0;  // cached norm of v_
 
   /**
    * Computes the penalized Fischer-Burmeister function pfb(a,b)
    * Equation (19) of https://arxiv.org/pdf/1901.04046.pdf
-   * @param[in]  a     
-   * @param[in]  b     
+   * @param[in]  a
+   * @param[in]  b
    * @param[in]  alpha weighting parameter
    * @return     pfb(a,b)
    */

@@ -12,8 +12,9 @@ namespace solvers {
 namespace fbstab {
 
 MPCResidual::MPCResidual(int N, int nx, int nu, int nc) {
-  if(N <= 0 || nx <= 0 || nu <= 0 || nc <= 0){
-    throw std::runtime_error("All inputs to MPCResidual::MPCResidual must be >= 1.");
+  if (N <= 0 || nx <= 0 || nu <= 0 || nc <= 0) {
+    throw std::runtime_error(
+        "All inputs to MPCResidual::MPCResidual must be >= 1.");
   }
   N_ = N;
   nx_ = nx;
@@ -45,7 +46,7 @@ void MPCResidual::Negate() {
 }
 
 double MPCResidual::Norm() const {
-  return sqrt(znorm_*znorm_ + lnorm_*lnorm_ + vnorm_*vnorm_);
+  return sqrt(znorm_ * znorm_ + lnorm_ * lnorm_ + vnorm_ * vnorm_);
 }
 
 double MPCResidual::Merit() const {
@@ -56,7 +57,8 @@ double MPCResidual::Merit() const {
 void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
                                 double sigma) {
   if (data_ == nullptr) {
-    throw std::runtime_error("Cannot call MPCResidual::InnerResidual until data is linked.");
+    throw std::runtime_error(
+        "Cannot call MPCResidual::InnerResidual until data is linked.");
   }
 
   // r.z = H*z + f + G'*l + A'*v + sigma*(z-zbar)
@@ -65,13 +67,13 @@ void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
   data_->gemvH(x.z(), 1.0, 1.0, &z_);
   data_->gemvGT(x.l(), 1.0, 1.0, &z_);
   data_->gemvAT(x.v(), 1.0, 1.0, &z_);
-  z_.noalias() += sigma*(x.z() - xbar.z()); 
+  z_.noalias() += sigma * (x.z() - xbar.z());
 
   // r.l = h - G*z + sigma(l - lbar)
   l_.setConstant(0.0);
   data_->axpyh(1.0, &l_);
   data_->gemvG(x.z(), -1.0, 1.0, &l_);
-  l_.noalias() += sigma*(x.l() - xbar.l());
+  l_.noalias() += sigma * (x.l() - xbar.l());
 
   // rv = phi(y + sigma*(v-vbar),v)
   for (int i = 0; i < nv_; i++) {

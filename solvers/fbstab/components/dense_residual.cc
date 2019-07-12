@@ -68,7 +68,15 @@ void DenseResidual::InnerResidual(const DenseVariable& x,
                                   const DenseVariable& xbar, double sigma) {
   if (data_ == nullptr) {
     throw std::runtime_error(
-        "DenseResidual::InerResidual cannot be used unless data is linked");
+        "DenseResidual::InnerResidual cannot be used unless data is linked");
+  }
+  if (x.num_variables() != xbar.num_variables() ||
+      x.num_constraints() != xbar.num_constraints()) {
+    throw std::runtime_error("Size mismatch in DenseResidual::InnerResidual");
+  }
+  if (sigma <= 0) {
+    throw std::runtime_error(
+        "In DenseResidual::InnerResidual: sigma must be positive.");
   }
   // rz = Hz + f + A'v + sigma(z - zbar)
   // calls are arranged to avoid creating temporaries
@@ -87,20 +95,14 @@ void DenseResidual::InnerResidual(const DenseVariable& x,
   vnorm_ = v_.norm();
 }
 
-void DenseResidual::Copy(const DenseResidual& x) {
-  if (nz_ != x.nz_ || nv_ != x.nv_) {
-    throw std::runtime_error("Size mismatch in DenseResidual::Copy");
-  }
-  z_ = x.z_;
-  v_ = x.v_;
-}
-
 void DenseResidual::Fill(double a) {
-  z_.fill(a);
-  v_.fill(a);
+  z_.setConstant(a);
+  v_.setConstant(a);
 }
 
-double DenseResidual::Norm() const { return znorm_ + vnorm_; }
+double DenseResidual::Norm() const {
+  return sqrt(znorm_ * znorm_ + vnorm_ * vnorm_);
+}
 
 double DenseResidual::Merit() const {
   double temp = Norm();
