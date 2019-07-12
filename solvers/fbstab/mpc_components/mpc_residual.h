@@ -1,64 +1,60 @@
 #pragma once
 
-#include "drake/solvers/fbstab/components/mpc_data.h"
-#include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include <Eigen/Dense>
+
+#include "drake/common/drake_copyable.h"
+#include "drake/solvers/fbstab/mpc_components/mpc_data.h"
+#include "drake/solvers/fbstab/mpc_components/mpc_variable.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
+// Forward declaration of testing class to enable a friend declaration.
+namespace test {
+class MPCComponentUnitTests;
+}  // namespace test
+
 /**
- * A class that computes and stores residuals for MPC QPs. See data.h
+ * This class computes and stores residuals for MPC QPs. See mpc_data.h
  * for the mathematical description.
- * Residuals have 3 fields:
+ * 
+ * Residuals have 3 components:
  * z: Optimality residual
  * l: Equality residual
- * v: Inequality/complimentarity constraint residual
+ * v: Inequality/complimentarity residual
  */
 class MPCResidual {
  public:
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCResidual);
   /**
-   * Allocates memory for computing QP residuals
-   *
-   * size has the following fields
-   * N:  horizon length
-   * nx: number of states
-   * nu: number of control input
-   * nc: number of constraints per stage
-   */
-  MPCResidual(QPsizeMPC size);
+  * Allocates memory for the residual.
+  *
+  * @param[in] N  horizon length
+  * @param[in] nx number of states
+  * @param[in] nu number of control input
+  * @param[in] nc number of constraints per stage
+  */
+  MPCResidual(int N, int nx, int nu, int nc);
 
   /**
-   * Frees allocated memory.
+   * Links the residual object to problem data needed to perform calculations.
+   * Calculations cannot be performed until a data object is provided.
+   * @param[in] data problem data
    */
-  ~MPCResidual();
-
-  /**
-   * Links the residual object to problem data needed to perform calculations
-   * Calculations cannot be performed until a data object is provided
-   * @param[in] data Pointer to the problem data
-   */
-  void LinkData(MPCData* data);
+  void LinkData(MPCData* data) { data_ = data; }
 
   /**
    * Sets the value of alpha used in residual computations
    * @param[in] alpha value to be set
    */
-  void SetAlpha(double alpha);
+  void SetAlpha(double alpha) { alpha_ = alpha; }
 
   /**
-   * Filles memory with vectors of a
-   * @param[in] a value to fill
+   * Fills the storage with all a.
+   * @param[in] a 
    */
   void Fill(double a);
-
-  /**
-   * Deep copy of x into this.
-   * @param[in] x residual to be copied
-   */
-  void Copy(const MPCResidual& x);
 
   /**
    * Sets y <- -1*y where y is the residual
@@ -66,22 +62,15 @@ class MPCResidual {
   void Negate();
 
   /**
-   * Euclidean norm of the residual ||F||_2
-   * @return norm of the residual
+   * @return Euclidean norm of the residual
    */
   double Norm() const;
 
   /**
    * Computes the merit function 0.5 ||F||^2_2
-   * @return Merit function value
+   * @return 0.5*Norm()^2
    */
   double Merit() const;
-
-  /**
-   * Computes the one norm of the residual ||F||_1
-   * @return one norm
-   */
-  double AbsSum() const;
 
   /**
    * Computes the proximal subproblem residual at the point x
@@ -110,18 +99,18 @@ class MPCResidual {
    */
   void PenalizedNaturalResidual(const MPCVariable& x);
 
-  StaticMatrix z() { return z_; }
-  StaticMatrix l() { return l_; }
-  StaticMatrix v() { return v_; }
+  Eigen::VectorXd& z() { return z_; }
+  Eigen::VectorXd& l() { return l_; }
+  Eigen::VectorXd& v() { return v_; }
 
   double z_norm() const { return znorm_; }
   double l_norm() const { return lnorm_; }
   double v_norm() const { return vnorm_; }
 
  private:
-  StaticMatrix z_;
-  StaticMatrix l_;
-  StaticMatrix v_;
+  Eigen::VectorXd z_; // stationarity residual
+  Eigen::VectorXd l_; // equality residual
+  Eigen::VectorXd v_; // complimentarity residual
 
   int N_ = 0;   // horizon length
   int nx_ = 0;  // number of states
@@ -134,23 +123,25 @@ class MPCResidual {
   double alpha_ = 0.95;
   MPCData* data_ = nullptr;
 
-  double znorm_ = 0.0;
-  double vnorm_ = 0.0;
-  double lnorm_ = 0.0;
+  double znorm_ = 0.0; // cached norm of z_
+  double lnorm_ = 0.0; // cached norm of l_
+  double vnorm_ = 0.0; // cached norm of v_
 
   /**
    * Computes the penalized Fischer-Burmeister function pfb(a,b)
    * Equation (19) of https://arxiv.org/pdf/1901.04046.pdf
-   * @param[in]  a     input 1
-   * @param[in]  b     input 2
+   * @param[in]  a     
+   * @param[in]  b     
    * @param[in]  alpha weighting parameter
-   * @return       computed value
+   * @return     pfb(a,b)
    */
-  static double pfb(double a, double b, double alpha);
-  static double max(double a, double b);
-  static double min(double a, double b);
+  double pfb(double a, double b, double alpha);
 
-  bool memory_allocated_ = false;
+  /** Scalar max operator. */
+  double max(double a, double b) { return a > b ? a : b; }
+  /** Scalar min operator. */
+  double min(double a, double b) { return a < b ? a : b; }
+
   friend class RicattiLinearSolver;
 };
 

@@ -66,7 +66,8 @@ class MPCData {
    * @param[in] b Scaling
    * @param[both] y Output vector, length(y) = (nx+nu)*(N+1)
    */
-  void gemvH(const Eigen::VectorXd& x, double a, double b, Eigen::VectorXd* y);
+  void gemvH(const Eigen::VectorXd& x, double a, double b,
+             Eigen::VectorXd* y) const;
 
   /**
    * Computes y <- a*A*x + b*y without forming A explicitly.
@@ -77,7 +78,8 @@ class MPCData {
    * @param[in] b Scaling
    * @param[both] y Output vector, length(y) = nc*(N+1)
    */
-  void gemvA(const Eigen::VectorXd& x, double a, double b, Eigen::VectorXd* y);
+  void gemvA(const Eigen::VectorXd& x, double a, double b,
+             Eigen::VectorXd* y) const;
 
   /**
    * Computes y <- a*G*x + b*y without forming G explicitly
@@ -88,7 +90,8 @@ class MPCData {
    * @param[in] b Scaling
    * @param[both] y Output vector, length(y) = nx*(N+1)
    */
-  void gemvG(const Eigen::VectorXd& x, double a, double b, Eigen::VectorXd* y);
+  void gemvG(const Eigen::VectorXd& x, double a, double b,
+             Eigen::VectorXd* y) const;
 
   /**
    * Computes y <- a*A'*x + b*y without forming A explicitly
@@ -99,7 +102,8 @@ class MPCData {
    * @param[in] b Scaling
    * @param[both] y Output vector, length(y) = (nx+nu)*(N+1)
    */
-  void gemvAT(const Eigen::VectorXd& x, double a, double b, Eigen::VectorXd* y);
+  void gemvAT(const Eigen::VectorXd& x, double a, double b,
+              Eigen::VectorXd* y) const;
 
   /**
    * Computes y <- a*G'*x + b*y without forming G explicitly
@@ -110,7 +114,8 @@ class MPCData {
    * @param[in] b Scaling
    * @param[both] y Output vector, length(y) = (nx+nu)*(N+1)
    */
-  void gemvGT(const Eigen::VectorXd& x, double a, double b, Eigen::VectorXd* y);
+  void gemvGT(const Eigen::VectorXd& x, double a, double b,
+              Eigen::VectorXd* y) const;
 
   /**
    * Computes y <- a*f + y without forming f explicitly.
@@ -119,25 +124,25 @@ class MPCData {
    * @param[in] a Scaling factor
    * @param[both] y Output vector, length(y) = (nx+nu)*(N+1)
    */
-  void axpyf(double a, Eigen::VectorXd* y);
+  void axpyf(double a, Eigen::VectorXd* y) const;
 
   /**
-   * Computes y <- a*h + y without forming f explicitly.
+   * Computes y <- a*h + y without forming h explicitly.
    * This implements a BLAS operation, see
    * http://www.netlib.org/blas/blasqr.pdf.
    * @param[in] a Scaling factor
    * @param[both] y Output vector, length(y) = nx*(N+1)
    */
-  void axpyh(double a, Eigen::VectorXd* y);
+  void axpyh(double a, Eigen::VectorXd* y) const;
 
   /**
-   * Computes y <- a*b + y without forming f explicitly.
+   * Computes y <- a*b + y without forming b explicitly.
    * This implements a BLAS operation, see
    * http://www.netlib.org/blas/blasqr.pdf.
    * @param[in] a Scaling factor
    * @param[both] y Output vector, length(y) = nc*(N+1)
    */
-  void axpyb(double a, Eigen::VectorXd* y);
+  void axpyb(double a, Eigen::VectorXd* y) const;
 
  private:
   int N_ = 0;   // horizon length
@@ -165,12 +170,12 @@ class MPCData {
   /**
    * Throws an exception if any of the inputs have inconsistent lengths.
    */
-  void validate_length();
+  void validate_length() const;
   /**
    * Throws an exception if any of the inputs have inconsistent sizes.
    * Assumes the validate_length() has already been called.
    */
-  void validate_size();
+  void validate_size() const;
 
   // friend class RicattiLinearSolver;
   friend class test::MPCComponentUnitTests;

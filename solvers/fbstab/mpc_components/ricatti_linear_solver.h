@@ -14,7 +14,8 @@ namespace fbstab {
  * Implements a Ricatti recursion based method for solving linear systems of
  * equations that arise when solving MPC form QPs (see mpc_data.h) using FBstab.
  * The equations have the form
- * 								 K(x,xbar,sigma)*dx =
+ * 								 K(x,xbar,sigma)*dx
+ * =
  * r
  *
  * where dx is a primal-dual variable and r is a residual object.

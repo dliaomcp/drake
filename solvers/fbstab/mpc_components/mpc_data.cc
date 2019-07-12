@@ -56,7 +56,7 @@ MPCData::MPCData(const std::vector<Eigen::MatrixXd>* Q,
 }
 
 void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
-                    Eigen::VectorXd* y) {
+                    Eigen::VectorXd* y) const {
   if (x.size() != nz_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvH.");
   }
@@ -95,7 +95,7 @@ void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
 }
 
 void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
-                    Eigen::VectorXd* y) {
+                    Eigen::VectorXd* y) const {
   if (x.size() != nz_ || y->size() != nv_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvA.");
   }
@@ -126,7 +126,7 @@ void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
 }
 
 void MPCData::gemvG(const Eigen::VectorXd& x, double a, double b,
-                    Eigen::VectorXd* y) {
+                    Eigen::VectorXd* y) const {
   if (x.size() != nz_ || y->size() != nl_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvG.");
   }
@@ -161,7 +161,7 @@ void MPCData::gemvG(const Eigen::VectorXd& x, double a, double b,
 }
 
 void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
-                     Eigen::VectorXd* y) {
+                     Eigen::VectorXd* y) const {
   if (x.size() != nl_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvGT.");
   }
@@ -199,7 +199,7 @@ void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
 }
 
 void MPCData::gemvAT(const Eigen::VectorXd& x, double a, double b,
-                     Eigen::VectorXd* y) {
+                     Eigen::VectorXd* y) const {
   if (x.size() != nv_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvAT.");
   }
@@ -227,7 +227,7 @@ void MPCData::gemvAT(const Eigen::VectorXd& x, double a, double b,
   }
 }
 
-void MPCData::axpyf(double a, Eigen::VectorXd* y) {
+void MPCData::axpyf(double a, Eigen::VectorXd* y) const {
   if (y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::axpyf.");
   }
@@ -243,7 +243,7 @@ void MPCData::axpyf(double a, Eigen::VectorXd* y) {
   }
 }
 
-void MPCData::axpyh(double a, Eigen::VectorXd* y) {
+void MPCData::axpyh(double a, Eigen::VectorXd* y) const {
   if (y->size() != nl_) {
     throw std::runtime_error("Size mismatch in MPCData::axpyh.");
   }
@@ -256,7 +256,7 @@ void MPCData::axpyh(double a, Eigen::VectorXd* y) {
   }
 }
 
-void MPCData::axpyb(double a, Eigen::VectorXd* y) {
+void MPCData::axpyb(double a, Eigen::VectorXd* y) const {
   if (y->size() != nv_) {
     throw std::runtime_error("Size mismatch in MPCData::axpyb.");
   }
@@ -268,7 +268,7 @@ void MPCData::axpyb(double a, Eigen::VectorXd* y) {
   }
 }
 
-void MPCData::validate_length() {
+void MPCData::validate_length() const {
   bool OK = true;
 
   // Uses an unsigned long here
@@ -295,7 +295,7 @@ void MPCData::validate_length() {
   }
 }
 
-void MPCData::validate_size() {
+void MPCData::validate_size() const {
   int N = B_->size();
 
   int nx = Q_->at(0).rows();

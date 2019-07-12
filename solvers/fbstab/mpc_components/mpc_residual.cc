@@ -1,67 +1,41 @@
-#include "drake/solvers/fbstab/components/mpc_residual.h"
+#include "drake/solvers/fbstab/mpc_components/mpc_residual.h"
 
 #include <cmath>
+#include <stdexcept>
+#include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/components/mpc_data.h"
-#include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include "drake/solvers/fbstab/mpc_components/mpc_data.h"
+#include "drake/solvers/fbstab/mpc_components/mpc_variable.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-MPCResidual::MPCResidual(QPsizeMPC size) {
-  N_ = size.N;
-  nx_ = size.nx;
-  nu_ = size.nu;
-  nc_ = size.nc;
-
+MPCResidual::MPCResidual(int N, int nx, int nu, int nc) {
+  if(N <= 0 || nx <= 0 || nu <= 0 || nc <= 0){
+    throw std::runtime_error("All inputs to MPCResidual::MPCResidual must be >= 1.");
+  }
+  N_ = N;
+  nx_ = nx;
+  nu_ = nu;
+  nc_ = nc;
   nz_ = (N_ + 1) * (nx_ + nu_);
   nl_ = (N_ + 1) * nx_;
   nv_ = (N_ + 1) * nc_;
 
-  double* z_mem = new double[nz_];
-  double* l_mem = new double[nl_];
-  double* v_mem = new double[nv_];
+  z_.resize(nz_);
+  l_.resize(nl_);
+  v_.resize(nv_);
 
-  z_ = StaticMatrix(z_mem, nz_);
-  l_ = StaticMatrix(l_mem, nl_);
-  v_ = StaticMatrix(v_mem, nv_);
-
-  z_.fill(0.0);
-  l_.fill(0.0);
-  v_.fill(0.0);
-
-  memory_allocated_ = true;
+  z_.setConstant(0.0);
+  l_.setConstant(0.0);
+  v_.setConstant(0.0);
 }
-
-MPCResidual::~MPCResidual() {
-  if (memory_allocated_) {
-    delete[] z_.data;
-    delete[] l_.data;
-    delete[] v_.data;
-  }
-}
-
-void MPCResidual::LinkData(MPCData* data) { data_ = data; }
-
-void MPCResidual::SetAlpha(double alpha) { alpha_ = alpha; }
 
 void MPCResidual::Fill(double a) {
-  z_.fill(a);
-  l_.fill(a);
-  v_.fill(a);
-}
-
-void MPCResidual::Copy(const MPCResidual& x) {
-  z_.copy(x.z_);
-  l_.copy(x.l_);
-  v_.copy(x.v_);
-
-  znorm_ = x.znorm_;
-  vnorm_ = x.vnorm_;
-  lnorm_ = x.lnorm_;
+  z_.setConstant(a);
+  l_.setConstant(a);
+  v_.setConstant(a);
 }
 
 void MPCResidual::Negate() {
@@ -70,41 +44,39 @@ void MPCResidual::Negate() {
   v_ *= -1;
 }
 
-double MPCResidual::Norm() const { return znorm_ + lnorm_ + vnorm_; }
+double MPCResidual::Norm() const {
+  return sqrt(znorm_*znorm_ + lnorm_*lnorm_ + vnorm_*vnorm_);
+}
 
 double MPCResidual::Merit() const {
   double temp = this->Norm();
   return 0.5 * temp * temp;
 }
 
-double MPCResidual::AbsSum() const { return z_.asum() + l_.asum() + v_.asum(); }
-
 void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
                                 double sigma) {
   if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in MPCResidual");
+    throw std::runtime_error("Cannot call MPCResidual::InnerResidual until data is linked.");
   }
 
   // r.z = H*z + f + G'*l + A'*v + sigma*(z-zbar)
-  z_.fill(0.0);
+  z_.setConstant(0.0);
   data_->axpyf(1.0, &z_);
-  data_->gemvH(x.z_, 1.0, 1.0, &z_);
-  data_->gemvGT(x.l_, 1.0, 1.0, &z_);
-  data_->gemvAT(x.v_, 1.0, 1.0, &z_);
-  z_.axpy(x.z_, sigma);
-  z_.axpy(xbar.z_, -sigma);
+  data_->gemvH(x.z(), 1.0, 1.0, &z_);
+  data_->gemvGT(x.l(), 1.0, 1.0, &z_);
+  data_->gemvAT(x.v(), 1.0, 1.0, &z_);
+  z_.noalias() += sigma*(x.z() - xbar.z()); 
 
   // r.l = h - G*z + sigma(l - lbar)
-  l_.fill(0.0);
+  l_.setConstant(0.0);
   data_->axpyh(1.0, &l_);
-  data_->gemvG(x.z_, -1.0, 1.0, &l_);
-  l_.axpy(x.l_, sigma);
-  l_.axpy(xbar.l_, -sigma);
+  data_->gemvG(x.z(), -1.0, 1.0, &l_);
+  l_.noalias() += sigma*(x.l() - xbar.l());
 
   // rv = phi(y + sigma*(v-vbar),v)
   for (int i = 0; i < nv_; i++) {
-    double ys = x.y_(i) + sigma * (x.v_(i) - xbar.v_(i));
-    v_(i) = pfb(ys, x.v_(i), alpha_);
+    double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
+    v_(i) = pfb(ys, x.v()(i), alpha_);
   }
   znorm_ = z_.norm();
   lnorm_ = l_.norm();
@@ -117,20 +89,20 @@ void MPCResidual::NaturalResidual(const MPCVariable& x) {
   }
 
   // r.z = H*z + f + G'*l + A'*v
-  z_.fill(0.0);
+  z_.setConstant(0.0);
   data_->axpyf(1.0, &z_);
-  data_->gemvH(x.z_, 1.0, 1.0, &z_);
-  data_->gemvGT(x.l_, 1.0, 1.0, &z_);
-  data_->gemvAT(x.v_, 1.0, 1.0, &z_);
+  data_->gemvH(x.z(), 1.0, 1.0, &z_);
+  data_->gemvGT(x.l(), 1.0, 1.0, &z_);
+  data_->gemvAT(x.v(), 1.0, 1.0, &z_);
 
   // r.l = h - G*z + sigma(l - lbar)
-  l_.fill(0.0);
+  l_.setConstant(0.0);
   data_->axpyh(1.0, &l_);
-  data_->gemvG(x.z_, -1.0, 1.0, &l_);
+  data_->gemvG(x.z(), -1.0, 1.0, &l_);
 
   // rv = min(y,v)
   for (int i = 0; i < nv_; i++) {
-    v_(i) = min(x.y_(i), x.v_(i));
+    v_(i) = min(x.y()(i), x.v()(i));
   }
   znorm_ = z_.norm();
   lnorm_ = l_.norm();
@@ -143,21 +115,21 @@ void MPCResidual::PenalizedNaturalResidual(const MPCVariable& x) {
   }
 
   // r.z = H*z + f + G'*l + A'*v
-  z_.fill(0.0);
+  z_.setConstant(0.0);
   data_->axpyf(1.0, &z_);
-  data_->gemvH(x.z_, 1.0, 1.0, &z_);
-  data_->gemvGT(x.l_, 1.0, 1.0, &z_);
-  data_->gemvAT(x.v_, 1.0, 1.0, &z_);
+  data_->gemvH(x.z(), 1.0, 1.0, &z_);
+  data_->gemvGT(x.l(), 1.0, 1.0, &z_);
+  data_->gemvAT(x.v(), 1.0, 1.0, &z_);
 
   // r.l = h - G*z + sigma(l - lbar)
-  l_.fill(0.0);
+  l_.setConstant(0.0);
   data_->axpyh(1.0, &l_);
-  data_->gemvG(x.z_, -1.0, 1.0, &l_);
+  data_->gemvG(x.z(), -1.0, 1.0, &l_);
 
   // rv = alpha*min(y,v) + (1-alpha)*max(0,v)*max(0,y)
   for (int i = 0; i < nv_; i++) {
-    double nr = min(x.y_(i), x.v_(i));
-    v_(i) = alpha_ * nr + (1 - alpha_) * max(0.0, x.y_(i)) * max(0, x.v_(i));
+    double nr = min(x.y()(i), x.v()(i));
+    v_(i) = alpha_ * nr + (1 - alpha_) * max(0.0, x.y()(i)) * max(0, x.v()(i));
   }
   znorm_ = z_.norm();
   lnorm_ = l_.norm();
@@ -168,10 +140,6 @@ double MPCResidual::pfb(double a, double b, double alpha) {
   double fb = a + b - sqrt(a * a + b * b);
   return alpha * fb + (1.0 - alpha) * max(0, a) * max(0, b);
 }
-
-double MPCResidual::max(double a, double b) { return a > b ? a : b; }
-
-double MPCResidual::min(double a, double b) { return a < b ? a : b; }
 
 }  // namespace fbstab
 }  // namespace solvers

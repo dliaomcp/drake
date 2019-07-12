@@ -52,6 +52,16 @@ GTEST_TEST(MPCData, AXPYB) {
   test.AXPYB();
 }
 
+GTEST_TEST(MPCVariable, AXPY) {
+  MPCComponentUnitTests test;
+  test.Variable();
+}
+
+GTEST_TEST(MPCResidual, InnerResidual) {
+  MPCComponentUnitTests test;
+  test.InnerResidual();
+}
+
 }  // namespace test
 }  // namespace fbstab
 }  // namespace solvers

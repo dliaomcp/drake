@@ -1,126 +1,122 @@
-#include "drake/solvers/fbstab/components/mpc_variable.h"
+#include "drake/solvers/fbstab/mpc_components/mpc_variable.h"
 
-#include "drake/solvers/fbstab/components/mpc_data.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
+#include <cmath>
+#include <memory>
+#include <Eigen/Dense>
+
+#include "drake/solvers/fbstab/mpc_components/mpc_data.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-MPCVariable::MPCVariable(QPsizeMPC size) {
-  N_ = size.N;
-  nx_ = size.nx;
-  nu_ = size.nu;
-  nc_ = size.nc;
+using VectorXd = Eigen::VectorXd;
+using MatrixXd = Eigen::MatrixXd;
 
-  nz_ = (N_ + 1) * (nx_ + nu_);
-  nl_ = (N_ + 1) * nx_;
-  nv_ = (N_ + 1) * nc_;
-
-  double* z_mem = new double[nz_];
-  double* l_mem = new double[nl_];
-  double* v_mem = new double[nv_];
-  double* y_mem = new double[nv_];
-
-  z_ = StaticMatrix(z_mem, nz_);
-  l_ = StaticMatrix(l_mem, nl_);
-  v_ = StaticMatrix(v_mem, nv_);
-  y_ = StaticMatrix(y_mem, nv_);
-
-  z_.fill(0.0);
-  l_.fill(0.0);
-  v_.fill(0.0);
-  y_.fill(0.0);
-
-  memory_allocated_ = true;
-}
-
-MPCVariable::MPCVariable(QPsizeMPC size, double* z, double* l, double* v,
-                         double* y) {
-  N_ = size.N;
-  nx_ = size.nx;
-  nu_ = size.nu;
-  nc_ = size.nc;
-
-  nz_ = (N_ + 1) * (nx_ + nu_);
-  nl_ = (N_ + 1) * nx_;
-  nv_ = (N_ + 1) * nc_;
-
-  z_ = StaticMatrix(z, nz_);
-  l_ = StaticMatrix(l, nl_);
-  v_ = StaticMatrix(v, nv_);
-  y_ = StaticMatrix(y, nv_);
-
-  memory_allocated_ = false;
-}
-
-MPCVariable::~MPCVariable() {
-  if (memory_allocated_) {
-    delete[] z_.data;
-    delete[] l_.data;
-    delete[] v_.data;
-    delete[] y_.data;
+MPCVariable::MPCVariable(int N, int nx, int nu, int nc) {
+  if (N <= 0 || nx <= 0 || nu <= 0 || nc <= 0) {
+    throw std::runtime_error(
+        "All size inputs to MPCVariable::MPCVariable must be >= 1.");
   }
+  N_ = N;
+  nx_ = nx;
+  nu_ = nu;
+  nc_ = nc;
+
+  nz_ = (N_ + 1) * (nx_ + nu_);
+  nl_ = (N_ + 1) * nx_;
+  nv_ = (N_ + 1) * nc_;
+
+  z_storage_ = std::make_unique<VectorXd>(nz_);
+  l_storage_ = std::make_unique<VectorXd>(nl_);
+  v_storage_ = std::make_unique<VectorXd>(nv_);
+  y_storage_ = std::make_unique<VectorXd>(nv_);
+
+  z_ = z_storage_.get();
+  l_ = l_storage_.get();
+  v_ = v_storage_.get();
+  y_ = y_storage_.get();
+
+  z_->setConstant(0.0);
+  l_->setConstant(0.0);
+  v_->setConstant(0.0);
+  y_->setConstant(0.0);
 }
 
-void MPCVariable::LinkData(MPCData* data) { data_ = data; }
+MPCVariable::MPCVariable(VectorXd* z, VectorXd* l, VectorXd* v, VectorXd* y) {
+  if (z == nullptr || l == nullptr || v == nullptr || y == nullptr) {
+    throw std::runtime_error(
+        "Inputs to MPCVariable::MPCVariable cannot be null.");
+  }
+  if (z->size() == 0 || l->size() == 0 || v->size() == 0 || y->size() == 0) {
+    throw std::runtime_error(
+        "All size inputs to MPCVariable::MPCVariable must be >= 1.");
+  }
+  if (v->size() != y->size()) {
+    throw std::runtime_error(
+        "In MPCVariable::MPCVariable, y and v must be the same size");
+  }
+
+  nz_ = z->size();
+  nl_ = l->size();
+  nv_ = v->size();
+
+  z_ = z;
+  l_ = l;
+  v_ = v;
+  y_ = y;
+}
 
 void MPCVariable::Fill(double a) {
-  z_.fill(a);
-  l_.fill(a);
-  v_.fill(a);
+  z_->setConstant(a);
+  l_->setConstant(a);
+  v_->setConstant(a);
   InitializeConstraintMargin();
 }
 
 void MPCVariable::InitializeConstraintMargin() {
   if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in MPCVariable");
+    throw std::runtime_error(
+        "Cannot call MPCVariable::InitializeConstraintMargin unless data is "
+        "linked.");
   }
-  // y = b-A*z
-  y_.fill(0.0);
-  data_->axpyb(1.0, &y_);
-  data_->gemvA(z_, -1.0, 1.0, &y_);
+  // y = b - A*z
+  y_->setConstant(0.0);
+  data_->axpyb(1.0, y_);
+  data_->gemvA(*z_, -1.0, 1.0, y_);
 }
 
 void MPCVariable::axpy(const MPCVariable& x, double a) {
   if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in MPCVariable");
+    throw std::runtime_error(
+        "Cannot call MPCVariable::axpy unless data is linked.");
   }
 
-  z_.axpy(x.z_, a);
-  l_.axpy(x.l_, a);
-  v_.axpy(x.v_, a);
+  z_->noalias() += a * (*x.z_);
+  l_->noalias() += a * (*x.l_);
+  v_->noalias() += a * (*x.v_);
 
   // y <- y + a*(x.y - b)
-  y_.axpy(x.y_, a);
-  data_->axpyb(-a, &y_);
+  y_->noalias() += a * (*x.y_);
+  data_->axpyb(-a, y_);
 }
 
 void MPCVariable::Copy(const MPCVariable& x) {
-  z_.copy(x.z_);
-  l_.copy(x.l_);
-  v_.copy(x.v_);
-  y_.copy(x.y_);
+  *z_ = *x.z_;
+  *l_ = *x.l_;
+  *v_ = *x.v_;
+  *y_ = *x.y_;
   data_ = x.data_;
 }
 
-void MPCVariable::ProjectDuals() { v_.clip(0.0, 1e15); }
+void MPCVariable::ProjectDuals() { *v_ = v_->cwiseMax(0); }
 
-double MPCVariable::Norm() const { return z_.norm() + l_.norm() + v_.norm(); }
+double MPCVariable::Norm() const {
+  double t1 = z_->norm();
+  double t2 = l_->norm();
+  double t3 = v_->norm();
 
-double MPCVariable::InfNorm() const {
-  return z_.infnorm() + l_.infnorm() + v_.infnorm();
-}
-
-std::ostream& operator<<(std::ostream& output, const MPCVariable& x) {
-  std::cout << "Printing MPCVariable\n";
-
-  std::cout << "z = [\n" << x.z_ << "]" << std::endl;
-  std::cout << "l = [\n" << x.l_ << "]" << std::endl;
-  std::cout << "v = [\n" << x.v_ << "]" << std::endl;
-
-  return output;
+  return sqrt(t1 * t1 + t2 * t2 + t3 * t3);
 }
 
 }  // namespace fbstab
