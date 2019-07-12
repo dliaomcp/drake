@@ -1,19 +1,20 @@
 #pragma once
 
-#include "drake/solvers/fbstab/dense_components/dense_data.h"
-#include "drake/solvers/fbstab/dense_components/dense_feasibility.h"
-#include "drake/solvers/fbstab/dense_components/dense_linear_solver.h"
-#include "drake/solvers/fbstab/dense_components/dense_residual.h"
-#include "drake/solvers/fbstab/dense_components/dense_variable.h"
-
 #include <cmath>
 #include <iostream>
+
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
+#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_linear_solver.h"
+#include "drake/solvers/fbstab/components/dense_residual.h"
+#include "drake/solvers/fbstab/components/dense_feasibility.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
+namespace test {
 
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
@@ -37,9 +38,7 @@ class DenseComponentUnitTests {
     q_ = b_.size();
 
     H_ << 3, 1, 1, 1;
-
     A_ << -1, 0, 0, 1;
-
     f_ << 1, 6;
     b_ << 0, -1;
   }
@@ -306,10 +305,11 @@ class DenseComponentUnitTests {
   VectorXd f_;
   VectorXd b_;
 
-  int n_;
-  int q_;
+  int n_ = 0;
+  int q_ = 0;
 };
 
+}  // namespace test
 }  // namespace fbstab
 }  // namespace solvers
 }  // namespace drake

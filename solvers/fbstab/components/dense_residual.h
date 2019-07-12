@@ -1,19 +1,20 @@
 #pragma once
 
-#include <Eigen/Dense>
+#include <stdexcept>
 
-#include "drake/solvers/fbstab/dense_components/dense_data.h"
-#include "drake/solvers/fbstab/dense_components/dense_variable.h"
+#include <Eigen/Dense>
+#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
 /**
- * A class that computes and stores residuals for inequality constrained dense
- * QPs. See dense_data.h for a description.
+ * This class computes and stores residuals for inequality constrained dense
+ * QPs. See dense_data.h for a description of the QP.
  *
- * Residuals have 3 components:
+ * Residuals have 2 components:
  * z: Optimality residual
  * v: Complementarity residual
  */
@@ -22,21 +23,23 @@ class DenseResidual {
   /**
    * Allocates memory for computing and storing residual vectors.
    *
-   * @param[in] nz Number of decision variables.
-   * @param[in] nv Number of inequality constraints.
+   * @param[in] nz Number of decision variables
+   * @param[in] nv Number of inequality constraints
+   * 
+   * Throws an exception if any inputs aren't positive.
    */
   DenseResidual(int nz, int nv);
 
   /**
    * Links the residual object with the problem data needed to
    * perform calculations.
-   * @param[in] data Pointer to the problem data.
+   * @param[in] data pointer to the problem data.
    */
   void LinkData(const DenseData* data) { data_ = data; };
 
   /**
    * Performs the operation
-   * y <- -1*y (y is this object)
+   * y <- -1*y (y is this object).
    */
   void Negate();
 

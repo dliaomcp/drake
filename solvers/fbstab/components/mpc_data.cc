@@ -1,4 +1,4 @@
-#include "drake/solvers/fbstab/mpc_components/mpc_data.h"
+#include "drake/solvers/fbstab/components/mpc_data.h"
 
 #include <stdexcept>
 #include <Eigen/Dense>

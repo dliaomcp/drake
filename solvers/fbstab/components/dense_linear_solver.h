@@ -1,14 +1,18 @@
 #pragma once
 
 #include <Eigen/Dense>
-
-#include "drake/solvers/fbstab/dense_components/dense_data.h"
-#include "drake/solvers/fbstab/dense_components/dense_residual.h"
-#include "drake/solvers/fbstab/dense_components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/components/dense_residual.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
+
+// Forward declaration of testing class to enable a friend declaration.
+namespace test {
+class DenseComponentUnitTests;
+}  // namespace test
 
 /**
  * A class for computing the search directions used by the FBstab QP Solver.
@@ -76,6 +80,7 @@ class DenseLinearSolver {
   void SetAlpha(double alpha);
 
  private:
+  friend class test::DenseComponentUnitTests;
   int nz_ = 0;  // number of decision variables
   int nv_ = 0;  // number of inequality constraints
 
@@ -107,8 +112,6 @@ class DenseLinearSolver {
   // Solves the system A*A' x = b in place
   // where A is lower triangular and invertible.
   void CholeskySolve(const Eigen::MatrixXd& A, Eigen::VectorXd* b);
-
-  friend class DenseComponentUnitTests;
 };
 
 }  // namespace fbstab

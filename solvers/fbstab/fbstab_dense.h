@@ -1,14 +1,14 @@
 #pragma once
 
-#include <Eigen/Dense>
 #include <memory>
 
-#include "drake/solvers/fbstab/dense_components/dense_data.h"
-#include "drake/solvers/fbstab/dense_components/dense_variable.h"
-#include "drake/solvers/fbstab/dense_components/dense_residual.h"
-#include "drake/solvers/fbstab/dense_components/dense_linear_solver.h"
-#include "drake/solvers/fbstab/dense_components/dense_feasibility.h"
-#include "drake/solvers/fbstab/algorithm/fbstab_algorithm.h"
+#include <Eigen/Dense>
+#include "drake/solvers/fbstab/components/dense_data.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_residual.h"
+#include "drake/solvers/fbstab/components/dense_linear_solver.h"
+#include "drake/solvers/fbstab/components/dense_feasibility.h"
+#include "drake/solvers/fbstab/fbstab_algorithm.h"
 
 namespace drake {
 namespace solvers {

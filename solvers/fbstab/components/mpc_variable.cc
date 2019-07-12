@@ -1,10 +1,10 @@
-#include "drake/solvers/fbstab/mpc_components/mpc_variable.h"
+#include "drake/solvers/fbstab/components/mpc_variable.h"
 
 #include <cmath>
 #include <memory>
 #include <Eigen/Dense>
 
-#include "drake/solvers/fbstab/mpc_components/mpc_data.h"
+#include "drake/solvers/fbstab/components/mpc_data.h"
 
 namespace drake {
 namespace solvers {

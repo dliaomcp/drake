@@ -1,4 +1,4 @@
-#include "drake/solvers/fbstab/test/mpc_component_unit_tests.h"
+#include "drake/solvers/fbstab/components/test/mpc_component_unit_tests.h"
 
 #include <Eigen/Dense>
 #include <gtest/gtest.h>

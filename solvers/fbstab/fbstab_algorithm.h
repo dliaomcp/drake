@@ -271,4 +271,4 @@ class FBstabAlgorithm {
 }  // namespace solvers
 }  // namespace drake
 
-#include "drake/solvers/fbstab/algorithm/fbstab_algorithm-inl.h"
+#include "drake/solvers/fbstab/fbstab_algorithm-inl.h"

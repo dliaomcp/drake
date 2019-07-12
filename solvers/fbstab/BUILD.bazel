@@ -1,161 +1,34 @@
 load(
     "@drake//tools/skylark:drake_cc.bzl",
-    "drake_cc_binary",
     "drake_cc_googletest",
     "drake_cc_library",
-    "drake_cc_test",
 )
 
 package(default_visibility = ["//visibility:public"])
 
-# FBstabDense *************************************
-drake_cc_library( # data
-    name = "dense_data",
-    srcs = ["dense_components/dense_data.h",
-            "dense_components/dense_data.cc"
-    ],
-    hdrs = ["dense_components/dense_data.h"],
-    deps = ["@eigen"],
-)
-
-drake_cc_library( # variable
-    name = "dense_variable",
-    srcs = ["dense_components/dense_variable.h",
-            "dense_components/dense_variable.cc"
-    ],
-    hdrs = ["dense_components/dense_variable.h"],
-    deps = [":dense_data",
-            "@eigen"],
-)
-
-drake_cc_library( # residual
-    name = "dense_residual",
-    srcs = ["dense_components/dense_residual.h",
-            "dense_components/dense_residual.cc"
-    ],
-    hdrs = ["dense_components/dense_data.h"],
-    deps = [":dense_variable",
-            ":dense_data",
-            "@eigen"],
-    copts = ["-UNDEBUG"]
-)
-
-drake_cc_library( # feasibility 
-    name = "dense_feasibility",
-    srcs = ["dense_components/dense_feasibility.h",
-            "dense_components/dense_feasibility.cc"
-    ],
-    hdrs = ["dense_components/dense_feasibility.h"],
-    deps = [":dense_variable",
-            ":dense_data",
-            "@eigen"],
-    copts = ["-UNDEBUG"]
-)
-
-drake_cc_library( # linear solver
-    name = "dense_linear_solver",
-    srcs = ["dense_components/dense_linear_solver.h",
-            "dense_components/dense_linear_solver.cc"
-    ],
-    hdrs = ["dense_components/dense_linear_solver.h"],
-    deps = [":dense_variable",
-            ":dense_residual",
-            ":dense_data",
-            "@eigen"],
-    copts = ["-UNDEBUG"]
-)
 
 drake_cc_library( 
     name = "fbstab_dense",
-    srcs = ["fbstab_dense.h",
-            "fbstab_dense.cc",
-            "algorithm/fbstab_algorithm.h",
-            "algorithm/fbstab_algorithm-inl.h"
+    srcs = ["fbstab_dense.cc",
+            "fbstab_algorithm.h",
+            "fbstab_algorithm-inl.h"
     ],
     hdrs = ["fbstab_dense.h"],
-    deps = [":dense_data",
-            ":dense_variable",
-            ":dense_residual",
-            ":dense_feasibility",
-            ":dense_linear_solver"],
-)
-
-drake_cc_binary(
-    name = "dense_component_build_test",
-    srcs = ["test/dense_component_build_test.cc"],
-    deps = [":dense_data",
-            ":dense_variable",
-            ":dense_residual",
-            ":dense_linear_solver",
-            ":dense_feasibility"],
-    copts = ["-UNDEBUG"]
-)
-
-drake_cc_googletest( # dense component unit tests
-    name = "dense_component_unit_tests",
-    srcs = ["test/dense_component_unit_tests.cc",
-            "test/dense_component_unit_tests.h"],
-    deps = [":dense_data",
-            ":dense_variable",
-            ":dense_residual",
-            ":dense_feasibility",
-            ":dense_linear_solver"],
-)
-
-drake_cc_binary( # build test
-    name = "fbstab_dense_build_test",
-    srcs = ["test/dense_fbstab_build_test.cc"],
-    deps = [":dense_data",
-            ":fbstab_dense"],
+    deps = ["//solvers/fbstab/components:dense_data",
+            "//solvers/fbstab/components:dense_variable",
+            "//solvers/fbstab/components:dense_residual",
+            "//solvers/fbstab/components:dense_feasibility",
+            "//solvers/fbstab/components:dense_linear_solver"],
 )
 
 drake_cc_googletest( # unit tests
     name = "dense_unit_tests",
     srcs = ["test/fbstab_dense_unit_tests.cc"],
-    deps = [":fbstab_dense"
-    ],
+    deps = [":fbstab_dense"],
     copts = ["-g"]
 )
 
-# FBstab MPC *************************************
-drake_cc_library( # data
-    name = "mpc_data",
-    srcs = ["mpc_components/mpc_data.cc"],
-    hdrs = ["mpc_components/mpc_data.h"],
-    deps = ["@eigen",
-            "//common:essential"],
-)
 
-drake_cc_library( # variable
-    name = "mpc_variable",
-    srcs = ["mpc_components/mpc_variable.cc"],
-    hdrs = ["mpc_components/mpc_variable.h"],
-    deps = ["@eigen",
-            ":mpc_data",
-            "//common:essential"],
-)
-
-drake_cc_library( # residual
-    name = "mpc_residual",
-    srcs = ["mpc_components/mpc_residual.cc"],
-    hdrs = ["mpc_components/mpc_residual.h"],
-    deps = ["@eigen",
-            ":mpc_data",
-            ":mpc_variable",
-            "//common:essential"],
-)
-
-
-drake_cc_googletest(
-    name = "mpc_component_unit_tests",
-    srcs = ["test/mpc_component_unit_tests.cc",
-            "test/mpc_component_unit_tests.h"],
-    deps = ["@eigen",
-            ":mpc_data",
-            ":mpc_variable",
-            ":mpc_residual"
-    ],
-)
 
 drake_cc_googletest( # fbstab_mpc
     name = "mpc_tests",
