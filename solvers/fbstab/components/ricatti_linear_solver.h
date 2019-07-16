@@ -1,134 +1,156 @@
 #pragma once
 
+#include <vector>
+
+#include <Eigen/Dense>
+#include "drake/common/drake_copyable.h"
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_residual.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
+// Forward declaration of testing class to enable a friend declaration.
+namespace test {
+class MPCComponentUnitTests;
+}  // namespace test
+
 /**
  * Implements a Ricatti recursion based method for solving linear systems of
  * equations that arise when solving MPC form QPs (see mpc_data.h) using FBstab.
- * The equations have the form
- * 								 K(x,xbar,sigma)*dx
- * =
- * r
- *
- * where dx is a primal-dual variable and r is a residual object.
- *
- * Contains workspace memory and methods for setting up and solving the linear
- * systems.
+ * The equations are of the form
+ * 
+ * [Hs  G' A'][dz] = [rz]
+ * [-G  sI 0 ][dl] = [rl]
+ * [-CA 0  D ][dv] = [rv]
+ * 
+ * where s = sigma, C = diag(gamma), D = diag(mu + sigma*gamma).
+ * The vectors gamma and mu are defined in (24) of
+ * https://arxiv.org/pdf/1901.04046.pdf.
+ * 
+ * In compact form: V(x,xbar,sigma)*dx = r.
+ * 
+ * This classes uses a Ricatti recursion like the one in
+ * 
+ * Rao, Christopher V., Stephen J. Wright, and James B. Rawlings. 
+ * "Application of interior-point methods to model predictive control." 
+ * Journal of optimization theory and applications 99.3 (1998): 723-757.
+ * 
+ * to perform the factorization efficiently. This class contains workspace memory 
+ * and methods for setting up and solving the linear systems.
  */
 class RicattiLinearSolver {
  public:
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RicattiLinearSolver);
   /**
    * Allocates workspace memory.
-   * @param[in] size QP dimensions
-   *
+   * 
+   * @param[in] N  horizon length
+   * @param[in] nx number of states
+   * @param[in] nu number of control input
+   * @param[in] nc number of constraints per stage
    */
-  RicattiLinearSolver(QPsizeMPC size);
-
-  /**
-   * Frees allocated memory.
-   */
-  ~RicattiLinearSolver();
+  RicattiLinearSolver(int N, int nx, int nu, int nc);
 
   /**
    * Links to problem data needed to perform calculations.
-   * @param[in] data Pointer to the data object defining the problem instance
+   * @param[in] data pointer to the problem data
    */
-  void LinkData(MPCData* data);
+  void LinkData(MPCData* data) { data_ = data; };
 
   /**
-   * Sets a parameter used in the algorithm
-   * @param[in] alpha PFB parameter
+   * Sets a parameter used in the algorithm, see (19) 
+   * in https://arxiv.org/pdf/1901.04046.pdf.
+   * @param[in] alpha 
    */
-  void SetAlpha(double alpha);
+  void SetAlpha(double alpha) { alpha_ = alpha; };
 
   /**
-   * Sets up and factors the lhs matrix K using a Ricatti recursion.
+   * Evaluates V then factors it using a Ricatti recursion.
    *
    * @param[in]  x     Current inner iterate
    * @param[in]  xbar  Current outer iterate
-   * @param[in]  sigma Regularization parameter
-   * @return       True if the factorization succeeds, false otherwise
+   * @param[in]  sigma regularization parameter
+   * @return     true if the factorization succeeds, false otherwise
    *
+   * Throws a runtime_error if problem data hasn't been linked,
+   * x and xbar aren't matched in size, or sigma isn't positive.
    */
   bool Factor(const MPCVariable& x, const MPCVariable& xbar, double sigma);
 
   /**
-   * Applies the Ricatti factorization to compute dx = inv(K)r
-   * Undefined behaviour if Factor is not called first.
+   * Applies the Ricatti factorization to compute dx = inv(V)*r,
+   * Factor MUST be called first.
    *
-   * @param[in]  r  rhs residual vector
-   * @param[out] dx storage for the solution
-   * @return    true if the solve succeeds, false otherwise
+   * @param[in]  r    rhs residual 
+   * @param[out] dx   storage for the solution
+   * @return     true if the solve succeeds, false otherwise
+   * 
+   * Throws a runtime_error if problem data hasn't been linked or
+   * if the sizes of dx and r don't match.
    */
   bool Solve(const MPCResidual& r, MPCVariable* dx);
 
-  /**
-   * Workspace matrices. Public to enable access for testing purposes.
-   */
-  // barrier augmented cost matrices
-  MatrixSequence Q_;
-  MatrixSequence R_;
-  MatrixSequence S_;
-
-  // Storage for the matrix portion of the recursion
-  MatrixSequence P_;
-  MatrixSequence SG_;
-  MatrixSequence M_;
-  MatrixSequence L_;
-  MatrixSequence SM_;
-  MatrixSequence AM_;
-
-  // Storage for the vector portion of the recursion
-  MatrixSequence h_;
-  MatrixSequence th_;
-
-  // Storage for barrier terms
-  StaticMatrix gamma_;
-  StaticMatrix mus_;
-  StaticMatrix Gamma_;
-
-  // Workspace matrices
-  StaticMatrix Etemp_;
-  StaticMatrix Linv_;
-
-  // Workspace vectors
-  StaticMatrix tx_;
-  StaticMatrix tl_;
-  StaticMatrix tu_;
-  StaticMatrix r1_;
-  StaticMatrix r2_;
-
  private:
-  /**
-   * Structure used to return two scalars
-   */
-  struct Point2D {
-    double x;
-    double y;
-  };
-  int N_, nx_, nu_, nc_;
-  int nz_, nl_, nv_;
+  // Workspace matrices.
+  std::vector<Eigen::MatrixXd> Q_;
+  std::vector<Eigen::MatrixXd> R_;
+  std::vector<Eigen::MatrixXd> S_;
+
+  // Storage for the matrix portion of the recursion.
+  std::vector<Eigen::MatrixXd> P_;
+  std::vector<Eigen::MatrixXd> SG_;
+  std::vector<Eigen::MatrixXd> M_;
+  std::vector<Eigen::MatrixXd> L_;
+  std::vector<Eigen::MatrixXd> SM_;
+  std::vector<Eigen::MatrixXd> AM_;
+
+  // Storage for the vector portion of the recursion.
+  std::vector<Eigen::VectorXd> h_;
+  std::vector<Eigen::VectorXd> th_;
+
+  // Workspace.
+  Eigen::VectorXd gamma_;
+  Eigen::VectorXd mus_;
+  Eigen::MatrixXd Gamma_;
+
+  // Workspace matrices.
+  Eigen::MatrixXd Etemp_;
+  Eigen::MatrixXd Ltemp_;
+  Eigen::MatrixXd Linv_;
+
+  // Workspace vectors.
+  Eigen::VectorXd tx_;
+  Eigen::VectorXd tl_;
+  Eigen::VectorXd tu_;
+  Eigen::VectorXd r1_;
+  Eigen::VectorXd r2_;
+  Eigen::VectorXd r3_;
+
+  int N_ = 0;   // horizon length
+  int nx_ = 0;  // number of states
+  int nu_ = 0;  // number of controls
+  int nc_ = 0;  // constraints per stage
+  int nz_ = 0;  // number of primal variables
+  int nl_ = 0;  // number of equality duals
+  int nv_ = 0;  // number of inequality duals
 
   MPCData* data_ = nullptr;
   double zero_tol_ = 1e-13;
-  bool memory_allocated_ = false;
   double alpha_ = 0.95;
 
   /**
-   * Computes the gradient of the penalized Fischer-Burmeister function at (a,b)
-   * @param  a     input point 1
-   * @param  b     input point 2
-   * @return       Structure containing (d/da phi, d/db phi)
+   * Computes the gradient of phi at (a,b),
+   * see (19) in https://arxiv.org/pdf/1901.04046.pdf.
+   * @param[in]  a    
+   * @param[in]  b
+   * @return     d/da phi(a,b) and d/db phi(a,b)   
    */
-  Point2D PFBgrad(double a, double b);
+  Eigen::Vector2d PFBgrad(double a, double b);
+
+  friend class test::MPCComponentUnitTests;
 };
 
 }  // namespace fbstab

@@ -1,409 +1,327 @@
 #include "drake/solvers/fbstab/components/ricatti_linear_solver.h"
 
 #include <cmath>
+#include <stdexcept>
+#include <iostream>
 
+#include <Eigen/Dense>
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_residual.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-RicattiLinearSolver::RicattiLinearSolver(QPsizeMPC size) {
-  // compute sizes
-  N_ = size.N;
-  nx_ = size.nx;
-  nu_ = size.nu;
-  nc_ = size.nc;
+using VectorXd = Eigen::VectorXd;
+using MatrixXd = Eigen::MatrixXd;
 
+RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
+  if(N <= 0 || nx <= 0 || nu <= 0 || nc <= 0){
+    throw std::runtime_error("In RicattiLinearSolver::RicattiLinearSolver: all inputs must be positive.");
+  }
+  N_ = N;
+  nx_ = nx;
+  nu_ = nu;
+  nc_ = nc;
   nz_ = (N_ + 1) * (nx_ + nu_);
   nl_ = (N_ + 1) * (nx_);
   nv_ = (N_ + 1) * (nc_);
 
-  int N = N_;
-  int nx = nx_;
-  int nu = nu_;
-  int nc = nc_;
   int nz = nz_;
   int nl = nl_;
   int nv = nv_;
 
-  int NN = N + 1;
+  Q_.resize(N + 1);
+  S_.resize(N + 1);
+  R_.resize(N + 1);
 
-  double* Q_mem = new double[nx * nx * NN];
-  double* S_mem = new double[nu * nx * NN];
-  double* R_mem = new double[nu * nu * NN];
+  P_.resize(N + 1);
+  SG_.resize(N + 1);
+  M_.resize(N + 1);
+  L_.resize(N + 1);
+  SM_.resize(N + 1);
+  AM_.resize(N + 1);
 
-  double* P_mem = new double[nx * nu * NN];
-  double* SG_mem = new double[nu * nu * NN];
-  double* M_mem = new double[nx * nx * NN];
-  double* L_mem = new double[nx * nx * NN];
-  double* SM_mem = new double[nu * nx * NN];
-  double* AM_mem = new double[nx * nx * NN];
+  h_.resize(N + 1);
+  th_.resize(N + 1);
 
-  double* h_mem = new double[nx * 1 * NN];
-  double* th_mem = new double[nx * 1 * NN];
+  for(int i = 0;i< N+1;i++){
+    Q_[i].resize(nx,nx);
+    S_[i].resize(nu,nx);
+    R_[i].resize(nu,nu);
 
-  double* gamma_mem = new double[nv];
-  double* Gamma_mem = new double[nv];
-  double* mus_mem = new double[nv];
+    P_[i].resize(nx,nu);
+    SG_[i].resize(nu,nu);
+    M_[i].resize(nx,nx);
+    L_[i].resize(nx,nx);
+    SM_[i].resize(nu,nx);
+    AM_[i].resize(nx,nx);
 
-  double* Etemp_mem = new double[nc * nx];
-  double* Linv_mem = new double[nx * nx];
-
-  double* tx_mem = new double[nx];
-  double* tu_mem = new double[nu];
-  double* tl_mem = new double[nx];
-  double* r1_mem = new double[nz];
-  double* r2_mem = new double[nl];
-
-  Q_ = MatrixSequence(Q_mem, N + 1, nx, nx);
-  S_ = MatrixSequence(S_mem, N + 1, nu, nx);
-  R_ = MatrixSequence(R_mem, N + 1, nu, nu);
-
-  P_ = MatrixSequence(P_mem, N + 1, nx, nu);
-  SG_ = MatrixSequence(SG_mem, N + 1, nu, nu);
-  M_ = MatrixSequence(M_mem, N + 1, nx, nx);
-  L_ = MatrixSequence(L_mem, N + 1, nx, nx);
-  SM_ = MatrixSequence(SM_mem, N + 1, nu, nx);
-  AM_ = MatrixSequence(AM_mem, N + 1, nx, nx);
-
-  h_ = MatrixSequence(h_mem, N + 1, nx, 1);
-  th_ = MatrixSequence(th_mem, N + 1, nx, 1);
-
-  gamma_ = StaticMatrix(gamma_mem, nv, 1);
-  mus_ = StaticMatrix(mus_mem, nv, 1);
-  Gamma_ = StaticMatrix(Gamma_mem, nv, 1);
-
-  Etemp_ = StaticMatrix(Etemp_mem, nc, nx);
-  Linv_ = StaticMatrix(Linv_mem, nx, nx);
-
-  tx_ = StaticMatrix(tx_mem, nx, 1);
-  tu_ = StaticMatrix(tu_mem, nu, 1);
-  tl_ = StaticMatrix(tl_mem, nx, 1);
-  r1_ = StaticMatrix(r1_mem, nz, 1);
-  r2_ = StaticMatrix(r2_mem, nl, 1);
-
-  memory_allocated_ = true;
-}
-
-RicattiLinearSolver::~RicattiLinearSolver() {
-  if (memory_allocated_) {
-    Q_.DeleteMemory();
-    R_.DeleteMemory();
-    S_.DeleteMemory();
-
-    P_.DeleteMemory();
-    SG_.DeleteMemory();
-    M_.DeleteMemory();
-    L_.DeleteMemory();
-    SM_.DeleteMemory();
-    AM_.DeleteMemory();
-
-    h_.DeleteMemory();
-    th_.DeleteMemory();
-
-    delete[] gamma_.data;
-    delete[] mus_.data;
-    delete[] Gamma_.data;
-
-    delete[] Etemp_.data;
-    delete[] Linv_.data;
-
-    delete[] tx_.data;
-    delete[] tu_.data;
-    delete[] tl_.data;
-    delete[] r1_.data;
-    delete[] r2_.data;
+    h_[i].resize(nx);
+    th_[i].resize(nx);
   }
+
+  gamma_.resize(nv);
+  mus_.resize(nv);
+  Gamma_.resize(nc,N+1);
+
+  Etemp_.resize(nc,nx);
+  Ltemp_.resize(nc,nu);
+  Linv_.resize(nx,nx);
+
+  tx_.resize(nx);
+  tu_.resize(nu);
+  tl_.resize(nx);
+  r1_.resize(nz);
+  r2_.resize(nl);
+  r3_.resize(nv);
 }
-
-void RicattiLinearSolver::LinkData(MPCData* data) { data_ = data; }
-
-void RicattiLinearSolver::SetAlpha(double alpha) { alpha_ = alpha; }
 
 bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
                                  double sigma) {
-  int N = N_;
-  int nc = nc_;
-  int nv = nv_;
-
-  if (data_ == nullptr)
+  if (data_ == nullptr){
     throw std::runtime_error("Data not linked in RicattiLinearSolver");
-
-  // compute the barrier vector Gamma = gamma/mus
-  Point2D tmp;
-  for (int i = 0; i < nv; i++) {
-    double ys = x.y_(i) + sigma * (x.v_(i) - xbar.v_(i));
-    tmp = PFBgrad(ys, x.v_(i));
-
-    gamma_(i) = tmp.x;
-    mus_(i) = tmp.y + sigma * tmp.x;
-    Gamma_(i) = gamma_(i) / mus_(i);
   }
-  Gamma_.reshape(nc, N + 1);
+  if(!MPCVariable::SameSize(x,xbar)){
+    throw std::runtime_error("In RicattiLinearSolver::Factor: x and xbar are not the same size.");
+  }
+  if(sigma <= 0){
+    throw std::runtime_error("In RicattiLinearSolver::Factor: sigma must be positive.");
+  }
 
-  // augment the Hessians with the barrier terms
-  Q_.copy(data_->Q_);
-  S_.copy(data_->S_);
-  R_.copy(data_->R_);
-  StaticMatrix Qi, Ri, Si, Ei, Li;
-  for (int i = 0; i <= N; i++) {
-    Qi = Q_(i);
-    Ri = R_(i);
-    Si = S_(i);
-    Ei = data_->E_(i);
-    Li = data_->L_(i);
+  Eigen::Vector2d temp;
+  for(int i = 0; i<nv_;i++){
+    double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
+    temp = PFBgrad(ys,x.v()(i));
 
-    // Q,R += sigma*I
-    Qi.AddDiag(sigma);
-    Ri.AddDiag(sigma);
+    gamma_(i) = temp(0);
+    mus_(i) = temp(1) + sigma*temp(0);
+    Gamma_(i) = gamma_(i)/ mus_(i);
+  }
+  // Compute the barrier augmented Hessian.
+  for(int i = 0;i< N_+1;i++){
+    const MatrixXd& Ei = data_->E_->operator[](i);
+    const MatrixXd& Li = data_->L_->operator[](i);
 
-    // Add barriers associated with E(i)x(i) + L(i)u(i) + d() <=0
-    Qi.gram(Ei, Gamma_.col(i));  // Q += E(i)'*diag(Gamma(i))*E(i)
-    Ri.gram(Li, Gamma_.col(i));  // R += L(i)'*diag(Gamma(i))*L(i)
+    Q_[i] = data_->Q_->at(i) + sigma*MatrixXd::Identity(nx_,nx_);
+    R_[i] = data_->R_->at(i) + sigma*MatrixXd::Identity(nu_,nu_);
+    S_[i] = data_->S_->at(i);
+
+    // Add barriers associated with E(i)x(i) + L(i)u(i) + d(i) <=0
+    // Q(i) += E(i)'*diag(Gamma(i))*E(i)
+    Etemp_.noalias() = Gamma_.col(i).asDiagonal() * Ei;
+    Q_[i].noalias() += Ei.transpose() * Etemp_;
+
+    // R(i) += L(i)'*diag(Gamma(i))*L(i)
+    Ltemp_.noalias() = Gamma_.col(i).asDiagonal() * Li;
+    R_[i].noalias() += Li.transpose() * Ltemp_;
 
     // S(i) += L(i) ' * diag(Gamma(i)) * E(i)
-    Etemp_.copy(data_->E_(i));
-    Etemp_.RowScale(Gamma_.col(i));
-    Si.gemm(Li, Etemp_, 1.0, 1.0, true, false);
+    S_[i].noalias() += Li.transpose() * Etemp_;
   }
 
-  // begin the matrix portion of the ricatti recursion
-  // base case, Pi = sigma I, L = chol(Pi)
-  L_(0).eye(sqrt(sigma));
+  // Begin the matrix potion of the Ricatti recursion.
+  // Base case: L(0) = chol(sigma*I).
+  L_[0] = sqrt(sigma)*MatrixXd::Identity(nx_,nx_);
 
-  for (int i = 0; i < N; i++) {
-    // get inv(L(i))
-    Linv_.eye();
-    Linv_.RightCholApply(L_(i));  // inv(L) = I*inv(L)
-    Linv_.tril();                 // clear the upper triangle
+  for(int i = 0;i<N_; i++){
+    // Compute inv(L(i)).
+    Linv_ = MatrixXd::Identity(nx_,nx_);
+    L_[i].triangularView<Eigen::Lower>().solveInPlace(Linv_);
 
-    // compute QQ = Q+inv(L*L') = Q + inv(L)'*inv(L)
-    // then factor M = chol(QQ)
-    M_(i).copy(Q_(i));
-    M_(i).gram(Linv_);
-    M_(i).llt();
+    // Compute QQ = Q+inv(L*L') = Q + inv(L)'*inv(L)
+    // then factor M = chol(QQ) in place.
+    M_[i].noalias() = Q_[i] + Linv_.transpose()* Linv_;
+    Eigen::LLT<Eigen::Ref<MatrixXd> > llt1(M_[i]);
 
-    // compute AM = A*inv(M)' and SM = S*inv(M)'
-    AM_(i).copy(data_->A_(i));
-    AM_(i).RightCholApply(M_(i), true);
+    // Compute AM = A*inv(M)'.
+    AM_[i] = data_->A_->at(i);
+    M_[i].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(AM_[i]);
 
-    SM_(i).copy(S_(i));
-    SM_(i).RightCholApply(M_(i), true);
+    // Compute SM = S*inv(M)'.
+    SM_[i] = S_[i];
+    M_[i].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(SM_[i]);
 
-    // compute SG = chol(R - SM*SM')
-    SG_(i).copy(R_(i));
-    SG_(i).gram(SM_(i), -1.0, true);
-    SG_(i).llt();
+    // Factor SG = chol(R - SM*SM') in place.
+    SG_[i].noalias() = R_[i] - SM_[i]*SM_[i].transpose();
+    Eigen::LLT<Eigen::Ref<MatrixXd> > llt2(SG_[i]);
 
-    // compute P = (A*inv(QQ)S' - B)*inv(SG)'
-    // P = (AM*SM' - B)*inv(SG)'
-    P_(i).copy(data_->B_(i));
-    P_(i) *= -1.0;
-    P_(i).gemm(AM_(i), SM_(i), 1.0, 1.0, false, true);
-    P_(i).RightCholApply(SG_(i), true);
+    // Compute P = (A*inv(QQ)S' - B)*inv(SG)',
+    //           = (AM*SM' - B)*inv(SG)'.
+    P_[i].noalias() = AM_[i]*SM_[i].transpose() - data_->B_->at(i);
+    SG_[i].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(P_[i]);
 
-    // compute L(i+1) = chol(Pi(i+1))
-    // Pi(i+1) = P*P' + AM*AM' + sigma I
-    L_(i + 1).eye(sigma);
-    L_(i + 1).gram(P_(i), 1.0, true);
-    L_(i + 1).gram(AM_(i), 1.0, true);
-    L_(i + 1).llt();
+    // Compute L(i+1) = chol(Pi)
+    // where Pi = P*P' + AM*AM' + sigma I.
+    L_[i+1] = sigma*MatrixXd::Identity(nx_,nx_);
+    L_[i+1].noalias() += P_[i]*P_[i].transpose();
+    L_[i+1].noalias() += AM_[i]*AM_[i].transpose();
+    Eigen::LLT<Eigen::Ref<MatrixXd> > llt3(L_[i+1]);
   }
 
-  // finish the recursion
-  Linv_.eye();
-  Linv_.RightCholApply(L_(N));  // inv(L) = I*inv(L)
-  Linv_.tril();                 // clear the upper triangle
+  // Finish the recursion, i.e., perform the i = N step.
+  Linv_ = MatrixXd::Identity(nx_,nx_);
+  L_[N_].triangularView<Eigen::Lower>().solveInPlace(Linv_);
 
-  // compute QQ = Q+inv(L*L')
-  // then factor M = chol(QQ)
-  M_(N).copy(Q_(N));
-  M_(N).gram(Linv_);
-  M_(N).llt();
+  // Compute M = chol(Q + inv(L*L')).
+  M_[N_].noalias() = Q_[N_] + Linv_.transpose()*Linv_;
+  Eigen::LLT<Eigen::Ref<MatrixXd> > llt4(M_[N_]);
 
-  SM_(N).copy(S_(N));
-  SM_(N).RightCholApply(M_(N), true);
+  // Compute SM = S*inv(M)'.
+  SM_[N_] = S_[N_];
+  M_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(SM_[N_]);
 
-  SG_(N).copy(R_(N));
-  SG_(N).gram(SM_(N), -1.0, true);
-  SG_(N).llt();
+  // Compute SG = chol(R - SM*SM').
+  SG_[N_].noalias() = R_[N_] - SM_[N_]*SM_[N_].transpose();
+  Eigen::LLT<Eigen::Ref<MatrixXd> > llt5(SG_[N_]);
 
-  // return Gamma to its initial shape
-  Gamma_.reshape(nv, 1);
-
-  // TODO take some kind of action if one of the cholesky factorizations fail
   return true;
 }
 
 bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
-  int N = N_;
-  int nx = nx_;
-  int nu = nu_;
-  int nz = nz_;
-  int nl = nl_;
-  int nv = nv_;
+  // Compute the post-elimination residual,
+  // r1 = rz - A'*(rv./mus) and r2 = -rl.
+  r1_ = r.z_;
+  Gamma_ = r.v_;
+  Gamma_ = Gamma_.cwiseQuotient(mus_);
+  data_->gemvAT(Gamma_,-1.0,1.0,&r1_);
 
-  // compute reduced residuals
-  // r1 = rz - A'*(rv./mus)
-  r1_.copy(r.z_);
-  for (int i = 0; i < nv; i++) {
-    Gamma_(i) = r.v_(i) / mus_(i);
-  }
-  data_->gemvAT(Gamma_, -1.0, 1.0, &r1_);
-  // r2 = -rl
-  r2_.copy(r.l_);
-  r2_ *= -1.0;
+  r2_ = -r.l_;
+  // Get reshaped aliases for r1 and r2.
+  Eigen::Map<MatrixXd> r1(r1_.data(),nx_ + nu_,N_+1);
+  Eigen::Map<MatrixXd> r2(r2_.data(), nx_,N_+1);
 
-  r1_.reshape(nx + nu, N + 1);
-  r2_.reshape(nx, N + 1);
+  // Begin the vector portion of the Ricatti recursion.
+  // Base case: theta(0) = -rl(0), h(0) = inv(L*L')*theta(0) - rx(0)
+  th_[0] = r2.col(0);
+  h_[0] = th_[0];
+  L_[0].triangularView<Eigen::Lower>().solveInPlace(h_[0]);
+  L_[0].triangularView<Eigen::Lower>().transpose().solveInPlace(h_[0]);
+  h_[0].noalias() -= r1.block(0,0,nx_,1); // r1(0) = [rx(0);ru(0)], block extracts rx(0)
 
-  // vector portion of the recursion
-  // base case
-  th_(0).copy(r2_.col(0));
+  // Main loop:
+  for(int i = 0; i<N_;i++){
+    // Compute theta(i+1).
+    // tx = inv(M)*h
+    tx_ = h_[i];
+    M_[i].triangularView<Eigen::Lower>().solveInPlace(tx_);
 
-  h_(0).copy(th_(0));
-  h_(0).CholSolve(L_(0));
-  h_(0).axpy(r1_.col(0).subvec(0, nx - 1), -1.0);
+    // tu = inv(SG)*(SM*tx + ru)
+    // r1(i) = [rx(i);ru(i)], block extracts ru(i)
+    tu_.noalias() = SM_[i]*tx_ + r1.block(nx_,i,nu_,1);
+    SG_[i].triangularView<Eigen::Lower>().solveInPlace(tu_);
 
-  StaticMatrix rlp, rxp;
-  for (int i = 0; i < N; i++) {
-    // compute theta(i+1)
-    tx_.copy(h_(i));           // rx = h
-    tx_.LeftCholApply(M_(i));  // rx = inv(M)*rx
+    const auto rlp = r2.col(i+1);
+    th_[i+1].noalias() = P_[i]*tu_ + rlp;
+    th_[i+1].noalias() += AM_[i]*tx_;
 
-    tu_.copy(r1_.col(i).subvec(nx, nx + nu - 1));
-    tu_.gemv(SM_(i), tx_, 1.0, 1.0);  // ru = SM*rx + ru
-    tu_.LeftCholApply(SG_(i));
-
-    rlp = r2_.col(i + 1);
-    th_(i + 1).copy(rlp);
-    th_(i + 1).gemv(P_(i), tu_, 1.0, 1.0);   // th(i+1) += P*ru
-    th_(i + 1).gemv(AM_(i), tx_, 1.0, 1.0);  // th(i+1) += AM*rx
-
-    // compute h(i+1)
-    rxp = r1_.col(i + 1).subvec(0, nx - 1);
-    h_(i + 1).copy(th_(i + 1));
-    h_(i + 1).CholSolve(L_(i + 1));
-    h_(i + 1).axpy(rxp, -1.0);
+    // Compute h(i+1).
+    const auto rxp = r1.block(0,i+1,nx_,1);
+    h_[i+1] = th_[i+1];
+    L_[i+1].triangularView<Eigen::Lower>().solveInPlace(h_[i+1]);
+    L_[i+1].triangularView<Eigen::Lower>().transpose().solveInPlace(h_[i+1]);
+    h_[i+1].noalias() -= rxp;
   }
 
-  // compute xN,uN, and lN
-  tx_.copy(h_(N));
-  tx_.LeftCholApply(M_(N));
-  tu_.copy(r1_.col(N).subvec(nx, nx + nu - 1));  // uN = rx(N)
-  tu_.gemv(SM_(N), tx_, 1.0, 1.0);               // uN = SM*inv(M)*h + rx(N)
-  tu_.CholSolve(SG_(N));                         // uN = inv(SG*SG')uN
+  // Begin the backwards recursion for the solution
+  // by computing xN,uN, and lN.
+  // u(N) = inv(SG*SG')*(SM*inv(M)*h + ru)
+  tx_ = h_[N_];
+  M_[N_].triangularView<Eigen::Lower>().solveInPlace(tx_);
+  tu_.noalias() = SM_[N_]*tx_ + r1.block(nx_,N_,nu_,1); 
+  SG_[N_].triangularView<Eigen::Lower>().solveInPlace(tu_);
+  SG_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace(tu_);
 
-  tx_.copy(h_(N));
-  tx_.LeftCholApply(M_(N));
-  tx_.gemv(SM_(N), tu_, 1.0, 1.0, true);  // xN = inv(M)*h + SM'*uN
+  // x(N) = -inv(M')*(inv(M)*h + SM'*u(N))
+  tx_ = h_[N_];
+  M_[N_].triangularView<Eigen::Lower>().solveInPlace(tx_);
+  tx_.noalias() += SM_[N_].transpose()*tu_;
+  M_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace(tx_);
   tx_ *= -1.0;
-  tx_.LeftCholApply(M_(N), true);  // xN = -inv(M')*xN
 
-  tl_.copy(tx_);
-  tl_.axpy(th_(N), 1.0);  // lN = xN + theta(N)
+  // l(N) = -inv(L*L')* (xN + theta)
+  tl_ = tx_ + th_[N_];
+  L_[N_].triangularView<Eigen::Lower>().solveInPlace(tl_);
+  L_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace(tl_);
   tl_ *= -1.0;
-  tl_.CholSolve(L_(N));  // lN = -inv(L*L')*lN
 
-  // copy into solution vector
-  dx->z_.reshape(nx + nu, N + 1);
-  dx->l_.reshape(nx, N + 1);
-  StaticMatrix xN = dx->z_.col(N).subvec(0, nx - 1);
-  StaticMatrix uN = dx->z_.col(N).subvec(nx, nx + nu - 1);
-  StaticMatrix lN = dx->l_.col(N);
+  // Copy these into the solution vector.
+  // Using reshaped aliases to make indexing easier.
+  Eigen::Map<MatrixXd> dz(dx->z_->data(),nx_ + nu_, N_+1);
+  Eigen::Map<MatrixXd> dl(dx->l_->data(),nx_, N_+1);
 
-  xN.copy(tx_);
-  uN.copy(tu_);
-  lN.copy(tl_);
+  dz.block(0,N_,nx_,1) = tx_;
+  dz.block(nx_,N_,nu_,1) = tu_;
+  dl.col(N_) = tl_;
 
-  // backwards recursion for the solution
-  for (int i = N - 1; i >= 0; i--) {
-    // compute u(i)
-    tx_.copy(h_(i));
-    tx_.LeftCholApply(M_(i));
+  // The main backwards recursion loop.
+  for(int i = N_ - 1;i >= 0; i--){
+    // Solve SG'*u(i) = inv(SG)*(SM*inv(M)*h + ru) + P'*l(i+1)
+    tx_ = h_[i];
+    M_[i].triangularView<Eigen::Lower>().solveInPlace(tx_);
 
-    StaticMatrix ui = dx->z_.col(i).subvec(nx, nx + nu - 1);
-    ui.gemv(SM_(i), tx_, 1.0, 0.0);  // ui = SM*(inv(M)*h)
+    // This is an alias.
+    auto ui = dz.block(nx_,i,nu_,1); // dz(i) = [xi;ui], extract ui
+    ui.noalias() = SM_[i]*tx_ + r1.block(nx_,i,nu_,1); // SM*tx + ru
+    SG_[i].triangularView<Eigen::Lower>().solveInPlace(ui); 
+    ui.noalias() += P_[i].transpose() * dl.col(i+1);
+    SG_[i].triangularView<Eigen::Lower>().transpose().solveInPlace(ui);
 
-    StaticMatrix ru = r1_.col(i).subvec(nx, nx + nu - 1);
-    ui.axpy(ru, 1.0);          // ui += ru
-    ui.LeftCholApply(SG_(i));  // ui = inv(SG)*ui
+    // Solve -M'*x(i) = inv(M)*h + SM'*u(i) + AM'*l(i+1)
+    // This is an alias.
+    auto xi = dz.block(0,i,nx_,1);
 
-    StaticMatrix lip = dx->l_.col(i + 1);
-    ui.gemv(P_(i), lip, 1.0, 1.0, true);  // ui += P'*lp
-    ui.LeftCholApply(SG_(i), true);       // ui = SG'*ui
-
-    // compute x(i)
-    StaticMatrix xi = dx->z_.col(i).subvec(0, nx - 1);
-    xi.copy(h_(i));
-    xi.LeftCholApply(M_(i));  // x(i) = inv(M)*h(i)
-
-    xi.gemv(SM_(i), ui, 1.0, 1.0, true);   // x(i) += SM'*u(i)
-    xi.gemv(AM_(i), lip, 1.0, 1.0, true);  // x(i) += AM'*l(i+1)
-
-    xi.LeftCholApply(M_(i), true);  // x(i) = inv(M')*xi
+    xi = h_[i];
+    M_[i].triangularView<Eigen::Lower>().solveInPlace(xi);
+    xi.noalias() += SM_[i].transpose() * ui;
+    xi.noalias() += AM_[i].transpose() * dl.col(i+1);
+    M_[i].triangularView<Eigen::Lower>().transpose().solveInPlace(xi);
     xi *= -1.0;
 
-    // compute l(i)
-    StaticMatrix li = dx->l_.col(i);
-    li.copy(th_(i));
-    li.axpy(xi, 1.0);
-    li.CholSolve(L_(i));
+    // Solve -L*L' * l(i) = theta(i) + x(i).
+    auto li = dl.col(i);
+    li = th_[i] + xi;
+    L_[i].triangularView<Eigen::Lower>().solveInPlace(li);
+    L_[i].triangularView<Eigen::Lower>().transpose().solveInPlace(li);
     li *= -1.0;
   }
-  // return the solution vectors to the correct shape
-  dx->z_.reshape(nz, 1);
-  dx->l_.reshape(nl, 1);
 
-  // recover ieq dual variables
-  // dv = (r.v + diag(gamma) * A*dz)*diag(1/mus)
-  StaticMatrix dv = dx->v_;
-  dv.copy(r.v_);
-  data_->gemvA(dx->z_, 1.0, 0.0, &Gamma_);  // Gamma is being used as a temp
+  // Recover the inequality duals by solving
+  // diag(mus)* dv = (rv + diag(gamma)*A*dz).
+  VectorXd& dv = dx->v();
+  dv = r.v_;
+  // r3_ = A*dz, r3_ is being used as a temp.
+  data_->gemvA(dx->z(),1.0,0.0,&r3_); 
+  dv += gamma_.asDiagonal()*r3_;
+  dv = dv.cwiseQuotient(mus_); 
 
-  for (int i = 0; i < nv; i++) {
-    dv(i) = (dv(i) + gamma_(i) * Gamma_(i)) / mus_(i);
-  }
-
-  // compute dy for the linesearch
-  // dy = b - A*dz
-  StaticMatrix dy = dx->y_;
-  data_->gemvA(dx->z_, -1.0, 0.0, &dy);
-  data_->axpyb(1.0, &dy);
-
-  // return residual vectors so their original shape
-  r1_.reshape(nz, 1);
-  r2_.reshape(nl, 1);
+  // Compute dy = b - A*dz.
+  VectorXd& dy = dx->y();
+  data_->gemvA(dx->z(),-1.0,0.0,&dy);
+  data_->axpyb(1.0,&dy);
 
   return true;
 }
 
-RicattiLinearSolver::Point2D RicattiLinearSolver::PFBgrad(double a, double b) {
-  double y = 0;
-  double x = 0;
+Eigen::Vector2d RicattiLinearSolver::PFBgrad(double a, double b) {
   double r = sqrt(a * a + b * b);
+  Eigen::Vector2d v;
 
   if (r < zero_tol_) {
     double d = 1.0 / sqrt(2.0);
-    x = alpha_ * (1.0 - d);
-    y = alpha_ * (1.0 - d);
+    v(0) = alpha_ * (1.0 - d);
+    v(1) = alpha_ * (1.0 - d);
 
   } else if ((a > 0) && (b > 0)) {
-    x = alpha_ * (1.0 - a / r) + (1.0 - alpha_) * b;
-    y = alpha_ * (1.0 - b / r) + (1.0 - alpha_) * a;
+    v(0) = alpha_ * (1.0 - a / r) + (1.0 - alpha_) * b;
+    v(1) = alpha_ * (1.0 - b / r) + (1.0 - alpha_) * a;
 
   } else {
-    x = alpha_ * (1.0 - a / r);
-    y = alpha_ * (1.0 - b / r);
+    v(0) = alpha_ * (1.0 - a / r);
+    v(1) = alpha_ * (1.0 - b / r);
   }
-
-  Point2D out = {x, y};
-  return out;
+  return v;
 }
 
 }  // namespace fbstab

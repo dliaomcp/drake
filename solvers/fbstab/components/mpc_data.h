@@ -15,7 +15,7 @@ class MPCComponentUnitTests;
 }  // namespace test
 
 /**
- * @file This class represents data for quadratic programming problems of the
+ * This class represents data for quadratic programming problems of the
  * following type (1):
  *
  * min.  \sum_{i=0}^N 1/2 [x(i)]' * [Q(i) S(i)'] [x(i)] + [q(i)]'*[x(i)]
@@ -37,13 +37,12 @@ class MPCComponentUnitTests;
 class MPCData {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCData);
-
   /**
    * Creates problem data and performs input validation.
    * This class assumes that the pointers to the data remain valid.
    *
    * All arguments are inputs and point to data defining a linear-quadratic
-   * optimal control problem, see the file comment for a definition.
+   * optimal control problem, see the class comment.
    */
   MPCData(const std::vector<Eigen::MatrixXd>* Q,
           const std::vector<Eigen::MatrixXd>* R,
@@ -179,6 +178,7 @@ class MPCData {
 
   // friend class RicattiLinearSolver;
   friend class test::MPCComponentUnitTests;
+  friend class RicattiLinearSolver;
 };
 
 }  // namespace fbstab

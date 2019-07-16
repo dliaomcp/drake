@@ -120,6 +120,19 @@ drake_cc_library(
     ],
 )
 
+drake_cc_library(
+    name = "ricatti_linear_solver",
+    srcs = ["ricatti_linear_solver.cc"],
+    hdrs = ["ricatti_linear_solver.h"],
+    deps = [
+        ":mpc_data",
+        ":mpc_variable",
+        ":mpc_residual",
+        "//common:essential",
+        "@eigen",
+    ],
+)
+
 drake_cc_googletest(
     name = "mpc_component_unit_tests",
     srcs = [
@@ -130,6 +143,7 @@ drake_cc_googletest(
         ":mpc_data",
         ":mpc_residual",
         ":mpc_variable",
+        ":ricatti_linear_solver",
         "@eigen",
     ],
 )

@@ -9,7 +9,7 @@ namespace fbstab {
 namespace test {
 
 /**
- * @file Runs unit tests for the Dense MPC components. See
+ * Runs unit tests for the Dense MPC components. See
  * mpc_component_unit_tests.h for documentation.
  */
 GTEST_TEST(MPCData, GEMVH) {
@@ -60,6 +60,11 @@ GTEST_TEST(MPCVariable, AXPY) {
 GTEST_TEST(MPCResidual, InnerResidual) {
   MPCComponentUnitTests test;
   test.InnerResidual();
+}
+
+GTEST_TEST(MPCLinearSolver, RicattiRecursion) {
+  MPCComponentUnitTests test;
+  test.RicattiRecursion();
 }
 
 }  // namespace test

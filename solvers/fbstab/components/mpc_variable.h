@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <Eigen/Dense>
 
+#include <Eigen/Dense>
 #include "drake/common/drake_copyable.h"
 #include "drake/solvers/fbstab/components/mpc_data.h"
 
@@ -105,6 +105,8 @@ class MPCVariable {
    * @return sqrt(|z|^2 + |l|^2 + |v|^2)
    */
   double Norm() const;
+
+  static bool SameSize(const MPCVariable& x, const MPCVariable& y);
 
   /** Accessor for the decision variable. */
   Eigen::VectorXd& z() { return *z_; }
