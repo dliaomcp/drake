@@ -42,7 +42,7 @@ class MPCResidual {
    * Calculations cannot be performed until a data object is provided.
    * @param[in] data problem data
    */
-  void LinkData(MPCData* data) { data_ = data; }
+  void LinkData(const MPCData* data) { data_ = data; }
 
   /**
    * Sets the value of alpha used in residual computations
@@ -121,7 +121,7 @@ class MPCResidual {
   int nv_ = 0;  // number of inequality duals
 
   double alpha_ = 0.95;
-  MPCData* data_ = nullptr;
+  const MPCData* data_ = nullptr;
 
   double znorm_ = 0.0;  // cached norm of z_
   double lnorm_ = 0.0;  // cached norm of l_

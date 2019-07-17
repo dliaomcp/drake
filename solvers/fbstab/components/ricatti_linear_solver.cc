@@ -1,8 +1,8 @@
 #include "drake/solvers/fbstab/components/ricatti_linear_solver.h"
 
 #include <cmath>
-#include <stdexcept>
 #include <iostream>
+#include <stdexcept>
 
 #include <Eigen/Dense>
 #include "drake/solvers/fbstab/components/mpc_data.h"
@@ -17,8 +17,10 @@ using VectorXd = Eigen::VectorXd;
 using MatrixXd = Eigen::MatrixXd;
 
 RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
-  if(N <= 0 || nx <= 0 || nu <= 0 || nc <= 0){
-    throw std::runtime_error("In RicattiLinearSolver::RicattiLinearSolver: all inputs must be positive.");
+  if (N <= 0 || nx <= 0 || nu <= 0 || nc <= 0) {
+    throw std::runtime_error(
+        "In RicattiLinearSolver::RicattiLinearSolver: all inputs must be "
+        "positive.");
   }
   N_ = N;
   nx_ = nx;
@@ -46,17 +48,17 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
   h_.resize(N + 1);
   th_.resize(N + 1);
 
-  for(int i = 0;i< N+1;i++){
-    Q_[i].resize(nx,nx);
-    S_[i].resize(nu,nx);
-    R_[i].resize(nu,nu);
+  for (int i = 0; i < N + 1; i++) {
+    Q_[i].resize(nx, nx);
+    S_[i].resize(nu, nx);
+    R_[i].resize(nu, nu);
 
-    P_[i].resize(nx,nu);
-    SG_[i].resize(nu,nu);
-    M_[i].resize(nx,nx);
-    L_[i].resize(nx,nx);
-    SM_[i].resize(nu,nx);
-    AM_[i].resize(nx,nx);
+    P_[i].resize(nx, nu);
+    SG_[i].resize(nu, nu);
+    M_[i].resize(nx, nx);
+    L_[i].resize(nx, nx);
+    SM_[i].resize(nu, nx);
+    AM_[i].resize(nx, nx);
 
     h_[i].resize(nx);
     th_[i].resize(nx);
@@ -64,11 +66,11 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
 
   gamma_.resize(nv);
   mus_.resize(nv);
-  Gamma_.resize(nc,N+1);
+  Gamma_.resize(nc, N + 1);
 
-  Etemp_.resize(nc,nx);
-  Ltemp_.resize(nc,nu);
-  Linv_.resize(nx,nx);
+  Etemp_.resize(nc, nx);
+  Ltemp_.resize(nc, nu);
+  Linv_.resize(nx, nx);
 
   tx_.resize(nx);
   tu_.resize(nu);
@@ -80,32 +82,34 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
 
 bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
                                  double sigma) {
-  if (data_ == nullptr){
+  if (data_ == nullptr) {
     throw std::runtime_error("Data not linked in RicattiLinearSolver");
   }
-  if(!MPCVariable::SameSize(x,xbar)){
-    throw std::runtime_error("In RicattiLinearSolver::Factor: x and xbar are not the same size.");
+  if (!MPCVariable::SameSize(x, xbar)) {
+    throw std::runtime_error(
+        "In RicattiLinearSolver::Factor: x and xbar are not the same size.");
   }
-  if(sigma <= 0){
-    throw std::runtime_error("In RicattiLinearSolver::Factor: sigma must be positive.");
+  if (sigma <= 0) {
+    throw std::runtime_error(
+        "In RicattiLinearSolver::Factor: sigma must be positive.");
   }
 
   Eigen::Vector2d temp;
-  for(int i = 0; i<nv_;i++){
-    double ys = x.y()(i) + sigma*(x.v()(i) - xbar.v()(i));
-    temp = PFBgrad(ys,x.v()(i));
+  for (int i = 0; i < nv_; i++) {
+    double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
+    temp = PFBgrad(ys, x.v()(i));
 
     gamma_(i) = temp(0);
-    mus_(i) = temp(1) + sigma*temp(0);
-    Gamma_(i) = gamma_(i)/ mus_(i);
+    mus_(i) = temp(1) + sigma * temp(0);
+    Gamma_(i) = gamma_(i) / mus_(i);
   }
   // Compute the barrier augmented Hessian.
-  for(int i = 0;i< N_+1;i++){
+  for (int i = 0; i < N_ + 1; i++) {
     const MatrixXd& Ei = data_->E_->operator[](i);
     const MatrixXd& Li = data_->L_->operator[](i);
 
-    Q_[i] = data_->Q_->at(i) + sigma*MatrixXd::Identity(nx_,nx_);
-    R_[i] = data_->R_->at(i) + sigma*MatrixXd::Identity(nu_,nu_);
+    Q_[i] = data_->Q_->at(i) + sigma * MatrixXd::Identity(nx_, nx_);
+    R_[i] = data_->R_->at(i) + sigma * MatrixXd::Identity(nu_, nu_);
     S_[i] = data_->S_->at(i);
 
     // Add barriers associated with E(i)x(i) + L(i)u(i) + d(i) <=0
@@ -123,57 +127,69 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
 
   // Begin the matrix potion of the Ricatti recursion.
   // Base case: L(0) = chol(sigma*I).
-  L_[0] = sqrt(sigma)*MatrixXd::Identity(nx_,nx_);
+  L_[0] = sqrt(sigma) * MatrixXd::Identity(nx_, nx_);
 
-  for(int i = 0;i<N_; i++){
+  for (int i = 0; i < N_; i++) {
     // Compute inv(L(i)).
-    Linv_ = MatrixXd::Identity(nx_,nx_);
+    Linv_ = MatrixXd::Identity(nx_, nx_);
     L_[i].triangularView<Eigen::Lower>().solveInPlace(Linv_);
 
     // Compute QQ = Q+inv(L*L') = Q + inv(L)'*inv(L)
     // then factor M = chol(QQ) in place.
-    M_[i].noalias() = Q_[i] + Linv_.transpose()* Linv_;
+    M_[i].noalias() = Q_[i] + Linv_.transpose() * Linv_;
     Eigen::LLT<Eigen::Ref<MatrixXd> > llt1(M_[i]);
 
     // Compute AM = A*inv(M)'.
     AM_[i] = data_->A_->at(i);
-    M_[i].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(AM_[i]);
+    M_[i]
+        .triangularView<Eigen::Lower>()
+        .transpose()
+        .solveInPlace<Eigen::OnTheRight>(AM_[i]);
 
     // Compute SM = S*inv(M)'.
     SM_[i] = S_[i];
-    M_[i].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(SM_[i]);
+    M_[i]
+        .triangularView<Eigen::Lower>()
+        .transpose()
+        .solveInPlace<Eigen::OnTheRight>(SM_[i]);
 
     // Factor SG = chol(R - SM*SM') in place.
-    SG_[i].noalias() = R_[i] - SM_[i]*SM_[i].transpose();
+    SG_[i].noalias() = R_[i] - SM_[i] * SM_[i].transpose();
     Eigen::LLT<Eigen::Ref<MatrixXd> > llt2(SG_[i]);
 
     // Compute P = (A*inv(QQ)S' - B)*inv(SG)',
     //           = (AM*SM' - B)*inv(SG)'.
-    P_[i].noalias() = AM_[i]*SM_[i].transpose() - data_->B_->at(i);
-    SG_[i].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(P_[i]);
+    P_[i].noalias() = AM_[i] * SM_[i].transpose() - data_->B_->at(i);
+    SG_[i]
+        .triangularView<Eigen::Lower>()
+        .transpose()
+        .solveInPlace<Eigen::OnTheRight>(P_[i]);
 
     // Compute L(i+1) = chol(Pi)
     // where Pi = P*P' + AM*AM' + sigma I.
-    L_[i+1] = sigma*MatrixXd::Identity(nx_,nx_);
-    L_[i+1].noalias() += P_[i]*P_[i].transpose();
-    L_[i+1].noalias() += AM_[i]*AM_[i].transpose();
-    Eigen::LLT<Eigen::Ref<MatrixXd> > llt3(L_[i+1]);
+    L_[i + 1] = sigma * MatrixXd::Identity(nx_, nx_);
+    L_[i + 1].noalias() += P_[i] * P_[i].transpose();
+    L_[i + 1].noalias() += AM_[i] * AM_[i].transpose();
+    Eigen::LLT<Eigen::Ref<MatrixXd> > llt3(L_[i + 1]);
   }
 
   // Finish the recursion, i.e., perform the i = N step.
-  Linv_ = MatrixXd::Identity(nx_,nx_);
+  Linv_ = MatrixXd::Identity(nx_, nx_);
   L_[N_].triangularView<Eigen::Lower>().solveInPlace(Linv_);
 
   // Compute M = chol(Q + inv(L*L')).
-  M_[N_].noalias() = Q_[N_] + Linv_.transpose()*Linv_;
+  M_[N_].noalias() = Q_[N_] + Linv_.transpose() * Linv_;
   Eigen::LLT<Eigen::Ref<MatrixXd> > llt4(M_[N_]);
 
   // Compute SM = S*inv(M)'.
   SM_[N_] = S_[N_];
-  M_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace<Eigen::OnTheRight>(SM_[N_]);
+  M_[N_]
+      .triangularView<Eigen::Lower>()
+      .transpose()
+      .solveInPlace<Eigen::OnTheRight>(SM_[N_]);
 
   // Compute SG = chol(R - SM*SM').
-  SG_[N_].noalias() = R_[N_] - SM_[N_]*SM_[N_].transpose();
+  SG_[N_].noalias() = R_[N_] - SM_[N_] * SM_[N_].transpose();
   Eigen::LLT<Eigen::Ref<MatrixXd> > llt5(SG_[N_]);
 
   return true;
@@ -183,14 +199,13 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
   // Compute the post-elimination residual,
   // r1 = rz - A'*(rv./mus) and r2 = -rl.
   r1_ = r.z_;
-  Gamma_ = r.v_;
-  Gamma_ = Gamma_.cwiseQuotient(mus_);
-  data_->gemvAT(Gamma_,-1.0,1.0,&r1_);
+  r3_ = r.v_.cwiseQuotient(mus_);  // r3_ is used as a temp here
+  data_->gemvAT(r3_, -1.0, 1.0, &r1_);
 
   r2_ = -r.l_;
   // Get reshaped aliases for r1 and r2.
-  Eigen::Map<MatrixXd> r1(r1_.data(),nx_ + nu_,N_+1);
-  Eigen::Map<MatrixXd> r2(r2_.data(), nx_,N_+1);
+  Eigen::Map<MatrixXd> r1(r1_.data(), nx_ + nu_, N_ + 1);
+  Eigen::Map<MatrixXd> r2(r2_.data(), nx_, N_ + 1);
 
   // Begin the vector portion of the Ricatti recursion.
   // Base case: theta(0) = -rl(0), h(0) = inv(L*L')*theta(0) - rx(0)
@@ -198,10 +213,10 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
   h_[0] = th_[0];
   L_[0].triangularView<Eigen::Lower>().solveInPlace(h_[0]);
   L_[0].triangularView<Eigen::Lower>().transpose().solveInPlace(h_[0]);
-  h_[0].noalias() -= r1.block(0,0,nx_,1); // r1(0) = [rx(0);ru(0)], block extracts rx(0)
+  h_[0].noalias() -= r1.block(0, 0, nx_, 1);  // r1(0) = [rx(0);ru(0)]
 
   // Main loop:
-  for(int i = 0; i<N_;i++){
+  for (int i = 0; i < N_; i++) {
     // Compute theta(i+1).
     // tx = inv(M)*h
     tx_ = h_[i];
@@ -209,19 +224,20 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
 
     // tu = inv(SG)*(SM*tx + ru)
     // r1(i) = [rx(i);ru(i)], block extracts ru(i)
-    tu_.noalias() = SM_[i]*tx_ + r1.block(nx_,i,nu_,1);
+    tu_.noalias() = SM_[i] * tx_ + r1.block(nx_, i, nu_, 1);
     SG_[i].triangularView<Eigen::Lower>().solveInPlace(tu_);
 
-    const auto rlp = r2.col(i+1);
-    th_[i+1].noalias() = P_[i]*tu_ + rlp;
-    th_[i+1].noalias() += AM_[i]*tx_;
+    const auto rlp = r2.col(i + 1);
+    th_[i + 1].noalias() = P_[i] * tu_ + rlp;
+    th_[i + 1].noalias() += AM_[i] * tx_;
 
     // Compute h(i+1).
-    const auto rxp = r1.block(0,i+1,nx_,1);
-    h_[i+1] = th_[i+1];
-    L_[i+1].triangularView<Eigen::Lower>().solveInPlace(h_[i+1]);
-    L_[i+1].triangularView<Eigen::Lower>().transpose().solveInPlace(h_[i+1]);
-    h_[i+1].noalias() -= rxp;
+    const auto rxp = r1.block(0, i + 1, nx_, 1);
+    h_[i + 1] = th_[i + 1];
+    L_[i + 1].triangularView<Eigen::Lower>().solveInPlace(h_[i + 1]);
+    L_[i + 1].triangularView<Eigen::Lower>().transpose().solveInPlace(
+        h_[i + 1]);
+    h_[i + 1].noalias() -= rxp;
   }
 
   // Begin the backwards recursion for the solution
@@ -229,14 +245,14 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
   // u(N) = inv(SG*SG')*(SM*inv(M)*h + ru)
   tx_ = h_[N_];
   M_[N_].triangularView<Eigen::Lower>().solveInPlace(tx_);
-  tu_.noalias() = SM_[N_]*tx_ + r1.block(nx_,N_,nu_,1); 
+  tu_.noalias() = SM_[N_] * tx_ + r1.block(nx_, N_, nu_, 1);
   SG_[N_].triangularView<Eigen::Lower>().solveInPlace(tu_);
   SG_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace(tu_);
 
   // x(N) = -inv(M')*(inv(M)*h + SM'*u(N))
   tx_ = h_[N_];
   M_[N_].triangularView<Eigen::Lower>().solveInPlace(tx_);
-  tx_.noalias() += SM_[N_].transpose()*tu_;
+  tx_.noalias() += SM_[N_].transpose() * tu_;
   M_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace(tx_);
   tx_ *= -1.0;
 
@@ -248,34 +264,34 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
 
   // Copy these into the solution vector.
   // Using reshaped aliases to make indexing easier.
-  Eigen::Map<MatrixXd> dz(dx->z_->data(),nx_ + nu_, N_+1);
-  Eigen::Map<MatrixXd> dl(dx->l_->data(),nx_, N_+1);
+  Eigen::Map<MatrixXd> dz(dx->z_->data(), nx_ + nu_, N_ + 1);
+  Eigen::Map<MatrixXd> dl(dx->l_->data(), nx_, N_ + 1);
 
-  dz.block(0,N_,nx_,1) = tx_;
-  dz.block(nx_,N_,nu_,1) = tu_;
+  dz.block(0, N_, nx_, 1) = tx_;
+  dz.block(nx_, N_, nu_, 1) = tu_;
   dl.col(N_) = tl_;
 
   // The main backwards recursion loop.
-  for(int i = N_ - 1;i >= 0; i--){
+  for (int i = N_ - 1; i >= 0; i--) {
     // Solve SG'*u(i) = inv(SG)*(SM*inv(M)*h + ru) + P'*l(i+1)
     tx_ = h_[i];
     M_[i].triangularView<Eigen::Lower>().solveInPlace(tx_);
 
     // This is an alias.
-    auto ui = dz.block(nx_,i,nu_,1); // dz(i) = [xi;ui], extract ui
-    ui.noalias() = SM_[i]*tx_ + r1.block(nx_,i,nu_,1); // SM*tx + ru
-    SG_[i].triangularView<Eigen::Lower>().solveInPlace(ui); 
-    ui.noalias() += P_[i].transpose() * dl.col(i+1);
+    auto ui = dz.block(nx_, i, nu_, 1);  // dz(i) = [xi;ui], extract ui
+    ui.noalias() = SM_[i] * tx_ + r1.block(nx_, i, nu_, 1);  // SM*tx + ru
+    SG_[i].triangularView<Eigen::Lower>().solveInPlace(ui);
+    ui.noalias() += P_[i].transpose() * dl.col(i + 1);
     SG_[i].triangularView<Eigen::Lower>().transpose().solveInPlace(ui);
 
     // Solve -M'*x(i) = inv(M)*h + SM'*u(i) + AM'*l(i+1)
     // This is an alias.
-    auto xi = dz.block(0,i,nx_,1);
+    auto xi = dz.block(0, i, nx_, 1);
 
     xi = h_[i];
     M_[i].triangularView<Eigen::Lower>().solveInPlace(xi);
     xi.noalias() += SM_[i].transpose() * ui;
-    xi.noalias() += AM_[i].transpose() * dl.col(i+1);
+    xi.noalias() += AM_[i].transpose() * dl.col(i + 1);
     M_[i].triangularView<Eigen::Lower>().transpose().solveInPlace(xi);
     xi *= -1.0;
 
@@ -292,14 +308,14 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
   VectorXd& dv = dx->v();
   dv = r.v_;
   // r3_ = A*dz, r3_ is being used as a temp.
-  data_->gemvA(dx->z(),1.0,0.0,&r3_); 
-  dv += gamma_.asDiagonal()*r3_;
-  dv = dv.cwiseQuotient(mus_); 
+  data_->gemvA(dx->z(), 1.0, 0.0, &r3_);
+  dv += gamma_.asDiagonal() * r3_;
+  dv = dv.cwiseQuotient(mus_);
 
   // Compute dy = b - A*dz.
   VectorXd& dy = dx->y();
-  data_->gemvA(dx->z(),-1.0,0.0,&dy);
-  data_->axpyb(1.0,&dy);
+  data_->gemvA(dx->z(), -1.0, 0.0, &dy);
+  data_->axpyb(1.0, &dy);
 
   return true;
 }

@@ -61,7 +61,7 @@ class MPCVariable {
    * Calculations cannot be performed until a data object is provided.
    * @param[in] data pointer to the problem data
    */
-  void LinkData(MPCData* data) { data_ = data; }
+  void LinkData(const MPCData* data) { data_ = data; }
 
   /**
    * Fills the variable with one value.
@@ -148,6 +148,7 @@ class MPCVariable {
   friend class MPCResidual;
   friend class MPCFeasibility;
   friend class RicattiLinearSolver;
+  friend class FBstabMPC;
 };
 
 }  // namespace fbstab

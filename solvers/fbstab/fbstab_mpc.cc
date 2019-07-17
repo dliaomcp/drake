@@ -1,89 +1,87 @@
 #include "drake/solvers/fbstab/fbstab_mpc.h"
 
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
+#include <memory>
+#include <stdexcept>
+#include <vector>
 
+#include <Eigen/Dense>
 #include "drake/solvers/fbstab/components/mpc_data.h"
-#include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/components/mpc_residual.h"
-#include "drake/solvers/fbstab/components/ricatti_linear_solver.h"
 #include "drake/solvers/fbstab/components/mpc_feasibility.h"
+#include "drake/solvers/fbstab/components/mpc_residual.h"
+#include "drake/solvers/fbstab/components/mpc_variable.h"
+#include "drake/solvers/fbstab/components/ricatti_linear_solver.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc){
-	if(N < 1 || nx < 1 || nu < 1 || nc < 1)
-		throw std::runtime_error("Invalid size for MPC problem");
+FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc) {
+  if (N < 1 || nx < 1 || nu < 1 || nc < 1) {
+    throw std::runtime_error(
+        "In FBstabMPC::FBstabMPC: problem sizes must be positive.");
+  }
 
-	nx_ = nx;
-	nu_ = nu;
-	nc_ = nc;
-	N_ = N;
-	nz_ = (nx+nu)*(N+1);
-	nl_ = nx*(N+1);
-	nv_ = nc*(N+1);
+  N_ = N;
+  nx_ = nx;
+  nu_ = nu;
+  nc_ = nc;
+  nz_ = (nx + nu) * (N + 1);
+  nl_ = nx * (N + 1);
+  nv_ = nc * (N + 1);
 
-	QPsizeMPC size;
-	size.N = N;
-	size.nx = nx;
-	size.nu = nu;
-	size.nc = nc;
+  // create the components
+  x1_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
+  x2_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
+  x3_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
+  x4_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
 
-	// create the components
-	MPCVariable *x1 = new MPCVariable(size);
-	MPCVariable *x2 = new MPCVariable(size);
-	MPCVariable *x3 = new MPCVariable(size);
-	MPCVariable *x4 = new MPCVariable(size);
+  r1_ = std::make_unique<MPCResidual>(N, nx, nu, nc);
+  r2_ = std::make_unique<MPCResidual>(N, nx, nu, nc);
 
-	MPCResidual *r1 = new MPCResidual(size);
-	MPCResidual *r2 = new MPCResidual(size);
+  linear_solver_ = std::make_unique<RicattiLinearSolver>(N, nx, nu, nc);
 
-	RicattiLinearSolver *linsolve = new RicattiLinearSolver(size);
-	MPCFeasibility *fcheck = new MPCFeasibility(size);
+  feasibility_checker_ = std::make_unique<MPCFeasibility>(N, nx, nu, nc);
 
-	algo_ = new FBstabAlgoMPC(x1,x2,x3,x4,r1,r2,linsolve,fcheck);
+  algorithm_ = std::make_unique<FBstabAlgoMPC>(
+      x1_.get(), x2_.get(), x3_.get(), x4_.get(), r1_.get(), r2_.get(),
+      linear_solver_.get(), feasibility_checker_.get());
 }
 
-SolverOut FBstabMPC::Solve(const QPDataMPC &qp, double *z, double *l, double *v, double *y, bool use_initial_guess){
-	QPsizeMPC size;
-	size.nx = nx_;
-	size.nu = nu_;
-	size.nc = nc_;
-	size.N = N_;
+SolverOut FBstabMPC::Solve(const QPDataMPC& qp, const QPVariableMPC& x,
+                           bool use_initial_guess) {
+  MPCData data(qp.Q, qp.R, qp.S, qp.q, qp.r, qp.A, qp.B, qp.c, qp.E, qp.L, qp.d,
+               qp.x0);
+  MPCVariable x0(x.z, x.l, x.v, x.y);
 
-	MPCData data(qp.Q,qp.R,qp.S,qp.q,qp.r,qp.A,qp.B,qp.c,qp.E,qp.L,qp.d,qp.x0,size);
-	MPCVariable x0(size,z,l,v,y);
+  if (data.N_ != N_ || data.nx_ != nx_ || data.nu_ != nu_ || data.nc_ != nc_) {
+    throw std::runtime_error(
+        "In FBstabMPC::Solve: mismatch between *this and data dimensions.");
+  }
+  if (x0.nz_ != nz_ || x0.nl_ != nl_ || x0.nv_ != nv_) {
+    throw std::runtime_error(
+        "In FBstabMPC::Solve: mismatch between *this and initial guess "
+        "dimensions.");
+  }
 
-	if(!use_initial_guess){
-		x0.z().fill(0.0);
-		x0.l().fill(0.0);
-		x0.v().fill(0.0);
-		x0.y().fill(0.0);
-	}
+  if (!use_initial_guess) {
+    x0.Fill(0.0);
+  }
 
-	return algo_->Solve(&data,&x0);
+  return algorithm_->Solve(&data, &x0);
 }
 
-void FBstabMPC::UpdateOption(const char *option, double value){
-	algo_->UpdateOption(option,value);
+void FBstabMPC::UpdateOption(const char* option, double value) {
+  algorithm_->UpdateOption(option, value);
 }
-void FBstabMPC::UpdateOption(const char *option, int value){
-	algo_->UpdateOption(option,value);
+void FBstabMPC::UpdateOption(const char* option, int value) {
+  algorithm_->UpdateOption(option, value);
 }
-void FBstabMPC::UpdateOption(const char *option, bool value){
-	algo_->UpdateOption(option,value);
+void FBstabMPC::UpdateOption(const char* option, bool value) {
+  algorithm_->UpdateOption(option, value);
 }
-void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level){
-	algo_->display_level() = level;
+void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level) {
+  algorithm_->display_level() = level;
 }
-
-FBstabMPC::~FBstabMPC(){
-	algo_->DeleteComponents();
-	delete algo_;
-}
-
 
 }  // namespace fbstab
 }  // namespace solvers

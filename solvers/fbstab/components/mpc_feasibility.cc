@@ -1,93 +1,93 @@
 #include "drake/solvers/fbstab/components/mpc_feasibility.h"
 
-#include <cmath>
+#include <stdexcept>
 
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
-MPCFeasibility::MPCFeasibility(QPsizeMPC size) {
-  nx_ = size.nx;
-  nu_ = size.nu;
-  nc_ = size.nc;
-  N_ = size.N;
+MPCFeasibility::MPCFeasibility(int N, int nx, int nu, int nc) {
+  nx_ = nx;
+  nu_ = nu;
+  nc_ = nc;
+  N_ = N;
 
   nz_ = (nx_ + nu_) * (N_ + 1);
   nl_ = nx_ * (N_ + 1);
   nv_ = nc_ * (N_ + 1);
 
-  double* r1 = new double[nz_];
-  double* r2 = new double[nl_];
-  double* r3 = new double[nv_];
-
-  z_ = StaticMatrix(r1, nz_);
-  l_ = StaticMatrix(r2, nl_);
-  v_ = StaticMatrix(r3, nv_);
+  tz_.resize(nz_);
+  tl_.resize(nl_);
+  tv_.resize(nv_);
 }
-
-MPCFeasibility::~MPCFeasibility() {
-  delete[] z_.data;
-  delete[] l_.data;
-  delete[] v_.data;
-}
-
-void MPCFeasibility::LinkData(MPCData* data) { data_ = data; }
 
 void MPCFeasibility::ComputeFeasibility(const MPCVariable& x, double tol) {
   if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in MPCFeasibility");
+    throw std::runtime_error(
+        "In MPCFeasibility::ComputeFeasibility: problem data not linked.");
+  }
+  if (x.N_ != N_ || x.nx_ != nx_ || x.nu_ != nu_ || x.nc_ != nc_) {
+    throw std::runtime_error(
+        "In MPCFeasibility::ComputeFeasibility: size mismatch between *this "
+        "and x.");
   }
 
-  primal_ = true;
-  dual_ = true;
+  primal_feasible_ = true;
+  dual_feasible_ = true;
 
-  // check dual feasibility
-  double w = x.z_.infnorm();
+  // The conditions for dual-infeasibility are:
+  // max(Az) <= 0 and f'*z < 0 and |Hz| <= tol * |z| and |Gz| <= tol*|z|
 
-  // v = max(Az)
-  data_->gemvA(x.z_, 1.0, 0.0, &v_);
-  double d1 = v_.max();
-  // l = norm(Gz)
-  data_->gemvG(x.z_, 1.0, 0.0, &l_);
-  double d2 = l_.infnorm();
-  // z = norm(Hz)
-  data_->gemvH(x.z_, 1.0, 0.0, &z_);
-  double d3 = z_.infnorm();
-  // f'*z
-  z_.fill(0.0);
-  data_->axpyf(1.0, &z_);
-  double d4 = StaticMatrix::dot(z_, x.z_);
+  // Compute d1 = max(Az).
+  data_->gemvA(x.z(), 1.0, 0.0, &tv_);
+  double d1 = tv_.maxCoeff();
 
+  // Compute d2 = infnorm(Gz).
+  data_->gemvG(x.z(), 1.0, 0.0, &tl_);
+  double d2 = tl_.lpNorm<Eigen::Infinity>();
+
+  // Compute d3 = infnorm(Hz).
+  data_->gemvH(x.z(), 1.0, 0.0, &tz_);
+  double d3 = tz_.lpNorm<Eigen::Infinity>();
+
+  // Compute d4 = f'*z
+  tz_.setConstant(0.0);
+  data_->axpyf(1.0, &tz_);
+  double d4 = tz_.dot(x.z());
+
+  double w = x.z().lpNorm<Eigen::Infinity>();
   if ((d1 <= 0) && (d2 <= tol * w) && (d3 <= tol * w) && (d4 < 0) &&
       (w > 1e-14)) {
-    dual_ = false;
+    dual_feasible_ = false;
+  } else {
+    dual_feasible_ = true;
   }
 
-  // check primal feasibility
-  double u = x.l_.infnorm() + x.v_.infnorm();
+  // The conditions for primal infeasibility are:
+  // v'*b + l'*h < 0 and |A'*v + G'*l| \leq tol * |(v,l)|
 
-  // norm(G'*l + A'*v)
-  z_.fill(0.0);
-  data_->gemvAT(x.v_, 1.0, 1.0, &z_);
-  data_->gemvGT(x.l_, 1.0, 1.0, &z_);
-  double p1 = z_.infnorm();
+  // Compute p1 = infnorm(G'*l + A'*v).
+  tz_.fill(0.0);
+  data_->gemvAT(x.v(), 1.0, 1.0, &tz_);
+  data_->gemvGT(x.l(), 1.0, 1.0, &tz_);
+  double p1 = tz_.lpNorm<Eigen::Infinity>();
 
-  // b'*v + h'*l
-  v_.fill(0.0);
-  data_->axpyb(1.0, &v_);
+  // Compute p2 = v'*b + l'*h.
+  tv_.setConstant(0.0);
+  data_->axpyb(1.0, &tv_);
+  tl_.setConstant(0.0);
+  data_->axpyh(1.0, &tl_);
+  double p2 = tl_.dot(x.l()) + tv_.dot(x.v());
 
-  l_.fill(0.0);
-  data_->axpyh(1.0, &l_);
-
-  double p2 = StaticMatrix::dot(x.l_, l_) + StaticMatrix::dot(x.v_, v_);
-
+  double u =
+      max(x.v().lpNorm<Eigen::Infinity>(), x.l().lpNorm<Eigen::Infinity>());
   if ((p1 <= tol * u) && (p2 < 0)) {
-    primal_ = false;
+    primal_feasible_ = false;
+  } else {
+    primal_feasible_ = true;
   }
 }
 

@@ -21,32 +21,32 @@ class MPCComponentUnitTests;
  * Implements a Ricatti recursion based method for solving linear systems of
  * equations that arise when solving MPC form QPs (see mpc_data.h) using FBstab.
  * The equations are of the form
- * 
+ *
  * [Hs  G' A'][dz] = [rz]
  * [-G  sI 0 ][dl] = [rl]
  * [-CA 0  D ][dv] = [rv]
- * 
+ *
  * where s = sigma, C = diag(gamma), D = diag(mu + sigma*gamma).
  * The vectors gamma and mu are defined in (24) of
  * https://arxiv.org/pdf/1901.04046.pdf.
- * 
+ *
  * In compact form: V(x,xbar,sigma)*dx = r.
- * 
+ *
  * This classes uses a Ricatti recursion like the one in
- * 
- * Rao, Christopher V., Stephen J. Wright, and James B. Rawlings. 
- * "Application of interior-point methods to model predictive control." 
+ *
+ * Rao, Christopher V., Stephen J. Wright, and James B. Rawlings.
+ * "Application of interior-point methods to model predictive control."
  * Journal of optimization theory and applications 99.3 (1998): 723-757.
- * 
- * to perform the factorization efficiently. This class contains workspace memory 
- * and methods for setting up and solving the linear systems.
+ *
+ * to perform the factorization efficiently. This class contains workspace
+ * memory and methods for setting up and solving the linear systems.
  */
 class RicattiLinearSolver {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RicattiLinearSolver);
   /**
    * Allocates workspace memory.
-   * 
+   *
    * @param[in] N  horizon length
    * @param[in] nx number of states
    * @param[in] nu number of control input
@@ -58,12 +58,12 @@ class RicattiLinearSolver {
    * Links to problem data needed to perform calculations.
    * @param[in] data pointer to the problem data
    */
-  void LinkData(MPCData* data) { data_ = data; };
+  void LinkData(const MPCData* data) { data_ = data; };
 
   /**
-   * Sets a parameter used in the algorithm, see (19) 
+   * Sets a parameter used in the algorithm, see (19)
    * in https://arxiv.org/pdf/1901.04046.pdf.
-   * @param[in] alpha 
+   * @param[in] alpha
    */
   void SetAlpha(double alpha) { alpha_ = alpha; };
 
@@ -84,10 +84,10 @@ class RicattiLinearSolver {
    * Applies the Ricatti factorization to compute dx = inv(V)*r,
    * Factor MUST be called first.
    *
-   * @param[in]  r    rhs residual 
+   * @param[in]  r    rhs residual
    * @param[out] dx   storage for the solution
    * @return     true if the solve succeeds, false otherwise
-   * 
+   *
    * Throws a runtime_error if problem data hasn't been linked or
    * if the sizes of dx and r don't match.
    */
@@ -137,16 +137,16 @@ class RicattiLinearSolver {
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
 
-  MPCData* data_ = nullptr;
+  const MPCData* data_ = nullptr;
   double zero_tol_ = 1e-13;
   double alpha_ = 0.95;
 
   /**
    * Computes the gradient of phi at (a,b),
    * see (19) in https://arxiv.org/pdf/1901.04046.pdf.
-   * @param[in]  a    
+   * @param[in]  a
    * @param[in]  b
-   * @return     d/da phi(a,b) and d/db phi(a,b)   
+   * @return     d/da phi(a,b) and d/db phi(a,b)
    */
   Eigen::Vector2d PFBgrad(double a, double b);
 

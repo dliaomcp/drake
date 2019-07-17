@@ -6,10 +6,10 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 #include "drake/solvers/fbstab/components/dense_data.h"
-#include "drake/solvers/fbstab/components/dense_variable.h"
+#include "drake/solvers/fbstab/components/dense_feasibility.h"
 #include "drake/solvers/fbstab/components/dense_linear_solver.h"
 #include "drake/solvers/fbstab/components/dense_residual.h"
-#include "drake/solvers/fbstab/components/dense_feasibility.h"
+#include "drake/solvers/fbstab/components/dense_variable.h"
 
 namespace drake {
 namespace solvers {

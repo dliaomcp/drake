@@ -100,7 +100,7 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
 
     // The solver stops if:
     // a) the desired precision is obtained
-    // b) the iterations stall, ie., ||x(k) - x(k-1)|| \leq tol
+    // b) the iterations stall, ie., ||x(k) - x(k-1)|| <= tol
     if (Ek <= abs_tol_ + E0 * rel_tol_ || dx_->Norm() <= stall_tol_) {
       output.eflag = SUCCESS;
       output.residual = Ek;
@@ -129,7 +129,7 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
     double Ekpen = rk_->Norm();
     double Eo = SolveSubproblem(xi_, xk_, inner_tol, sigma_, Ekpen);
 
-    if (newton_iters_ >= max_newton_iters_) {  // if iteration limit exceeded
+    if (newton_iters_ >= max_newton_iters_) {  // if iteration limit is exceeded
       output.eflag = MAXITERATIONS;
       if (Eo < Ekpen) {
         x0->Copy(*xi_);
@@ -166,7 +166,6 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
         return output;
       }
     }
-
     // x(k+1) = x(i)
     xk_->Copy(*xi_);
     prox_iters_++;
@@ -234,7 +233,7 @@ double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
 
     for (int j = 0; j < max_linesearch_iters_; j++) {
       // Compute trial point xp = x + t*dx
-      // and evaluate the merit function at xp
+      // and evaluate the merit function at xp.
       xp_->Copy(*x);
       xp_->axpy(*dx_, t);
       ri_->InnerResidual(*xp_, *xbar, sigma);
@@ -246,7 +245,8 @@ double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       } else {
         t *= beta_;
       }
-    }                  // end linesearch
+    }
+
     x->axpy(*dx_, t);  // x <- x + t*dx
   }
   // make duals non-negative

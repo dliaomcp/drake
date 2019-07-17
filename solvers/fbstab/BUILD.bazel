@@ -15,32 +15,13 @@ drake_cc_library(
     ],
     hdrs = ["fbstab_dense.h"],
     deps = [
+        "//common:essential",
         "//solvers/fbstab/components:dense_data",
         "//solvers/fbstab/components:dense_feasibility",
         "//solvers/fbstab/components:dense_linear_solver",
         "//solvers/fbstab/components:dense_residual",
         "//solvers/fbstab/components:dense_variable",
-    ],
-)
-
-drake_cc_googletest(
-    # unit tests
-    name = "dense_unit_tests",
-    srcs = ["test/fbstab_dense_unit_tests.cc"],
-    copts = ["-g"],
-    deps = [":fbstab_dense"],
-)
-
-drake_cc_googletest(
-    # fbstab_mpc
-    name = "mpc_tests",
-    srcs = [
-        "test/fbstab_mpc_tests.cc",
-        "test/test_helpers.h",
-    ],
-    deps = [
-        ":fbstab_mpc",
-        ":static_matrix",
+        "@eigen",
     ],
 )
 
@@ -50,11 +31,47 @@ drake_cc_library(
         "fbstab_algorithm.h",
         "fbstab_algorithm-inl.h",
         "fbstab_mpc.cc",
-        "fbstab_mpc.h",
     ],
     hdrs = ["fbstab_mpc.h"],
     deps = [
-        ":mpc_components",
-        ":static_matrix",
+        "//common:essential",
+        "//solvers/fbstab/components:mpc_data",
+        "//solvers/fbstab/components:mpc_feasibility",
+        "//solvers/fbstab/components:mpc_residual",
+        "//solvers/fbstab/components:mpc_variable",
+        "//solvers/fbstab/components:ricatti_linear_solver",
+        "@eigen",
+    ],
+)
+
+drake_cc_library(
+    name = "ocp_generator",
+    srcs = [
+        "test/ocp_generator.cc",
+    ],
+    hdrs = ["test/ocp_generator.h"],
+    deps = [
+        ":fbstab_mpc",
+        "//common:essential",
+        "@eigen",
+    ],
+)
+
+drake_cc_googletest(
+    name = "dense_unit_tests",
+    srcs = ["test/fbstab_dense_unit_tests.cc"],
+    deps = [
+        ":fbstab_dense",
+        "@eigen",
+    ],
+)
+
+drake_cc_googletest(
+    name = "mpc_unit_tests",
+    srcs = ["test/fbstab_mpc_unit_tests.cc"],
+    deps = [
+        ":fbstab_mpc",
+        ":ocp_generator",
+        "@eigen",
     ],
 )

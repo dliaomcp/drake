@@ -30,10 +30,11 @@ struct SolverOut {
 };
 
 /**
- * FBstabAlgorithm implements the FBstab solver for
- * convex quadratic programs.
+ * This class implements the FBstab solver for
+ * convex quadratic programs, see
+ * https://arxiv.org/pdf/1901.04046.pdf for more details.
  *
- * FBstab tries to solve the following convex QP
+ * FBstab tries to solve instances of the following convex QP:
  *
  * min.  1/2 z'*H*z + f'*z
  *
@@ -46,11 +47,12 @@ struct SolverOut {
  * should be written so as to be efficient for specific classes
  * of QPs, e.g., model predictive control QPs or sparse QPs.
  *
- * @tparam Variable storage and methods for working with primal-dual variables
- * @tparam Residual storage and methods for computing QP residuals
- * @tparam Data QP type specific data storage
- * @tparam LinearSolver solves linear systems of equations
- * @tparam Feasibility Checks for primal-dual infeasibility
+ * @tparam Variable:      storage and methods for working with primal-dual
+ * variables
+ * @tparam Residual:      storage and methods for computing QP residuals
+ * @tparam Data:          QP specific data storage and operations
+ * @tparam LinearSolver:  solves Newton step systems
+ * @tparam Feasibility:   checks for primal-dual infeasibility
  */
 template <class Variable, class Residual, class Data, class LinearSolver,
           class Feasibility>
@@ -80,28 +82,31 @@ class FBstabAlgorithm {
 
   /**
    * Attempts to solve the QP for the given
-   * data starting from the supplied initial guess
+   * data starting from the supplied initial guess.
    *
-   * @param[in] qp_data Problem data
-   * @param[both] x0 Initial primal-dual guess, overwritten with the solution
+   * @param[in] qp_data problem data
+   * @param[both] x0    initial primal-dual guess, overwritten with the solution
    *
    * @return Details on the solver output
    */
   SolverOut Solve(const Data* qp_data, Variable* x0);
 
   /**
-   * Allows setting of algorithm options
-   * @param[in] option Option name
-   * @param[in] value New value
-   *
+   * Allows setting of algorithm options.
+   * @param[in] option option name
+   * @param[in] value  new value
+
    * Possible options and default parameters are:
    * sigma0{1e-8}: Initial stabilization parameter
-   * alpha{0.95}: Penalized FB function parameter
-   * beta{0.7}: Backtracking linesearch parameter
-   * eta{1e-8}: Sufficient decrease parameter
+   * alpha{0.95}:  Penalized FB function parameter
+   * beta{0.7}:    Backtracking linesearch parameter
+   * eta{1e-8}:    Sufficient decrease parameter
    * inner_tol_multiplier{0.2}: Reduction factor for subproblem tolerance
    *
-   * The algorithm exists when: ||F(x)|| <= abs_tol + ||F(x0)|| rel_tol
+   * The algorithm exists when: ||\pi(x)|| <= abs_tol + ||\pi(x0)|| rel_tol
+   * where \pi is the natural residual function,
+   * (17) in https://arxiv.org/pdf/1901.04046.pdf.
+   *
    * abs_tol{1e-6}: Absolute tolerance
    * rel_tol{1e-12}: Relative tolerance
    * stall_tol{1e-10}: If the residual doesn't decrease by at least this failure
@@ -117,12 +122,14 @@ class FBstabAlgorithm {
    * to a single subproblem
    * max_linesearch_iters{20}: Maximum number of backtracking linesearch steps
    *
-   * check_feasibility{true}: Enable or disable the feasibility checker
-   * if the problem is known to be feasible then it should be disabled for speed
+   * check_feasibility{true}: Enables or disables the feasibility checker,
+   * if the problem is known to be feasible then it can be disabled for speed.
    */
   void UpdateOption(const char* option, double value);
   void UpdateOption(const char* option, int value);
   void UpdateOption(const char* option, bool value);
+
+  /** Acessor for display_level_ */
   Display& display_level() { return display_level_; }
 
  private:
@@ -144,7 +151,7 @@ class FBstabAlgorithm {
    * @param[in]    tol    Desired tolerance for the inner residual
    * @param[in]    sigma  Regularization strength
    * @param[in]    Eouter Current overall problem residual
-   * @return       Residual for the outer problem evaluated at x
+   * @return Residual for the outer problem evaluated at x
    *
    *
    * Note: Uses
@@ -240,8 +247,8 @@ class FBstabAlgorithm {
   // feasibility checker object
   Feasibility* feasibility_ = nullptr;
 
-  // Algorithm parameters
-  // See https://arxiv.org/pdf/1901.04046.pdf
+  // Algorithm parameters,
+  // see https://arxiv.org/pdf/1901.04046.pdf.
   double sigma0_ = 1e-8;
   double alpha_ = 0.95;
   double beta_ = 0.7;

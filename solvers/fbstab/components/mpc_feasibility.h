@@ -1,70 +1,85 @@
 #pragma once
 
-#include <cmath>
-
+#include <Eigen/Dense>
+#include "drake/common/drake_copyable.h"
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"
-#include "drake/solvers/fbstab/linalg/matrix_sequence.h"
-#include "drake/solvers/fbstab/linalg/static_matrix.h"
 
 namespace drake {
 namespace solvers {
 namespace fbstab {
 
 /**
- * A class that computes and store infeasibility certificates for MPC QPs.
+ * This class detects infeasibility in quadratic programs, see
+ * mpc_data.h for a description of the QPs.
+ * It contains methods for determining if a primal-dual variable
+ * is a certificate of either unboundedness (dual infeasibility)
+ * or primal infeasibility. It implements
+ * Algorithm 3 of https://arxiv.org/pdf/1901.04046.pdf.
  */
 class MPCFeasibility {
  public:
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCFeasibility);
   /**
    * Allocates workspace memory.
+   *
+   * @param[in] N  horizon length
+   * @param[in] nx number of states
+   * @param[in] nu number of control input
+   * @param[in] nc number of constraints per stage
    */
-  MPCFeasibility(QPsizeMPC size);
+  MPCFeasibility(int N, int nx, int nu, int nc);
 
   /**
-   * Frees allocated memory.
+   * Links to problem data needed to perform calculations.
+   * Calculations cannot be performed until a data object is provided.
+   * @param[in] data pointer to the problem data
    */
-  ~MPCFeasibility();
-
-  /**
-   * Links to problem data needed to perform calculations
-   * Calculations cannot be performed until a data object is provided
-   * @param[in] data Pointer to the problem data
-   */
-  void LinkData(MPCData* data);
+  void LinkData(const MPCData* data) { data_ = data; };
 
   /**
    * Checks to see if x is an infeasibility certificate for the QP and stores
    * the result internally.
    * @param[in] x   infeasibility certificate candidate
-   * @param[in] tol numerical tolerance used when checking the conditions
+   * @param[in] tol numerical tolerance
+   *
+   * Throws a runtime_error if x and *this aren't the same size
+   * or if the problem data hasn't been linked.
    */
   void ComputeFeasibility(const MPCVariable& x, double tol);
 
   /**
-   * Retrieve the result of the last infeasibility check
+   * Retrieve the result of the last infeasibility check.
    * @return false if a dual infeasibility certificate was found, true otherwise
    */
-  bool IsDualFeasible() const { return dual_; };
+  bool IsDualFeasible() const { return dual_feasible_; };
 
   /**
-   * Retrieve the result of the last infeasibility check
+   * Retrieve the result of the last infeasibility check.
    * @return false if a primal infeasibility certificate was found, true
    * otherwise
    */
-  bool IsPrimalFeasible() const { return primal_; }
+  bool IsPrimalFeasible() const { return primal_feasible_; }
 
  private:
-  // workspaces
-  StaticMatrix z_;
-  StaticMatrix l_;
-  StaticMatrix v_;
+  // Workspaces
+  Eigen::VectorXd tz_;
+  Eigen::VectorXd tl_;
+  Eigen::VectorXd tv_;
 
-  bool primal_ = true;
-  bool dual_ = true;
+  bool primal_feasible_ = true;
+  bool dual_feasible_ = true;
 
-  int nx_, nu_, nc_, N_, nz_, nl_, nv_;
-  MPCData* data_ = nullptr;
+  int N_ = 0;   // horizon length
+  int nx_ = 0;  // number of states
+  int nu_ = 0;  // number of controls
+  int nc_ = 0;  // constraints per stage
+  int nz_ = 0;  // number of primal variables
+  int nl_ = 0;  // number of equality duals
+  int nv_ = 0;  // number of inequality duals
+  const MPCData* data_ = nullptr;
+
+  double max(double a, double b) { return (a > b) ? a : b; }
 };
 
 }  // namespace fbstab

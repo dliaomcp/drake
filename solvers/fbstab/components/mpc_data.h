@@ -1,9 +1,9 @@
 #pragma once
 
-#include "drake/common/drake_copyable.h"
-
 #include <vector>
+
 #include <Eigen/Dense>
+#include "drake/common/drake_copyable.h"
 
 namespace drake {
 namespace solvers {
@@ -24,15 +24,21 @@ class MPCComponentUnitTests;
  *       x(0) = x0,
  *       E(i)*x(i) + L(i)*u(i) + d(i) <= 0,     i = 0 ... N
  *
- * This is a specialization of the general form (2):
+ * The horizon length is N, the dimension of x(i) is nx, of u(i) is nu,
+ * and the number of constraints per stage is nc.
+ *
+ * This is a specialization of the general form (2),
  *
  * min.  1/2 z'Hz + f'z
  *
  * s.t.  Gz =  h
  *       Az <= b
  *
+ * which has dimensions nz = (nx + nu) * (N + 1), nl = nx * (N + 1),
+ * and nv = nc * (N + 1).
+ *
  * This class contains storage and methods for implicitly working with the
- * compact representation (2).
+ * compact representation (2) in an efficient manner.
  */
 class MPCData {
  public:
@@ -163,7 +169,6 @@ class MPCData {
   const std::vector<Eigen::MatrixXd>* E_;
   const std::vector<Eigen::MatrixXd>* L_;
   const std::vector<Eigen::VectorXd>* d_;
-
   const Eigen::VectorXd* x0_;
 
   /**
@@ -172,13 +177,14 @@ class MPCData {
   void validate_length() const;
   /**
    * Throws an exception if any of the inputs have inconsistent sizes.
-   * Assumes the validate_length() has already been called.
+   * Assumes that validate_length() has already been called.
    */
   void validate_size() const;
 
   // friend class RicattiLinearSolver;
   friend class test::MPCComponentUnitTests;
   friend class RicattiLinearSolver;
+  friend class FBstabMPC;
 };
 
 }  // namespace fbstab

@@ -119,7 +119,7 @@ double MPCVariable::Norm() const {
   return sqrt(t1 * t1 + t2 * t2 + t3 * t3);
 }
 
-bool MPCVariable::SameSize(const MPCVariable& x, const MPCVariable& y){
+bool MPCVariable::SameSize(const MPCVariable& x, const MPCVariable& y) {
   return (x.nz_ == y.nz_ && x.nl_ == y.nl_ && x.nv_ == y.nv_);
 }
 
