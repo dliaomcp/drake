@@ -55,12 +55,6 @@ class RicattiLinearSolver {
   RicattiLinearSolver(int N, int nx, int nu, int nc);
 
   /**
-   * Links to problem data needed to perform calculations.
-   * @param[in] data pointer to the problem data
-   */
-  void LinkData(const MPCData* data) { data_ = data; };
-
-  /**
    * Sets a parameter used in the algorithm, see (19)
    * in https://arxiv.org/pdf/1901.04046.pdf.
    * @param[in] alpha
@@ -91,7 +85,7 @@ class RicattiLinearSolver {
    * Throws a runtime_error if problem data hasn't been linked or
    * if the sizes of dx and r don't match.
    */
-  bool Solve(const MPCResidual& r, MPCVariable* dx);
+  bool Solve(const MPCResidual& r, MPCVariable* dx) const;
 
  private:
   // Workspace matrices.
@@ -108,8 +102,8 @@ class RicattiLinearSolver {
   std::vector<Eigen::MatrixXd> AM_;
 
   // Storage for the vector portion of the recursion.
-  std::vector<Eigen::VectorXd> h_;
-  std::vector<Eigen::VectorXd> th_;
+  mutable std::vector<Eigen::VectorXd> h_;
+  mutable std::vector<Eigen::VectorXd> th_;
 
   // Workspace.
   Eigen::VectorXd gamma_;
@@ -122,12 +116,12 @@ class RicattiLinearSolver {
   Eigen::MatrixXd Linv_;
 
   // Workspace vectors.
-  Eigen::VectorXd tx_;
-  Eigen::VectorXd tl_;
-  Eigen::VectorXd tu_;
-  Eigen::VectorXd r1_;
-  Eigen::VectorXd r2_;
-  Eigen::VectorXd r3_;
+  mutable Eigen::VectorXd tx_;
+  mutable Eigen::VectorXd tl_;
+  mutable Eigen::VectorXd tu_;
+  mutable Eigen::VectorXd r1_;
+  mutable Eigen::VectorXd r2_;
+  mutable Eigen::VectorXd r3_;
 
   int N_ = 0;   // horizon length
   int nx_ = 0;  // number of states

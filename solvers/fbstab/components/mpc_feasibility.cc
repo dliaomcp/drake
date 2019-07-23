@@ -25,10 +25,7 @@ MPCFeasibility::MPCFeasibility(int N, int nx, int nu, int nc) {
 }
 
 void MPCFeasibility::ComputeFeasibility(const MPCVariable& x, double tol) {
-  if (data_ == nullptr) {
-    throw std::runtime_error(
-        "In MPCFeasibility::ComputeFeasibility: problem data not linked.");
-  }
+  const MPCData* const data = x.data();
   if (x.N_ != N_ || x.nx_ != nx_ || x.nu_ != nu_ || x.nc_ != nc_) {
     throw std::runtime_error(
         "In MPCFeasibility::ComputeFeasibility: size mismatch between *this "
@@ -42,24 +39,24 @@ void MPCFeasibility::ComputeFeasibility(const MPCVariable& x, double tol) {
   // max(Az) <= 0 and f'*z < 0 and |Hz| <= tol * |z| and |Gz| <= tol*|z|
 
   // Compute d1 = max(Az).
-  data_->gemvA(x.z(), 1.0, 0.0, &tv_);
-  double d1 = tv_.maxCoeff();
+  data->gemvA(x.z(), 1.0, 0.0, &tv_);
+  const double d1 = tv_.maxCoeff();
 
   // Compute d2 = infnorm(Gz).
-  data_->gemvG(x.z(), 1.0, 0.0, &tl_);
-  double d2 = tl_.lpNorm<Eigen::Infinity>();
+  data->gemvG(x.z(), 1.0, 0.0, &tl_);
+  const double d2 = tl_.lpNorm<Eigen::Infinity>();
 
   // Compute d3 = infnorm(Hz).
-  data_->gemvH(x.z(), 1.0, 0.0, &tz_);
-  double d3 = tz_.lpNorm<Eigen::Infinity>();
+  data->gemvH(x.z(), 1.0, 0.0, &tz_);
+  const double d3 = tz_.lpNorm<Eigen::Infinity>();
 
   // Compute d4 = f'*z
   tz_.setConstant(0.0);
-  data_->axpyf(1.0, &tz_);
-  double d4 = tz_.dot(x.z());
+  data->axpyf(1.0, &tz_);
+  const double d4 = tz_.dot(x.z());
 
   double w = x.z().lpNorm<Eigen::Infinity>();
-  if ((d1 <= 0) && (d2 <= tol * w) && (d3 <= tol * w) && (d4 < 0) &&
+  if ((d1 <= w * tol) && (d2 <= tol * w) && (d3 <= tol * w) && (d4 < 0) &&
       (w > 1e-14)) {
     dual_feasible_ = false;
   } else {
@@ -71,18 +68,18 @@ void MPCFeasibility::ComputeFeasibility(const MPCVariable& x, double tol) {
 
   // Compute p1 = infnorm(G'*l + A'*v).
   tz_.fill(0.0);
-  data_->gemvAT(x.v(), 1.0, 1.0, &tz_);
-  data_->gemvGT(x.l(), 1.0, 1.0, &tz_);
-  double p1 = tz_.lpNorm<Eigen::Infinity>();
+  data->gemvAT(x.v(), 1.0, 1.0, &tz_);
+  data->gemvGT(x.l(), 1.0, 1.0, &tz_);
+  const double p1 = tz_.lpNorm<Eigen::Infinity>();
 
   // Compute p2 = v'*b + l'*h.
   tv_.setConstant(0.0);
-  data_->axpyb(1.0, &tv_);
+  data->axpyb(1.0, &tv_);
   tl_.setConstant(0.0);
-  data_->axpyh(1.0, &tl_);
-  double p2 = tl_.dot(x.l()) + tv_.dot(x.v());
+  data->axpyh(1.0, &tl_);
+  const double p2 = tl_.dot(x.l()) + tv_.dot(x.v());
 
-  double u =
+  const double u =
       max(x.v().lpNorm<Eigen::Infinity>(), x.l().lpNorm<Eigen::Infinity>());
   if ((p1 <= tol * u) && (p2 < 0)) {
     primal_feasible_ = false;

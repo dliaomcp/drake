@@ -50,34 +50,36 @@ double MPCResidual::Norm() const {
 }
 
 double MPCResidual::Merit() const {
-  double temp = this->Norm();
+  const double temp = this->Norm();
   return 0.5 * temp * temp;
 }
 
 void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
                                 double sigma) {
-  if (data_ == nullptr) {
+  const MPCData* const data = x.data();
+  if (xbar.data_ != data) {
     throw std::runtime_error(
-        "Cannot call MPCResidual::InnerResidual until data is linked.");
+        "In MPCResidual::InnerResidual: x and xbar have mismatched problem "
+        "data.");
   }
 
   // r.z = H*z + f + G'*l + A'*v + sigma*(z-zbar)
   z_.setConstant(0.0);
-  data_->axpyf(1.0, &z_);
-  data_->gemvH(x.z(), 1.0, 1.0, &z_);
-  data_->gemvGT(x.l(), 1.0, 1.0, &z_);
-  data_->gemvAT(x.v(), 1.0, 1.0, &z_);
+  data->axpyf(1.0, &z_);
+  data->gemvH(x.z(), 1.0, 1.0, &z_);
+  data->gemvGT(x.l(), 1.0, 1.0, &z_);
+  data->gemvAT(x.v(), 1.0, 1.0, &z_);
   z_.noalias() += sigma * (x.z() - xbar.z());
 
   // r.l = h - G*z + sigma(l - lbar)
   l_.setConstant(0.0);
-  data_->axpyh(1.0, &l_);
-  data_->gemvG(x.z(), -1.0, 1.0, &l_);
+  data->axpyh(1.0, &l_);
+  data->gemvG(x.z(), -1.0, 1.0, &l_);
   l_.noalias() += sigma * (x.l() - xbar.l());
 
   // rv = phi(y + sigma*(v-vbar),v)
   for (int i = 0; i < nv_; i++) {
-    double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
+    const double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
     v_(i) = pfb(ys, x.v()(i), alpha_);
   }
   znorm_ = z_.norm();
@@ -86,21 +88,18 @@ void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
 }
 
 void MPCResidual::NaturalResidual(const MPCVariable& x) {
-  if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in MPCResidual");
-  }
-
+  const MPCData* const data = x.data();
   // r.z = H*z + f + G'*l + A'*v
   z_.setConstant(0.0);
-  data_->axpyf(1.0, &z_);
-  data_->gemvH(x.z(), 1.0, 1.0, &z_);
-  data_->gemvGT(x.l(), 1.0, 1.0, &z_);
-  data_->gemvAT(x.v(), 1.0, 1.0, &z_);
+  data->axpyf(1.0, &z_);
+  data->gemvH(x.z(), 1.0, 1.0, &z_);
+  data->gemvGT(x.l(), 1.0, 1.0, &z_);
+  data->gemvAT(x.v(), 1.0, 1.0, &z_);
 
   // r.l = h - G*z + sigma(l - lbar)
   l_.setConstant(0.0);
-  data_->axpyh(1.0, &l_);
-  data_->gemvG(x.z(), -1.0, 1.0, &l_);
+  data->axpyh(1.0, &l_);
+  data->gemvG(x.z(), -1.0, 1.0, &l_);
 
   // rv = min(y,v)
   for (int i = 0; i < nv_; i++) {
@@ -112,25 +111,22 @@ void MPCResidual::NaturalResidual(const MPCVariable& x) {
 }
 
 void MPCResidual::PenalizedNaturalResidual(const MPCVariable& x) {
-  if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in MPCResidual");
-  }
-
+  const MPCData* const data = x.data();
   // r.z = H*z + f + G'*l + A'*v
   z_.setConstant(0.0);
-  data_->axpyf(1.0, &z_);
-  data_->gemvH(x.z(), 1.0, 1.0, &z_);
-  data_->gemvGT(x.l(), 1.0, 1.0, &z_);
-  data_->gemvAT(x.v(), 1.0, 1.0, &z_);
+  data->axpyf(1.0, &z_);
+  data->gemvH(x.z(), 1.0, 1.0, &z_);
+  data->gemvGT(x.l(), 1.0, 1.0, &z_);
+  data->gemvAT(x.v(), 1.0, 1.0, &z_);
 
   // r.l = h - G*z + sigma(l - lbar)
   l_.setConstant(0.0);
-  data_->axpyh(1.0, &l_);
-  data_->gemvG(x.z(), -1.0, 1.0, &l_);
+  data->axpyh(1.0, &l_);
+  data->gemvG(x.z(), -1.0, 1.0, &l_);
 
   // rv = alpha*min(y,v) + (1-alpha)*max(0,v)*max(0,y)
   for (int i = 0; i < nv_; i++) {
-    double nr = min(x.y()(i), x.v()(i));
+    const double nr = min(x.y()(i), x.v()(i));
     v_(i) = alpha_ * nr + (1 - alpha_) * max(0.0, x.y()(i)) * max(0, x.v()(i));
   }
   znorm_ = z_.norm();

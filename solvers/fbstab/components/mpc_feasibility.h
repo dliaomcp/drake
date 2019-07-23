@@ -31,13 +31,6 @@ class MPCFeasibility {
   MPCFeasibility(int N, int nx, int nu, int nc);
 
   /**
-   * Links to problem data needed to perform calculations.
-   * Calculations cannot be performed until a data object is provided.
-   * @param[in] data pointer to the problem data
-   */
-  void LinkData(const MPCData* data) { data_ = data; };
-
-  /**
    * Checks to see if x is an infeasibility certificate for the QP and stores
    * the result internally.
    * @param[in] x   infeasibility certificate candidate
@@ -77,7 +70,6 @@ class MPCFeasibility {
   int nz_ = 0;  // number of primal variables
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
-  const MPCData* data_ = nullptr;
 
   double max(double a, double b) { return (a > b) ? a : b; }
 };

@@ -27,11 +27,19 @@ class OCPGenerator {
 
   // void SpacecraftRelativeMotion(int N)
   // void Copolymerization(int N)
-  // void ServoMotor(int N)
+
+  // Fill internal storage with data
+  // for a servo motor control problem with horizon N.
+  // The example is from:
+  // Bemporad, Alberto, and Edoardo Mosca. "Fulfilling hard constraints in
+  // uncertain linear systems by reference managing." Automatica 34.4 (1998):
+  // 451-461.
+  void ServoMotor(int N = 20);
 
   // Fills internal storage with data
-  // for a double integrator problem with horizon N.
-  void DoubleIntegrator(int N);
+  // for a constrained double integrator
+  // problem with horizon N.
+  void DoubleIntegrator(int N = 10);
 
   Eigen::Vector4d ProblemSize();
   int nz() const { return nz_; }
@@ -39,6 +47,14 @@ class OCPGenerator {
   int nv() const { return nv_; }
 
  private:
+  void ExtendOverHorizon(const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R,
+                         const Eigen::MatrixXd& S, const Eigen::VectorXd& q,
+                         const Eigen::VectorXd& r, const Eigen::MatrixXd& A,
+                         const Eigen::MatrixXd& B, const Eigen::VectorXd& c,
+                         const Eigen::MatrixXd& E, const Eigen::MatrixXd& L,
+                         const Eigen::VectorXd& d, const Eigen::VectorXd& x0,
+                         int N);
+
   std::vector<Eigen::MatrixXd> Q_;
   std::vector<Eigen::MatrixXd> R_;
   std::vector<Eigen::MatrixXd> S_;

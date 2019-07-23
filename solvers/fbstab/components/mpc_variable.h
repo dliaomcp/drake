@@ -144,6 +144,8 @@ class MPCVariable {
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
   const MPCData* data_ = nullptr;
+  // Getter for data_ with a nullptr check.
+  const MPCData* data() const;
 
   friend class MPCResidual;
   friend class MPCFeasibility;

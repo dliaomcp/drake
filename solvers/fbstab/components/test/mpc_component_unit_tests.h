@@ -328,7 +328,6 @@ class MPCComponentUnitTests {
     double sigma = 1.0;
 
     MPCResidual r(data.N_, data.nx_, data.nu_, data.nc_);
-    r.LinkData(&data);
     r.InnerResidual(x, y, sigma);
 
     VectorXd rz_expected(data.nz_);
@@ -367,7 +366,6 @@ class MPCComponentUnitTests {
     x.InitializeConstraintMargin();
 
     MPCFeasibility f(data.N_, data.nx_, data.nu_, data.nc_);
-    f.LinkData(&data);
 
     f.ComputeFeasibility(x, 1e-8);
 
@@ -408,15 +406,14 @@ class MPCComponentUnitTests {
     double sigma = 1.0;
 
     RicattiLinearSolver ls(data.N_, data.nx_, data.nu_, data.nc_);
-    ls.LinkData(&data);
     ls.Factor(x, y, sigma);
 
     // Create the residual then solve.
     MPCResidual r(data.N_, data.nx_, data.nu_, data.nc_);
-    r.LinkData(&data);
     r.Fill(2.50);  // arbitrary
 
     MPCVariable dx(data.N_, data.nx_, data.nu_, data.nc_);
+    dx.LinkData(&data);
     ls.Solve(r, &dx);
 
     int nz = data.nz_;

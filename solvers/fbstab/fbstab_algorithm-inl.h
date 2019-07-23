@@ -67,10 +67,6 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
   dx_->LinkData(qp_data);
   xp_->LinkData(qp_data);
   x0->LinkData(qp_data);
-  rk_->LinkData(qp_data);
-  ri_->LinkData(qp_data);
-  linear_solver_->LinkData(qp_data);
-  feasibility_->LinkData(qp_data);
 
   // initialization
   double sigma_ = sigma0_;
@@ -191,15 +187,14 @@ double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
                                                      double Eouter) {
   double Eo = 0;   // residual
   double t = 1.0;  // linesearch parameter
-  ClearBuffer(merit_values_, kNonmonotoneLinesearch);
+  ClearMeritBuffer();
 
   for (int i = 0; i < max_inner_iters_; i++) {
     // compute inner residual
     ri_->InnerResidual(*x, *xbar, sigma);
     double Ei = ri_->Norm();
-
     // compute outer residual
-    rk_->PenalizedNaturalResidual(*x);
+    rk_->NaturalResidual(*x);
     Eo = rk_->Norm();
 
     // The inner loop stops if:
@@ -220,15 +215,14 @@ double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
 
     // solve for the Newton step
     linear_solver_->Factor(*x, *xbar, sigma);
-    // TODO(dliaomcp@umich.edu): Add solver error handling
     ri_->Negate();
     linear_solver_->Solve(*ri_, dx_);
     newton_iters_++;
 
     // linesearch *************************************
     double current_merit = ri_->Merit();
-    ShiftAndInsert(merit_values_, current_merit, kNonmonotoneLinesearch);
-    double m0 = VectorMax(merit_values_, kNonmonotoneLinesearch);
+    InsertMerit(current_merit);
+    double m0 = MaxMerit();
     t = 1.0;
 
     for (int j = 0; j < max_linesearch_iters_; j++) {
@@ -359,22 +353,21 @@ bool FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
 template <class Variable, class Residual, class Data, class LinearSolver,
           class Feasibility>
 void FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
-                     Feasibility>::ShiftAndInsert(double* buffer, double x,
-                                                  int buff_size) {
-  for (int i = 1; i < buff_size; i++) {
-    buffer[i] = buffer[i - 1];
+                     Feasibility>::InsertMerit(double x) {
+  for (int i = merit_buffer_.size() - 1; i > 0; i--) {
+    merit_buffer_.at(i) = merit_buffer_.at(i - 1);
   }
-  buffer[0] = x;
+  merit_buffer_.at(0) = x;
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver,
           class Feasibility>
 double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
-                       Feasibility>::VectorMax(double* vec, int length) {
-  double current_max = vec[0];
-  for (int i = 0; i < length; i++) {
-    if (vec[i] >= current_max) {
-      current_max = vec[i];
+                       Feasibility>::MaxMerit() {
+  double current_max = merit_buffer_.at(0);
+  for (unsigned long i = 1; i < merit_buffer_.size(); i++) {
+    if (merit_buffer_.at(i) > current_max) {
+      current_max = merit_buffer_.at(i);
     }
   }
   return current_max;
@@ -383,9 +376,9 @@ double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
 template <class Variable, class Residual, class Data, class LinearSolver,
           class Feasibility>
 void FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
-                     Feasibility>::ClearBuffer(double* buffer, int buff_size) {
-  for (int i = 0; i < buff_size; i++) {
-    buffer[i] = 0.0;
+                     Feasibility>::ClearMeritBuffer() {
+  for (unsigned long i = 0; i < merit_buffer_.size(); i++) {
+    merit_buffer_.at(i) = 0.0;
   }
 }
 
@@ -463,7 +456,7 @@ void FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
     printf("Begin Prox Iter: %d, Total Newton Iters: %d, Residual: %6.4e\n",
            prox_iters, newton_iters, t);
     printf("%10s  %10s  %10s  %10s  %10s\n", "Iter", "Step Size", "|rz|",
-           "|rv|", "|rl|");
+           "|rl|", "|rv|");
   }
 }
 
@@ -475,7 +468,7 @@ void FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
                                                      const Residual& r) {
   if (display_level_ == ITER_DETAILED) {
     printf("%10d  %10e  %10e  %10e  %10e\n", iter, step_length, r.z_norm(),
-           r.v_norm(), r.l_norm());
+           r.l_norm(), r.v_norm());
   }
 }
 

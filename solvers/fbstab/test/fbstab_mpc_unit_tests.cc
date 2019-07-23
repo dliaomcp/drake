@@ -91,6 +91,31 @@ GTEST_TEST(FBstabMPC, DoubleIntegratorLongHorizon) {
   ASSERT_LE(out.residual, 1e-6);
 }
 
+GTEST_TEST(FBstabMPC, ServoMotor) {
+  // Get the problem data.
+  OCPGenerator ocp;
+  ocp.ServoMotor(25);  // horizon length of 25
+  QPDataMPC data = ocp.GetFBstabInput();
+
+  // Set up the initial guess.
+  VectorXd z = VectorXd::Zero(ocp.nz());
+  VectorXd l = VectorXd::Zero(ocp.nl());
+  VectorXd v = VectorXd::Zero(ocp.nv());
+  VectorXd y = VectorXd::Zero(ocp.nv());
+  QPVariableMPC x = {&z, &l, &v, &y};
+
+  // Call the solver.
+  Eigen::Vector4d size = ocp.ProblemSize();
+  FBstabMPC solver(size(0), size(1), size(2), size(3));
+
+  solver.UpdateOption("abs_tol", 1e-6);
+  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  SolverOut out = solver.Solve(data, x);
+
+  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_LE(out.residual, 1e-6);
+}
+
 }  // namespace test
 }  // namespace fbstab
 }  // namespace solvers

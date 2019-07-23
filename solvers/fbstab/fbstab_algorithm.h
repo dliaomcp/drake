@@ -1,7 +1,9 @@
 #pragma once
 
+#include <array>
 #include <cmath>
 #include <cstdio>
+#include <iostream>
 
 namespace drake {
 namespace solvers {
@@ -47,9 +49,8 @@ struct SolverOut {
  * should be written so as to be efficient for specific classes
  * of QPs, e.g., model predictive control QPs or sparse QPs.
  *
- * @tparam Variable:      storage and methods for working with primal-dual
- * variables
- * @tparam Residual:      storage and methods for computing QP residuals
+ * @tparam Variable:      storage and methods for primal-dual variables
+ * @tparam Residual:      storage and methods for QP residuals
  * @tparam Data:          QP specific data storage and operations
  * @tparam LinearSolver:  solves Newton step systems
  * @tparam Feasibility:   checks for primal-dual infeasibility
@@ -133,9 +134,6 @@ class FBstabAlgorithm {
   Display& display_level() { return display_level_; }
 
  private:
-  enum { kNonmonotoneLinesearch = 3 };
-  double merit_values_[kNonmonotoneLinesearch] = {0.0};
-
   /**
    * Codes for infeasibility detection
    */
@@ -168,37 +166,32 @@ class FBstabAlgorithm {
    */
   InfeasibilityStatus CheckInfeasibility(const Variable& x);
 
+  static constexpr int knonmonotone_linesearch = 5;
+  std::array<double, knonmonotone_linesearch> merit_buffer_ = {0.0};
   /**
-   * Shifts all elements in an array up 1 spot and adds a new element at 0
-   * @param[out] buffer    Pointer to the array
-   * @param[in] x         value to be inserted at buffer[0]
-   * @param[in] buff_size length of the array
+   * Shifts all elements in merit_buffer_ up one spot then inserts at 0.
+   * @param[in] x value to be inserted at merit_buffer_[0]
    */
-  static void ShiftAndInsert(double* buffer, double x, int buff_size);
+  void InsertMerit(double x);
   /**
-   * Sets all elements to 0
-   * @param[out] buffer    Pointer to array
-   * @param[in] buff_size length of the array
+   * Sets all elements in merit_buffer_ to 0.
    */
-  static void ClearBuffer(double* buffer, int buff_size);
+  void ClearMeritBuffer();
 
   /**
-   * Returns the maximum value in an array
-   * @param[in]  vec    pointer to the array
-   * @param[in]  length length
-   * @return        maximum value
+   * @return maximum value in merit_buffer_
    */
-  static double VectorMax(double* vec, int length);
+  double MaxMerit();
 
   /**
-   * Element wise max
+   * Element wise max.
    */
   template <class T>
   static T max(T a, T b) {
     return (a > b) ? a : b;
   }
   /**
-   * Element wise min
+   * Element wise min.
    */
   template <class T>
   static T min(T a, T b) {
@@ -206,16 +199,16 @@ class FBstabAlgorithm {
   }
 
   /**
-   * Compares two C style strings
-   * @param[in]  x string 1
-   * @param[in]  y string 2
-   * @return   true is x and y are equal
+   * Compares two C style strings.
+   * @param[in]  x 
+   * @param[in]  y 
+   * @return     true if x and y are equal
    */
   static bool strcmp(const char* x, const char* y);
 
   /**
    * A collection of functions for printing optimization progress to
-   * stdout
+   * stdout.
    */
   void PrintIterHeader();
   void PrintIterLine(int prox_iters, int newton_iters, const Residual& rk,
@@ -262,13 +255,13 @@ class FBstabAlgorithm {
   double infeasibility_tol_ = 1e-8;
 
   // tolerance guards
-  double inner_tol_max_ = 1.0;
+  double inner_tol_max_ = 1e-1;
   double inner_tol_min_ = 1e-12;
 
   // maximum iterations
-  int max_newton_iters_ = 200;
-  int max_prox_iters_ = 30;
-  int max_inner_iters_ = 50;
+  int max_newton_iters_ = 500;
+  int max_prox_iters_ = 100;
+  int max_inner_iters_ = 100;
   int max_linesearch_iters_ = 20;
 
   bool check_feasibility_ = true;

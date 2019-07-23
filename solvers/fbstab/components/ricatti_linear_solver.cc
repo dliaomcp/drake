@@ -82,8 +82,11 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
 
 bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
                                  double sigma) {
-  if (data_ == nullptr) {
-    throw std::runtime_error("Data not linked in RicattiLinearSolver");
+  const MPCData* const data = x.data();
+  if (xbar.data_ != data) {
+    throw std::runtime_error(
+        "In RicattiLinearSolver::Factor: x and xbar have mismatched problem "
+        "data.");
   }
   if (!MPCVariable::SameSize(x, xbar)) {
     throw std::runtime_error(
@@ -96,7 +99,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
 
   Eigen::Vector2d temp;
   for (int i = 0; i < nv_; i++) {
-    double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
+    const double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
     temp = PFBgrad(ys, x.v()(i));
 
     gamma_(i) = temp(0);
@@ -105,12 +108,12 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
   }
   // Compute the barrier augmented Hessian.
   for (int i = 0; i < N_ + 1; i++) {
-    const MatrixXd& Ei = data_->E_->operator[](i);
-    const MatrixXd& Li = data_->L_->operator[](i);
+    const MatrixXd& Ei = data->E_->operator[](i);
+    const MatrixXd& Li = data->L_->operator[](i);
 
-    Q_[i] = data_->Q_->at(i) + sigma * MatrixXd::Identity(nx_, nx_);
-    R_[i] = data_->R_->at(i) + sigma * MatrixXd::Identity(nu_, nu_);
-    S_[i] = data_->S_->at(i);
+    Q_[i] = data->Q_->at(i) + sigma * MatrixXd::Identity(nx_, nx_);
+    R_[i] = data->R_->at(i) + sigma * MatrixXd::Identity(nu_, nu_);
+    S_[i] = data->S_->at(i);
 
     // Add barriers associated with E(i)x(i) + L(i)u(i) + d(i) <=0
     // Q(i) += E(i)'*diag(Gamma(i))*E(i)
@@ -140,7 +143,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
     Eigen::LLT<Eigen::Ref<MatrixXd> > llt1(M_[i]);
 
     // Compute AM = A*inv(M)'.
-    AM_[i] = data_->A_->at(i);
+    AM_[i] = data->A_->at(i);
     M_[i]
         .triangularView<Eigen::Lower>()
         .transpose()
@@ -159,7 +162,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
 
     // Compute P = (A*inv(QQ)S' - B)*inv(SG)',
     //           = (AM*SM' - B)*inv(SG)'.
-    P_[i].noalias() = AM_[i] * SM_[i].transpose() - data_->B_->at(i);
+    P_[i].noalias() = AM_[i] * SM_[i].transpose() - data->B_->at(i);
     SG_[i]
         .triangularView<Eigen::Lower>()
         .transpose()
@@ -195,12 +198,17 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
   return true;
 }
 
-bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
+bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
+  const MPCData* const data = dx->data();
+  if (r.nz_ != dx->nz_ || r.nl_ != dx->nl_ || r.nv_ != dx->nv_) {
+    throw std::runtime_error(
+        "In RicattiLinearSolver::Solve: r and dx size mismatch.");
+  }
   // Compute the post-elimination residual,
   // r1 = rz - A'*(rv./mus) and r2 = -rl.
   r1_ = r.z_;
   r3_ = r.v_.cwiseQuotient(mus_);  // r3_ is used as a temp here
-  data_->gemvAT(r3_, -1.0, 1.0, &r1_);
+  data->gemvAT(r3_, -1.0, 1.0, &r1_);
 
   r2_ = -r.l_;
   // Get reshaped aliases for r1 and r2.
@@ -308,14 +316,14 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) {
   VectorXd& dv = dx->v();
   dv = r.v_;
   // r3_ = A*dz, r3_ is being used as a temp.
-  data_->gemvA(dx->z(), 1.0, 0.0, &r3_);
+  data->gemvA(dx->z(), 1.0, 0.0, &r3_);
   dv += gamma_.asDiagonal() * r3_;
   dv = dv.cwiseQuotient(mus_);
 
   // Compute dy = b - A*dz.
   VectorXd& dy = dx->y();
-  data_->gemvA(dx->z(), -1.0, 0.0, &dy);
-  data_->axpyb(1.0, &dy);
+  data->gemvA(dx->z(), -1.0, 0.0, &dy);
+  data->axpyb(1.0, &dy);
 
   return true;
 }

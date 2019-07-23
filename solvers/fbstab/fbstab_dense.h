@@ -122,14 +122,14 @@ class FBstabDense {
    * @param[in]   qp 				Structure containing the problem
    * data.
    *
-   * @param[both] x   			Structure containing an initial guess for the
-   * primal and dual variables. Overwritten with the solution.
+   * @param[both] x   			Structure containing an initial guess for
+   * the primal and dual variables. Overwritten with the solution.
    *
    * @param[in] use_initial_guess If false the solver is initialized at the
    * origin.
    *
-   * @return 						A structure containing a summary of the
-   * optimizer output. Has the following fields:
+   * @return 						A structure containing a summary of
+   * the optimizer output. Has the following fields:
    *
    *                           	eflag: ExitFlag enum (see fbstab_algorithm.h)
    *                            	indicating success or failure

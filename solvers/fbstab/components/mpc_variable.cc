@@ -109,12 +109,20 @@ void MPCVariable::Copy(const MPCVariable& x) {
   data_ = x.data_;
 }
 
+const MPCData* MPCVariable::data() const {
+  if (data_ == nullptr) {
+    throw std::runtime_error(
+        "In MPCData::data: tried to access problem data before it's assigned.");
+  }
+  return data_;
+}
+
 void MPCVariable::ProjectDuals() { *v_ = v_->cwiseMax(0); }
 
 double MPCVariable::Norm() const {
-  double t1 = z_->norm();
-  double t2 = l_->norm();
-  double t3 = v_->norm();
+  const double t1 = z_->norm();
+  const double t2 = l_->norm();
+  const double t3 = v_->norm();
 
   return sqrt(t1 * t1 + t2 * t2 + t3 * t3);
 }

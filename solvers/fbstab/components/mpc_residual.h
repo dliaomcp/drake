@@ -38,15 +38,9 @@ class MPCResidual {
   MPCResidual(int N, int nx, int nu, int nc);
 
   /**
-   * Links the residual object to problem data needed to perform calculations.
-   * Calculations cannot be performed until a data object is provided.
-   * @param[in] data problem data
-   */
-  void LinkData(const MPCData* data) { data_ = data; }
-
-  /**
-   * Sets the value of alpha used in residual computations
-   * @param[in] alpha value to be set
+   * Sets the value of alpha used in residual computations,
+   * see (19) in https://arxiv.org/pdf/1901.04046.pdf.
+   * @param[in] alpha
    */
   void SetAlpha(double alpha) { alpha_ = alpha; }
 
@@ -57,7 +51,7 @@ class MPCResidual {
   void Fill(double a);
 
   /**
-   * Sets y <- -1*y where y is the residual
+   * Sets y <- -1*y where y is *this.
    */
   void Negate();
 
@@ -99,9 +93,20 @@ class MPCResidual {
    */
   void PenalizedNaturalResidual(const MPCVariable& x);
 
+  // Accessor for z.
   Eigen::VectorXd& z() { return z_; }
+  // Accessor for z.
+  const Eigen::VectorXd& z() const { return z_; }
+
+  // Accessor for l.
   Eigen::VectorXd& l() { return l_; }
+  // Accessor for l.
+  const Eigen::VectorXd& l() const { return l_; }
+
+  // Accessor for v.
   Eigen::VectorXd& v() { return v_; }
+  // Accessor for v.
+  const Eigen::VectorXd& v() const { return v_; }
 
   double z_norm() const { return znorm_; }
   double l_norm() const { return lnorm_; }
@@ -121,7 +126,6 @@ class MPCResidual {
   int nv_ = 0;  // number of inequality duals
 
   double alpha_ = 0.95;
-  const MPCData* data_ = nullptr;
 
   double znorm_ = 0.0;  // cached norm of z_
   double lnorm_ = 0.0;  // cached norm of l_
@@ -129,7 +133,7 @@ class MPCResidual {
 
   /**
    * Computes the penalized Fischer-Burmeister function pfb(a,b)
-   * Equation (19) of https://arxiv.org/pdf/1901.04046.pdf
+   * Equation (19) of https://arxiv.org/pdf/1901.04046.pdf.
    * @param[in]  a
    * @param[in]  b
    * @param[in]  alpha weighting parameter
