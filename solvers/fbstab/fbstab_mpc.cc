@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_feasibility.h"
 #include "drake/solvers/fbstab/components/mpc_residual.h"
@@ -86,3 +87,4 @@ void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level) {
 }  // namespace fbstab
 }  // namespace solvers
 }  // namespace drake
+

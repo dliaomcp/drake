@@ -1,6 +1,7 @@
 #include "drake/solvers/fbstab/components/mpc_data.h"
 
 #include <stdexcept>
+
 #include <Eigen/Dense>
 
 namespace drake {

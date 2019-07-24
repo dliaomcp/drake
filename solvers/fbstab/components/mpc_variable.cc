@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <memory>
+
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/components/mpc_data.h"

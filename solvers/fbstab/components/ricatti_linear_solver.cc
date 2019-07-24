@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <Eigen/Dense>
+
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_residual.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"

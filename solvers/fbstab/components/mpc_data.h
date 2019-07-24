@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+
 #include "drake/common/drake_copyable.h"
 
 namespace drake {

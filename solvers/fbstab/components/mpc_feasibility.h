@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+
 #include "drake/common/drake_copyable.h"
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"

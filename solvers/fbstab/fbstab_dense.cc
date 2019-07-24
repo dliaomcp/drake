@@ -1,6 +1,7 @@
 #include "drake/solvers/fbstab/fbstab_dense.h"
 
 #include <memory>
+
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/components/dense_data.h"

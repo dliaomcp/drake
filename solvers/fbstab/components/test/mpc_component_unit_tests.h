@@ -5,6 +5,7 @@
 
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
+
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_feasibility.h"
 #include "drake/solvers/fbstab/components/mpc_residual.h"
