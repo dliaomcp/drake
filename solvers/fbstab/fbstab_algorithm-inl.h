@@ -13,20 +13,18 @@ FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
                                               LinearSolver* lin_sol,
                                               Feasibility* fcheck) {
   if (x1 == nullptr || x2 == nullptr || x3 == nullptr || x4 == nullptr) {
-    throw std::runtime_error(
-        "A Variable supplied to FBstabAlgorithm is invalid.");
+    throw std::runtime_error("A Variable supplied to FBstabAlgorithm is null.");
   }
   if (r1 == nullptr || r2 == nullptr) {
-    throw std::runtime_error(
-        "A Residual supplied to FBstabAlgorithm is invalid");
+    throw std::runtime_error("A Residual supplied to FBstabAlgorithm is null");
   }
   if (lin_sol == nullptr) {
     throw std::runtime_error(
-        "The LinearSolver supplied to FBstabAlgorithm is invalid.");
+        "The LinearSolver supplied to FBstabAlgorithm is null.");
   }
   if (fcheck == nullptr) {
     throw std::runtime_error(
-        "The Feasibility object supplied to FBstabAlgorithm is invalid.");
+        "The Feasibility object supplied to FBstabAlgorithm is null.");
   }
 
   xk_ = x1;
@@ -61,14 +59,14 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       0               // newton iters
   };
 
-  // Supply a pointer to the data object
+  // Supply a pointer to the data object.
   xk_->LinkData(qp_data);
   xi_->LinkData(qp_data);
   dx_->LinkData(qp_data);
   xp_->LinkData(qp_data);
   x0->LinkData(qp_data);
 
-  // initialization
+  // Initialization phase.
   double sigma_ = sigma0_;
 
   x0->InitializeConstraintMargin();
@@ -80,23 +78,19 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
   ri_->Fill(0.0);
   double E0 = rk_->Norm();
   double Ek = E0;
-
-  double inner_tol = FBstabAlgorithm::min(E0, inner_tol_max_);
-  inner_tol = FBstabAlgorithm::max(inner_tol, inner_tol_min_);
+  double inner_tol = saturate(E0, inner_tol_min_, inner_tol_max_);
 
   newton_iters_ = 0;
   prox_iters_ = 0;
-
   PrintIterHeader();
-
-  // main prox loop *************************************
+  // Main proximal loop.
   for (int k = 0; k < max_prox_iters_; k++) {
-    rk_->NaturalResidual(*xk_);
-    Ek = rk_->Norm();
-
     // The solver stops if:
     // a) the desired precision is obtained
     // b) the iterations stall, ie., ||x(k) - x(k-1)|| <= tol
+    rk_->PenalizedNaturalResidual(*xk_);
+    Ek = rk_->Norm();
+
     if (Ek <= abs_tol_ + E0 * rel_tol_ || dx_->Norm() <= stall_tol_) {
       output.eflag = SUCCESS;
       output.residual = Ek;
@@ -113,26 +107,23 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       PrintIterLine(prox_iters_, newton_iters_, *rk_, *ri_, inner_tol);
     }
 
-    // TODO(dliaomcp@umich.edu): add a divergence check
+    // TODO(dliaomcp@umich.edu) Check if the residual is decreasing.
+    // TODO(dliaomcp@umich.edu) Implement adaptive rule for decreasing sigma.
 
-    // Update subproblem tolerance
-    inner_tol = FBstabAlgorithm::min(inner_tol_multiplier_ * inner_tol, Ek);
-    inner_tol = FBstabAlgorithm::max(inner_tol, inner_tol_min_);
+    // Update subproblem tolerance.
+    inner_tol = saturate(inner_tol * inner_tol_multiplier_, inner_tol_min_, Ek);
 
-    // Solve the proximal subproblem
+    // Solve the proximal subproblem.
     xi_->Copy(*xk_);
-    rk_->PenalizedNaturalResidual(*xk_);
-    double Ekpen = rk_->Norm();
-    double Eo = SolveSubproblem(xi_, xk_, inner_tol, sigma_, Ekpen);
-
-    if (newton_iters_ >= max_newton_iters_) {  // if iteration limit is exceeded
+    double Eo = SolveProximalSubproblem(xi_, xk_, inner_tol, sigma_, Ek);
+    if (newton_iters_ >= max_newton_iters_) {
       output.eflag = MAXITERATIONS;
-      if (Eo < Ekpen) {
+      if (Eo < Ek) {
         x0->Copy(*xi_);
         output.residual = Eo;
       } else {
         x0->Copy(*xk_);
-        output.residual = Ekpen;
+        output.residual = Ek;
         rk_->PenalizedNaturalResidual(*xk_);
       }
       output.newton_iters = newton_iters_;
@@ -141,18 +132,19 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       return output;
     }
 
-    // compute dx <- x(k+1) - x(k)
+    // Compute dx <- x(k+1) - x(k).
     dx_->Copy(*xi_);
     dx_->axpy(*xk_, -1.0);
-
-    // check for infeasibility
+    // Check for infeasibility.
     if (check_feasibility_) {
       InfeasibilityStatus status = CheckInfeasibility(*dx_);
       if (status != FEASIBLE) {
         if (status == PRIMAL) {
-          output.eflag = INFEASIBLE;
+          output.eflag = PRIMAL_INFEASIBLE;
         } else if (status == DUAL) {
-          output.eflag = UNBOUNDED_BELOW;
+          output.eflag = DUAL_INFEASIBLE;
+        } else if (status == BOTH) {
+          output.eflag = PRIMAL_DUAL_INFEASIBLE;
         }
         output.residual = Ek;
         output.newton_iters = newton_iters_;
@@ -167,42 +159,40 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
     prox_iters_++;
   }  // end proximal loop
 
-  // Execute a timeout exit
+  // Timeout exit.
   output.eflag = MAXITERATIONS;
   output.residual = Ek;
   output.newton_iters = newton_iters_;
   output.prox_iters = prox_iters_;
   x0->Copy(*xk_);
-
   PrintFinal(prox_iters_, newton_iters_, output.eflag, *rk_);
+
   return output;
 }
 
 template <class Variable, class Residual, class Data, class LinearSolver,
           class Feasibility>
-double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
-                       Feasibility>::SolveSubproblem(Variable* x,
-                                                     Variable* xbar, double tol,
-                                                     double sigma,
-                                                     double Eouter) {
-  double Eo = 0;   // residual
-  double t = 1.0;  // linesearch parameter
+double FBstabAlgorithm<Variable, Residual, Data, LinearSolver, Feasibility>::
+    SolveProximalSubproblem(Variable* x, Variable* xbar, double tol,
+                            double sigma, double current_outer_residual) {
   ClearMeritBuffer();
 
+  double Eo = 0;   // KKT residual.
+  double t = 1.0;  // Linesearch parameter.
   for (int i = 0; i < max_inner_iters_; i++) {
-    // compute inner residual
+    // Compute subproblem residual.
     ri_->InnerResidual(*x, *xbar, sigma);
     double Ei = ri_->Norm();
-    // compute outer residual
-    rk_->NaturalResidual(*x);
+    // Compute KKT residual.
+    rk_->PenalizedNaturalResidual(*x);
     Eo = rk_->Norm();
 
     // The inner loop stops if:
     // a) The subproblem is solved to the prescribed
-    // tolerance and the outer residual is reduced
+    // tolerance and the outer residual has been reduced.
     // b) The outer residual cannot be decreased
-    // (happens if problem is infeasible)
-    if ((Ei <= tol && Eo < Eouter) || (Ei <= inner_tol_min_)) {
+    // (this can happen if the problem is infeasible).
+    if ((Ei <= tol && Eo < current_outer_residual) || (Ei <= inner_tol_min_)) {
       PrintDetailedLine(i, t, *ri_);
       PrintDetailedFooter(tol, *ri_);
       break;
@@ -213,37 +203,34 @@ double FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       break;
     }
 
-    // solve for the Newton step
+    // Solve for the Newton step.
     linear_solver_->Factor(*x, *xbar, sigma);
     ri_->Negate();
     linear_solver_->Solve(*ri_, dx_);
     newton_iters_++;
 
-    // linesearch *************************************
-    double current_merit = ri_->Merit();
+    // Perform a non-monotone linesearch.
+    const double current_merit = ri_->Merit();
     InsertMerit(current_merit);
-    double m0 = MaxMerit();
+    const double m0 = MaxMerit();
     t = 1.0;
-
     for (int j = 0; j < max_linesearch_iters_; j++) {
-      // Compute trial point xp = x + t*dx
+      // Compute a trial point xp = x + t*dx
       // and evaluate the merit function at xp.
       xp_->Copy(*x);
       xp_->axpy(*dx_, t);
       ri_->InnerResidual(*xp_, *xbar, sigma);
-      double mp = ri_->Merit();
-
-      // Armijo descent check
+      const double mp = ri_->Merit();
+      // Armijo descent check.
       if (mp <= m0 - 2.0 * t * eta_ * current_merit) {
         break;
       } else {
         t *= beta_;
       }
     }
-
     x->axpy(*dx_, t);  // x <- x + t*dx
   }
-  // make duals non-negative
+  // Make duals non-negative.
   x->ProjectDuals();
 
   return Eo;
@@ -401,11 +388,11 @@ void FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       case MAXITERATIONS:
         printf(" Iteration limit exceeded\n");
         break;
-      case INFEASIBLE:
+      case PRIMAL_INFEASIBLE:
         printf(" Primal Infeasibility\n");
         break;
-      case UNBOUNDED_BELOW:
-        printf(" Unbounded Below\n");
+      case DUAL_INFEASIBLE:
+        printf(" Dual Infeasibility\n");
         break;
       default:
         printf(" ???\n");

@@ -9,15 +9,14 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-/**
- * Return codes for the solver.
- */
+// Return codes for the solver.
 enum ExitFlag {
   SUCCESS = 0,
   DIVERGENCE = 1,
   MAXITERATIONS = 2,
-  INFEASIBLE = 3,
-  UNBOUNDED_BELOW = 4
+  PRIMAL_INFEASIBLE = 3,
+  DUAL_INFEASIBLE = 4,
+  PRIMAL_DUAL_INFEASIBLE = 5
 };
 
 /**
@@ -134,15 +133,13 @@ class FBstabAlgorithm {
   Display& display_level() { return display_level_; }
 
  private:
-  /**
-   * Codes for infeasibility detection
-   */
+  // Codes for infeasibility detection.
   enum InfeasibilityStatus { FEASIBLE = 0, PRIMAL = 1, DUAL = 2, BOTH = 3 };
 
   /**
    * Attempts to solve a proximal subproblem x = P(xbar,sigma) using
    * the semismooth Newton's method. See (11) in
-   * https://arxiv.org/pdf/1901.04046.pdf
+   * https://arxiv.org/pdf/1901.04046.pdf.
    *
    * @param[both]  x      Initial guess, overwritten with the solution.
    * @param[in]    xbar   Current proximal (outer) iterate
@@ -151,114 +148,121 @@ class FBstabAlgorithm {
    * @param[in]    Eouter Current overall problem residual
    * @return Residual for the outer problem evaluated at x
    *
-   *
    * Note: Uses
-   * rk,ri,dx, and xp as workspaces
-   *
+   * rk_, ri_, dx_, and xp_ as workspaces.
    */
-  double SolveSubproblem(Variable* x, Variable* xbar, double tol, double sigma,
-                         double Eouter);
+  double SolveProximalSubproblem(Variable* x, Variable* xbar, double tol,
+                                 double sigma, double current_outer_residual);
 
   /**
-   * Checks if the primal-dual QP pair is feasible
-   * @param[in]  x Point at which to check for infeasibility
-   * @return   Feasibility status of primal and dual problems
+   * Checks if x certifies primal or dual infeasibility.
+   * @param[in]  x
+   * @return feasibility status
    */
   InfeasibilityStatus CheckInfeasibility(const Variable& x);
 
   static constexpr int knonmonotone_linesearch = 5;
   std::array<double, knonmonotone_linesearch> merit_buffer_ = {0.0};
+
   /**
-   * Shifts all elements in merit_buffer_ up one spot then inserts at 0.
+   * Shifts all elements in merit_buffer_ up one spot then inserts at [0].
    * @param[in] x value to be inserted at merit_buffer_[0]
    */
   void InsertMerit(double x);
-  /**
-   * Sets all elements in merit_buffer_ to 0.
-   */
+
+  // Sets all elements in merit_buffer_ to 0.
   void ClearMeritBuffer();
 
-  /**
-   * @return maximum value in merit_buffer_
-   */
+  // @return maximum value in merit_buffer_
   double MaxMerit();
 
-  /**
-   * Element wise max.
-   */
+  // Element wise max.
   template <class T>
   static T max(T a, T b) {
     return (a > b) ? a : b;
   }
-  /**
-   * Element wise min.
-   */
+
+  // Element wise min.
   template <class T>
   static T min(T a, T b) {
     return (a > b) ? b : a;
   }
 
+  // Projects x onto [a,b].
+  template <class T>
+  static T saturate(T x, T a, T b) {
+    const T temp = min(x, b);
+    return max(temp, a);
+  }
+
   /**
    * Compares two C style strings.
-   * @param[in]  x 
-   * @param[in]  y 
+   * @param[in]  x
+   * @param[in]  y
    * @return     true if x and y are equal
    */
   static bool strcmp(const char* x, const char* y);
 
-  /**
-   * A collection of functions for printing optimization progress to
-   * stdout.
-   */
+  FBstabAlgorithm::Display display_level_ = FINAL;  // Default display settings.
+
+  // Prints a header line to stdout depending on display settings.
   void PrintIterHeader();
+
+  // Prints an iteration progress line to stdout depending on display settings.
   void PrintIterLine(int prox_iters, int newton_iters, const Residual& rk,
                      const Residual& ri, double itol);
+
+  // Prints a detailed header line to stdout depending on display settings.
   void PrintDetailedHeader(int prox_iters, int newton_iters, const Residual& r);
+
+  // Prints inner loop iterations details to stdout depending on display
+  // settings.
   void PrintDetailedLine(int iter, double step_length, const Residual& r);
+
+  // Prints a footer to stdout depending on display settings.
   void PrintDetailedFooter(double tol, const Residual& r);
+
+  // Prints a summary to stdout depending on display settings.
   void PrintFinal(int prox_iters, int newton_iters, ExitFlag eflag,
                   const Residual& r);
 
-  FBstabAlgorithm::Display display_level_ = FINAL;
-
-  // iteration counters
+  // Iteration counters.
   int newton_iters_ = 0;
   int prox_iters_ = 0;
 
-  // variable objects
+  // Cariable objects
   Variable* xk_ = nullptr;  // outer loop variable
   Variable* xi_ = nullptr;  // inner loop variable
   Variable* xp_ = nullptr;  // workspace
   Variable* dx_ = nullptr;  // workspace
 
-  // residual objects
+  // Residual objects
   Residual* rk_ = nullptr;  // outer loop residual
   Residual* ri_ = nullptr;  // inner loop residual
 
-  // linear system solver object
+  // Linear system solver object
   LinearSolver* linear_solver_ = nullptr;
-  // feasibility checker object
+  // Feasibility checker object
   Feasibility* feasibility_ = nullptr;
 
   // Algorithm parameters,
-  // see https://arxiv.org/pdf/1901.04046.pdf.
-  double sigma0_ = 1e-8;
-  double alpha_ = 0.95;
-  double beta_ = 0.7;
-  double eta_ = 1e-8;
-  double inner_tol_multiplier_ = 1.0 / 5;
+  // see https://arxiv.org/pdf/1901.04046.pdf for details.
+  double sigma0_ = 1e-8;  // initial regularization parameter
+  double alpha_ = 0.95;   // see (19) in https://arxiv.org/pdf/1901.04046.pdf
+  double beta_ = 0.7;     // backtracking lineseach parameter
+  double eta_ = 1e-8;     // sufficient decrease parameter
+  double inner_tol_multiplier_ = 1.0 / 5;  // tolerance reduction factor
 
-  // tolerances
-  double abs_tol_ = 1e-6;
-  double rel_tol_ = 1e-12;
-  double stall_tol_ = 1e-10;
-  double infeasibility_tol_ = 1e-8;
+  double abs_tol_ = 1e-6;            // absolute tolerance
+  double rel_tol_ = 1e-12;           // relative tolerance
+  double stall_tol_ = 1e-10;         // change tolerance
+  double infeasibility_tol_ = 1e-8;  // infeasibility tolerance
 
-  // tolerance guards
+  // Tolerance guards.
   double inner_tol_max_ = 1e-1;
   double inner_tol_min_ = 1e-12;
 
-  // maximum iterations
+  // Iteration guards.
   int max_newton_iters_ = 500;
   int max_prox_iters_ = 100;
   int max_inner_iters_ = 100;

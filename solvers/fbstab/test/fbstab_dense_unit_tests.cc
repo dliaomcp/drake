@@ -190,7 +190,7 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
   solver.SetDisplayLevel(FBstabAlgoDense::OFF);
   SolverOut out = solver.Solve(data, x0);
 
-  ASSERT_EQ(out.eflag, INFEASIBLE);
+  ASSERT_EQ(out.eflag, PRIMAL_INFEASIBLE);
 }
 
 /**
@@ -243,7 +243,7 @@ GTEST_TEST(FBstabDense, UnboundedQP) {
   solver.SetDisplayLevel(FBstabAlgoDense::OFF);
   SolverOut out = solver.Solve(data, x0);
 
-  ASSERT_EQ(out.eflag, UNBOUNDED_BELOW);
+  ASSERT_EQ(out.eflag, DUAL_INFEASIBLE);
 }
 
 }  // namespace test

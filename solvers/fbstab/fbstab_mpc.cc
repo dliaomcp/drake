@@ -87,4 +87,3 @@ void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level) {
 }  // namespace fbstab
 }  // namespace solvers
 }  // namespace drake
-
