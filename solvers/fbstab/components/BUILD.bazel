@@ -4,6 +4,8 @@ load(
     "drake_cc_library",
 )
 
+load("//tools/lint:lint.bzl", "add_lint_tests")
+
 package(default_visibility = ["//visibility:public"])
 
 drake_cc_library(
@@ -159,3 +161,5 @@ drake_cc_googletest(
         "@eigen",
     ],
 )
+
+add_lint_tests()

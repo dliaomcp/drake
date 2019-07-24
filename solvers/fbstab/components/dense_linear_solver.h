@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+
 #include "drake/solvers/fbstab/components/dense_data.h"
 #include "drake/solvers/fbstab/components/dense_residual.h"
 #include "drake/solvers/fbstab/components/dense_variable.h"
@@ -26,14 +27,17 @@ class DenseComponentUnitTests;
  * equality constraints so is a simplification of (28) and (29).
  *
  * This class allocates its own workspace memory and splits step computation
- * into solve and factor steps to allow for solving multiple
+ * into solve and factor steps to allow for solving with multiple
  * right hand sides.
  *
- * Usage:
+ * This class has mutable fields and is thus not thread safe.
  *
+ * Usage:
+ * @code
  * DenseLinearSolver solver(2,2);
  * solver.Factor(x,xbar,sigma);
  * solver.Solve(r,&dx,sigma);
+ * @endcode
  */
 class DenseLinearSolver {
  public:
@@ -45,23 +49,20 @@ class DenseLinearSolver {
   DenseLinearSolver(int nz, int nv);
 
   /**
-   * Links to problem data needed to perform calculations.
-   * @param[in] data  Pointer to problem data
-   */
-  void LinkData(const DenseData* data) { data_ = data; };
-
-  /**
    * Factors the matrix V(x,xbar,sigma) using a Schur complement approach
    * followed by a Cholesky factorization and stores the factorization
    * internally.
    *
    * The matrix V is computed as described in
-   * Algorithm 4 of https://arxiv.org/pdf/1901.04046.pdf
+   * Algorithm 4 of https://arxiv.org/pdf/1901.04046.pdf.
    *
    * @param[in]  x       Inner loop iterate
    * @param[in]  xbar    Outer loop iterate
    * @param[in]  sigma   Regularization strength
-   * @return         	   true if factorization succeeds false otherwise.
+   * @return             true if factorization succeeds false otherwise.
+   *
+   * Throws a runtime_error if x and xbar aren't the correct size,
+   * sigma is negative or the problem data isn't linked.
    */
   bool Factor(const DenseVariable& x, const DenseVariable& xbar, double sigma);
 
@@ -70,13 +71,19 @@ class DenseLinearSolver {
    * This method assumes that the Factor routine was run to
    * compute then factor the matrix V.
    *
-   * @param[in]   r 	The right hand side vector
+   * @param[in]   r   The right hand side vector
    * @param[out]  x   Overwritten with the solution
-   * @return      	true if the solve succeeds, false otherwise
+   * @return        true if the solve succeeds, false otherwise
+   *
+   * Throws a runtime_error if x and r aren't the correct sizes,
+   * if x is null or if the problem data isn't linked.
    */
-  bool Solve(const DenseResidual& r, DenseVariable* x);
+  bool Solve(const DenseResidual& r, DenseVariable* x) const;
 
-  /** Accessor */
+  /**
+   * Sets the alpha parameter defined in (19)
+   * of https://arxiv.org/pdf/1901.04046.pdf.
+   */
   void SetAlpha(double alpha);
 
  private:
@@ -84,34 +91,22 @@ class DenseLinearSolver {
   int nz_ = 0;  // number of decision variables
   int nv_ = 0;  // number of inequality constraints
 
-  // See (19) in https://arxiv.org/pdf/1901.04046.pdf
-  double alpha_ = 0.95;
-  double zero_tolerance_ = 1e-13;
+  double alpha_ = 0.95;  // See (19) in https://arxiv.org/pdf/1901.04046.pdf.
+  const double zero_tolerance_ = 1e-13;
 
   // workspace variables
   Eigen::MatrixXd K_;
-  Eigen::VectorXd r1_;
-  Eigen::VectorXd r2_;
+  mutable Eigen::VectorXd r1_;
+  mutable Eigen::VectorXd r2_;
   Eigen::VectorXd Gamma_;
   Eigen::VectorXd mus_;
   Eigen::VectorXd gamma_;
   Eigen::MatrixXd B_;
 
-  const DenseData* data_ = nullptr;
-
-  struct Point2D {
-    double x;
-    double y;
-  };
-
-  // Computes the gradient of the PFB function
-  // (19) in https://arxiv.org/pdf/1901.04046.pdf
+  // Computes the gradient of the penalized fischer-burmeister (PFB)
+  // function, (19) in https://arxiv.org/pdf/1901.04046.pdf.
   // See section 3.3.
-  Point2D PFBGradient(double a, double b);
-
-  // Solves the system A*A' x = b in place
-  // where A is lower triangular and invertible.
-  void CholeskySolve(const Eigen::MatrixXd& A, Eigen::VectorXd* b);
+  Eigen::Vector2d PFBGradient(double a, double b) const;
 };
 
 }  // namespace fbstab
