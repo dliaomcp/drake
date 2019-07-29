@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include <Eigen/Dense>
 #include "drake/common/drake_copyable.h"
@@ -43,10 +44,78 @@ QPDataMPC OCPGenerator::GetFBstabInput() const {
   return s;
 }
 
-// void SpacecraftRelativeMotion(int N)
-// void Copolymerization(int N)
-// void ServoMotor(int N)
+void OCPGenerator::SpacecraftRelativeMotion(int N) {
+  // Model parameters.
+  const double mu = 398600.4418; // gravitational constant
+  const double Re = 6371; // radius of the earth
+  const double alt = 650; // orbit altitude
 
+  const double n = sqrt(mu/pow(Re+alt,3));
+
+  // Construct the continous time model.
+  MatrixXd A(6,6);
+  MatrixXd A21(3,3);
+  MatrixXd A22(3,3);
+
+  A21 << 2*n*n, 0,0,
+         0,0,0,
+         0,0,-n*n;
+  A22 << 0,2*n,0,
+        -2*n,0,0,
+        0,0,0;
+  A << MatrixXd::Zero(3,3), MatrixXd::Identity(3,3),
+        A21, A22;
+
+  MatrixXd B(6,3);
+  B << MatrixXd::Zero(3,3), MatrixXd::Identity(3,3);
+
+  MatrixXd C = MatrixXd::Identity(6,6);
+
+  // Convert to discrete time.
+  const double ts = 30.0; // sampling period
+  A = (MatrixXd::Identity(6, 6) + ts * A);
+  B = ts * B;
+
+  // Form a system with Delta v as the input.
+  B = A*B;
+
+  VectorXd c = VectorXd::Zero(6);
+  VectorXd x0(6);
+  x0 << -2.8,-0.01,-1,0,0,0;
+
+  // Cost function.
+  MatrixXd Q = MatrixXd::Zero(6,6);
+  MatrixXd R = MatrixXd::Zero(3,3);
+  MatrixXd S = MatrixXd::Zero(3,6);
+
+  Q.diagonal() << VectorXd::Ones(3), 1e-3*VectorXd::Ones(3);
+  R.diagonal() << VectorXd::Ones(3);
+
+  VectorXd q = VectorXd::Zero(6);
+  VectorXd r = VectorXd::Zero(3);
+
+  // Constraints.
+  // Inputs constraints |u| <= umax and
+  // veclocity constraints |v| <= vmax.
+  MatrixXd E(12,6);
+  MatrixXd L(12,3);
+  const double umax = 1e-3;
+  const double vmax = 1e-3;
+
+  E << MatrixXd::Zero(6,6),
+       MatrixXd::Zero(3,3), MatrixXd::Identity(3,3),
+       MatrixXd::Zero(3,3),-MatrixXd::Identity(3,3);
+
+  L << MatrixXd::Identity(3,3),
+      -MatrixXd::Identity(3,3),
+       MatrixXd::Zero(6,3);
+
+  VectorXd d(12);
+  d << -umax*VectorXd::Ones(6), -vmax*VectorXd::Ones(6);
+
+  ExtendOverHorizon(Q,R,S,q,r,A,B,c,E,L,d,x0,N);
+
+}
 void OCPGenerator::ServoMotor(int N) {
   // Model parameters.
   const double kt = 10.0;

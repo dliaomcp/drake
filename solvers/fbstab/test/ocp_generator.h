@@ -25,16 +25,38 @@ class OCPGenerator {
   // Returns a structure ready to be fed into FBstab.
   QPDataMPC GetFBstabInput() const;
 
-  // void SpacecraftRelativeMotion(int N)
+
   // void Copolymerization(int N)
 
-  // Fill internal storage with data
-  // for a servo motor control problem with horizon N.
-  // The example is from:
-  // Bemporad, Alberto, and Edoardo Mosca. "Fulfilling hard constraints in
-  // uncertain linear systems by reference managing." Automatica 34.4 (1998):
-  // 451-461.
+  /**
+   * Fills internal storage with data
+   * for a servo motor control problem.
+   *
+   * The example is from:
+   * Bemporad, Alberto, and Edoardo Mosca. "Fulfilling hard constraints in
+   * uncertain linear systems by reference managing." Automatica 34.4 (1998):
+   * 451-461.
+   *
+   * See https://arxiv.org/pdf/1901.04046.pdf for more details.
+   *
+   * @parm[in] N prediction horizon length
+   */
   void ServoMotor(int N = 20);
+
+  /**
+   * Fills internal storage with data
+   * for a spacecraft relative motion control problem with horizon N.
+   * The example is from:
+   *
+   * Weiss, Avishai, et al.
+   * "Model predictive control of three dimensional spacecraft relative motion."
+   * 2012 American Control Conference (ACC). IEEE, 2012.
+   *
+   * See https://arxiv.org/pdf/1901.04046.pdf for more details.
+   *
+   * @param[in] N prediction horizon length
+   */
+  void SpacecraftRelativeMotion(int N = 40);
 
   // Fills internal storage with data
   // for a constrained double integrator
