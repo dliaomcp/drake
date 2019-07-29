@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/components/mpc_data.h"
@@ -35,6 +36,9 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
   int nl = nl_;
   int nv = nv_;
 
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(true);
+  #endif
   Q_.resize(N + 1);
   S_.resize(N + 1);
   R_.resize(N + 1);
@@ -79,6 +83,12 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
   r1_.resize(nz);
   r2_.resize(nl);
   r3_.resize(nv);
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
+
+  r3_.resize(100);
 }
 
 bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
@@ -101,7 +111,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
   Eigen::Vector2d temp;
   for (int i = 0; i < nv_; i++) {
     const double ys = x.y()(i) + sigma * (x.v()(i) - xbar.v()(i));
-    temp = PFBgrad(ys, x.v()(i));
+    temp = PFBGradient(ys, x.v()(i));
 
     gamma_(i) = temp(0);
     mus_(i) = temp(1) + sigma * temp(0);
@@ -163,7 +173,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
 
     // Compute P = (A*inv(QQ)S' - B)*inv(SG)',
     //           = (AM*SM' - B)*inv(SG)'.
-    P_[i].noalias() = AM_[i] * SM_[i].transpose() - data->B_->at(i);
+    P_[i] = AM_[i].lazyProduct(SM_[i].transpose()) - data->B_->at(i);
     SG_[i]
         .triangularView<Eigen::Lower>()
         .transpose()
@@ -233,11 +243,11 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
 
     // tu = inv(SG)*(SM*tx + ru)
     // r1(i) = [rx(i);ru(i)], block extracts ru(i)
-    tu_.noalias() = SM_[i] * tx_ + r1.block(nx_, i, nu_, 1);
+    tu_ = SM_[i].lazyProduct(tx_) + r1.block(nx_, i, nu_, 1);
     SG_[i].triangularView<Eigen::Lower>().solveInPlace(tu_);
 
     const auto rlp = r2.col(i + 1);
-    th_[i + 1].noalias() = P_[i] * tu_ + rlp;
+    th_[i + 1] = P_[i].lazyProduct(tu_) + rlp; // this one fails without lazyProduct
     th_[i + 1].noalias() += AM_[i] * tx_;
 
     // Compute h(i+1).
@@ -254,7 +264,7 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
   // u(N) = inv(SG*SG')*(SM*inv(M)*h + ru)
   tx_ = h_[N_];
   M_[N_].triangularView<Eigen::Lower>().solveInPlace(tx_);
-  tu_.noalias() = SM_[N_] * tx_ + r1.block(nx_, N_, nu_, 1);
+  tu_ = SM_[N_].lazyProduct(tx_) + r1.block(nx_, N_, nu_, 1);
   SG_[N_].triangularView<Eigen::Lower>().solveInPlace(tu_);
   SG_[N_].triangularView<Eigen::Lower>().transpose().solveInPlace(tu_);
 
@@ -288,7 +298,7 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
 
     // This is an alias.
     auto ui = dz.block(nx_, i, nu_, 1);  // dz(i) = [xi;ui], extract ui
-    ui.noalias() = SM_[i] * tx_ + r1.block(nx_, i, nu_, 1);  // SM*tx + ru
+    ui = SM_[i].lazyProduct(tx_) + r1.block(nx_, i, nu_, 1);  // SM*tx + ru
     SG_[i].triangularView<Eigen::Lower>().solveInPlace(ui);
     ui.noalias() += P_[i].transpose() * dl.col(i + 1);
     SG_[i].triangularView<Eigen::Lower>().transpose().solveInPlace(ui);
@@ -329,12 +339,12 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
   return true;
 }
 
-Eigen::Vector2d RicattiLinearSolver::PFBgrad(double a, double b) {
-  double r = sqrt(a * a + b * b);
-  Eigen::Vector2d v;
+Eigen::Vector2d RicattiLinearSolver::PFBGradient(double a, double b) const {
+  const double r = sqrt(a * a + b * b);
+  const double d = 1.0 / sqrt(2.0);
 
-  if (r < zero_tol_) {
-    double d = 1.0 / sqrt(2.0);
+  Eigen::Vector2d v;
+  if (r < zero_tolerance_) {
     v(0) = alpha_ * (1.0 - d);
     v(1) = alpha_ * (1.0 - d);
 
@@ -346,6 +356,7 @@ Eigen::Vector2d RicattiLinearSolver::PFBgrad(double a, double b) {
     v(0) = alpha_ * (1.0 - a / r);
     v(1) = alpha_ * (1.0 - b / r);
   }
+
   return v;
 }
 

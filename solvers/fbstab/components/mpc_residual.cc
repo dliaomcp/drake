@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/components/mpc_data.h"
@@ -17,6 +18,10 @@ MPCResidual::MPCResidual(int N, int nx, int nu, int nc) {
     throw std::runtime_error(
         "All inputs to MPCResidual::MPCResidual must be >= 1.");
   }
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(true);
+  #endif
   N_ = N;
   nx_ = nx;
   nu_ = nu;
@@ -28,6 +33,10 @@ MPCResidual::MPCResidual(int N, int nx, int nu, int nc) {
   z_.resize(nz_);
   l_.resize(nl_);
   v_.resize(nv_);
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
 
   z_.setConstant(0.0);
   l_.setConstant(0.0);
@@ -63,7 +72,9 @@ void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
         "In MPCResidual::InnerResidual: x and xbar have mismatched problem "
         "data.");
   }
-
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   // r.z = H*z + f + G'*l + A'*v + sigma*(z-zbar)
   z_.setConstant(0.0);
   data->axpyf(1.0, &z_);

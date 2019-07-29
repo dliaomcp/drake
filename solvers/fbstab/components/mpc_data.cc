@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 namespace drake {
@@ -66,6 +67,9 @@ void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
   } else if (b != 1.0) {
     (*y) *= b;
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   // Create reshaped views of input and output vectors.
   Map w(y->data(), nx_ + nu_,
         N_ + 1);  // w = reshape(y, [nx + nu, N + 1]);
@@ -85,13 +89,22 @@ void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
     const auto vx = v.block(0, i, nx_, 1);
     const auto vu = v.block(nx_, i, nu_, 1);
 
-    // yx += a*(Q(i)*vx + S(i)'*vu)
-    yx.noalias() += a * Q * vx;
-    yx.noalias() += a * S.transpose() * vu;
-
-    // yu += a*(S(i)*vx + R(i)*vu)
-    yu.noalias() += a * S * vx;
-    yu.noalias() += a * R * vu;
+    // [yx] += a * [Q(i) S(i)'] [vx]
+    // [yu]        [S(i) R(i) ] [vu]
+    // Using lazyProduct is inefficient so should be avoided when possible.
+    if(a == 1.0){
+      yx.noalias() += Q*vx + S.transpose()*vu;
+      yu.noalias() += S*vx + R*vu;
+    } else if(a == -1.0){
+      yx.noalias() -= Q*vx + S.transpose()*vu;
+      yu.noalias() -= S*vx + R*vu;
+    } else{
+      yx += a* Q.lazyProduct(vx);
+      yx += a*Q*vx;
+      yx += a*S.transpose().lazyProduct(vu);
+      yu +=  a*S.lazyProduct(vx);
+      yu +=  a*R.lazyProduct(vu);
+    }
   }
 }
 
@@ -105,6 +118,9 @@ void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
   } else if (b != 1.0) {
     (*y) *= b;
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   // Create reshaped views of input and output vectors.
   Map z(const_cast<double*>(x.data()), nx_ + nu_, N_ + 1);
   Map w(y->data(), nc_, N_ + 1);
@@ -121,13 +137,22 @@ void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
     const auto ui = z.block(nx_, i, nu_, 1);
 
     // yi += a*(E*vx + L*vu)
-    yi.noalias() += a * E * xi;
-    yi.noalias() += a * L * ui;
+    if(a == 1.0){
+      yi.noalias() += E*xi + L*ui;
+    } else if (a == -1.0){
+      yi.noalias() -= E*xi + L*ui;
+    } else {
+      yi += a * E.lazyProduct(xi);
+      yi += a * L.lazyProduct(ui);
+   }
   }
 }
 
 void MPCData::gemvG(const Eigen::VectorXd& x, double a, double b,
                     Eigen::VectorXd* y) const {
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   if (x.size() != nz_ || y->size() != nl_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvG.");
   }
@@ -154,15 +179,26 @@ void MPCData::gemvG(const Eigen::VectorXd& x, double a, double b,
     // Alias for the state at stage i.
     const auto xi = z.block(0, i, nx_, 1);
 
-    // Perform the operation  y(i) += a*(A(i-1)*x(i-1) + B(i-1)u(i-1) - x(i)).
-    yi.noalias() += a * A * xm1;
-    yi.noalias() += a * B * um1;
-    yi.noalias() += -a * xi;
+    // y(i) += a*(A(i-1)*x(i-1) + B(i-1)u(i-1) - x(i))
+    if(a == 1.0){
+      yi += A*xm1 + B*um1 - xi;
+      // yi.noalias() -= xi;
+    } else if(a == -1.0){
+      yi.noalias() -= A*xm1 + B*um1 - xi;
+      // yi.noalias() += xi;
+    } else{
+      yi += a * A.lazyProduct(xm1);
+      yi += a * B.lazyProduct(um1);
+      yi += -a * xi;
+    }
   }
 }
 
 void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
                      Eigen::VectorXd* y) const {
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   if (x.size() != nl_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvGT.");
   }
@@ -190,10 +226,10 @@ void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
 
     // x(i) += a*(-v(i) + A(i)' * v(i+1))
     xi.noalias() += -a * vi;
-    xi.noalias() += a * A.transpose() * vp1;
+    xi.noalias() += a * A.transpose().lazyProduct(vp1);
 
     // u(i) += a*B(i)' * v(i+1)
-    ui.noalias() += a * B.transpose() * vp1;
+    ui.noalias() += a * B.transpose().lazyProduct(vp1);
   }
   // The i = N step of the recursion.
   w.block(0, N_, nx_, 1).noalias() += -a * v.col(N_);
@@ -201,6 +237,9 @@ void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
 
 void MPCData::gemvAT(const Eigen::VectorXd& x, double a, double b,
                      Eigen::VectorXd* y) const {
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   if (x.size() != nv_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvAT.");
   }
@@ -222,9 +261,9 @@ void MPCData::gemvAT(const Eigen::VectorXd& x, double a, double b,
 
     const auto vi = v.col(i);
     // x(i) += a*E(i)' * v(i)
-    xi.noalias() += a * E.transpose() * vi;
+    xi.noalias() += a * E.transpose().lazyProduct(vi);
     // u(i) += a*L(i)' * v(i)
-    ui.noalias() += a * L.transpose() * vi;
+    ui.noalias() += a * L.transpose().lazyProduct(vi);
   }
 }
 

@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 #include "drake/common/drake_copyable.h"
@@ -63,28 +64,33 @@ class RicattiLinearSolver {
   void SetAlpha(double alpha) { alpha_ = alpha; };
 
   /**
-   * Evaluates V then factors it using a Ricatti recursion.
+   * Factors the matrix V(x,xbar,sigma) using a Ricatti
+   * recursion.
    *
-   * @param[in]  x     Current inner iterate
-   * @param[in]  xbar  Current outer iterate
-   * @param[in]  sigma regularization parameter
-   * @return     true if the factorization succeeds, false otherwise
+   * The matrix V is computed as described in
+   * Algorithm 4 of https://arxiv.org/pdf/1901.04046.pdf.
    *
-   * Throws a runtime_error if problem data hasn't been linked,
-   * x and xbar aren't matched in size, or sigma isn't positive.
+   * @param[in]  x       Inner loop iterate
+   * @param[in]  xbar    Outer loop iterate
+   * @param[in]  sigma   Regularization strength
+   * @return             true if factorization succeeds false otherwise.
+   *
+   * Throws a runtime_error if x and xbar aren't the correct size,
+   * sigma is negative or the problem data isn't linked.
    */
   bool Factor(const MPCVariable& x, const MPCVariable& xbar, double sigma);
 
   /**
-   * Applies the Ricatti factorization to compute dx = inv(V)*r,
-   * Factor MUST be called first.
+   * Solves the system V*x = r and stores the result in x.
+   * This method assumes that the Factor routine was run to
+   * compute then factor the matrix V.
    *
-   * @param[in]  r    rhs residual
-   * @param[out] dx   storage for the solution
-   * @return     true if the solve succeeds, false otherwise
+   * @param[in]   r   The right hand side vector
+   * @param[out]  x   Overwritten with the solution
+   * @return        true if the solve succeeds, false otherwise
    *
-   * Throws a runtime_error if problem data hasn't been linked or
-   * if the sizes of dx and r don't match.
+   * Throws a runtime_error if x and r aren't the correct sizes,
+   * if x is null or if the problem data isn't linked.
    */
   bool Solve(const MPCResidual& r, MPCVariable* dx) const;
 
@@ -133,17 +139,13 @@ class RicattiLinearSolver {
   int nv_ = 0;  // number of inequality duals
 
   const MPCData* data_ = nullptr;
-  double zero_tol_ = 1e-13;
+  const double zero_tolerance_ = 1e-13;
   double alpha_ = 0.95;
 
-  /**
-   * Computes the gradient of phi at (a,b),
-   * see (19) in https://arxiv.org/pdf/1901.04046.pdf.
-   * @param[in]  a
-   * @param[in]  b
-   * @return     d/da phi(a,b) and d/db phi(a,b)
-   */
-  Eigen::Vector2d PFBgrad(double a, double b);
+  // Computes the gradient of the penalized fischer-burmeister (PFB)
+  // function, (19) in https://arxiv.org/pdf/1901.04046.pdf.
+  // See section 3.3.
+  Eigen::Vector2d PFBGradient(double a, double b) const;
 
   friend class test::MPCComponentUnitTests;
 };

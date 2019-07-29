@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 

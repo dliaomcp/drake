@@ -2,6 +2,9 @@
 
 #include <stdexcept>
 
+#define EIGEN_RUNTIME_NO_MALLOC
+#include <Eigen/Dense>
+
 #include "drake/solvers/fbstab/components/mpc_data.h"
 #include "drake/solvers/fbstab/components/mpc_variable.h"
 
@@ -19,9 +22,16 @@ MPCFeasibility::MPCFeasibility(int N, int nx, int nu, int nc) {
   nl_ = nx_ * (N_ + 1);
   nv_ = nc_ * (N_ + 1);
 
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(true);
+  #endif
   tz_.resize(nz_);
   tl_.resize(nl_);
   tv_.resize(nv_);
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
 }
 
 void MPCFeasibility::ComputeFeasibility(const MPCVariable& x, double tol) {

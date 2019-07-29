@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/components/mpc_data.h"
@@ -28,6 +29,10 @@ MPCVariable::MPCVariable(int N, int nx, int nu, int nc) {
   nl_ = (N_ + 1) * nx_;
   nv_ = (N_ + 1) * nc_;
 
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(true);
+  #endif
+
   z_storage_ = std::make_unique<VectorXd>(nz_);
   l_storage_ = std::make_unique<VectorXd>(nl_);
   v_storage_ = std::make_unique<VectorXd>(nv_);
@@ -37,6 +42,10 @@ MPCVariable::MPCVariable(int N, int nx, int nu, int nc) {
   l_ = l_storage_.get();
   v_ = v_storage_.get();
   y_ = y_storage_.get();
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+  Eigen::internal::set_is_malloc_allowed(false);
+  #endif
 
   z_->setConstant(0.0);
   l_->setConstant(0.0);

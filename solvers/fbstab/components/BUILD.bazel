@@ -91,6 +91,7 @@ drake_cc_library(
     name = "mpc_data",
     srcs = ["mpc_data.cc"],
     hdrs = ["mpc_data.h"],
+    copts = ["-UNDEBUG"],
     deps = [
         "//common:essential",
         "@eigen",
@@ -101,6 +102,7 @@ drake_cc_library(
     name = "mpc_variable",
     srcs = ["mpc_variable.cc"],
     hdrs = ["mpc_variable.h"],
+    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         "//common:essential",
@@ -112,6 +114,7 @@ drake_cc_library(
     name = "mpc_residual",
     srcs = ["mpc_residual.cc"],
     hdrs = ["mpc_residual.h"],
+    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_variable",
@@ -124,6 +127,7 @@ drake_cc_library(
     name = "mpc_feasibility",
     srcs = ["mpc_feasibility.cc"],
     hdrs = ["mpc_feasibility.h"],
+    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_variable",
@@ -136,6 +140,7 @@ drake_cc_library(
     name = "ricatti_linear_solver",
     srcs = ["ricatti_linear_solver.cc"],
     hdrs = ["ricatti_linear_solver.h"],
+    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_residual",
@@ -151,6 +156,7 @@ drake_cc_googletest(
         "test/mpc_component_unit_tests.cc",
         "test/mpc_component_unit_tests.h",
     ],
+    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_feasibility",
