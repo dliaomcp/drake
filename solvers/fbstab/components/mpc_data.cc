@@ -1,8 +1,8 @@
 #include "drake/solvers/fbstab/components/mpc_data.h"
 
 #include <stdexcept>
+#include <iostream>
 
-#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 namespace drake {
@@ -59,6 +59,11 @@ MPCData::MPCData(const std::vector<Eigen::MatrixXd>* Q,
 
 void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
                     Eigen::VectorXd* y) const {
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(false);
+  #endif
+
   if (x.size() != nz_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvH.");
   }
@@ -67,9 +72,7 @@ void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
   } else if (b != 1.0) {
     (*y) *= b;
   }
-  #ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-  #endif
+
   // Create reshaped views of input and output vectors.
   Map w(y->data(), nx_ + nu_,
         N_ + 1);  // w = reshape(y, [nx + nu, N + 1]);
@@ -100,16 +103,21 @@ void MPCData::gemvH(const Eigen::VectorXd& x, double a, double b,
       yu.noalias() -= S*vx + R*vu;
     } else{
       yx += a* Q.lazyProduct(vx);
-      yx += a*Q*vx;
       yx += a*S.transpose().lazyProduct(vu);
-      yu +=  a*S.lazyProduct(vx);
-      yu +=  a*R.lazyProduct(vu);
+      yu += a*S.lazyProduct(vx);
+      yu += a*R.lazyProduct(vu);
     }
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
                     Eigen::VectorXd* y) const {
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   if (x.size() != nz_ || y->size() != nv_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvA.");
   }
@@ -118,9 +126,7 @@ void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
   } else if (b != 1.0) {
     (*y) *= b;
   }
-  #ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-  #endif
+
   // Create reshaped views of input and output vectors.
   Map z(const_cast<double*>(x.data()), nx_ + nu_, N_ + 1);
   Map w(y->data(), nc_, N_ + 1);
@@ -146,12 +152,15 @@ void MPCData::gemvA(const Eigen::VectorXd& x, double a, double b,
       yi += a * L.lazyProduct(ui);
    }
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::gemvG(const Eigen::VectorXd& x, double a, double b,
                     Eigen::VectorXd* y) const {
   #ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
+    Eigen::internal::set_is_malloc_allowed(false);
   #endif
   if (x.size() != nz_ || y->size() != nl_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvG.");
@@ -181,23 +190,28 @@ void MPCData::gemvG(const Eigen::VectorXd& x, double a, double b,
 
     // y(i) += a*(A(i-1)*x(i-1) + B(i-1)u(i-1) - x(i))
     if(a == 1.0){
-      yi += A*xm1 + B*um1 - xi;
-      // yi.noalias() -= xi;
+      yi.noalias() += A*xm1 + B*um1;
+      yi.noalias() -= xi;
     } else if(a == -1.0){
-      yi.noalias() -= A*xm1 + B*um1 - xi;
-      // yi.noalias() += xi;
+      yi.noalias() -= A*xm1 + B*um1;
+      yi.noalias() += xi;
     } else{
       yi += a * A.lazyProduct(xm1);
       yi += a * B.lazyProduct(um1);
-      yi += -a * xi;
+      yi -= a * xi;
     }
   }
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
                      Eigen::VectorXd* y) const {
+
   #ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
+    Eigen::internal::set_is_malloc_allowed(false);
   #endif
   if (x.size() != nl_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvGT.");
@@ -225,20 +239,30 @@ void MPCData::gemvGT(const Eigen::VectorXd& x, double a, double b,
     auto ui = w.block(nx_, i, nu_, 1);
 
     // x(i) += a*(-v(i) + A(i)' * v(i+1))
-    xi.noalias() += -a * vi;
-    xi.noalias() += a * A.transpose().lazyProduct(vp1);
-
     // u(i) += a*B(i)' * v(i+1)
-    ui.noalias() += a * B.transpose().lazyProduct(vp1);
+    xi.noalias() += -a * vi;
+    if(a == 1.0){
+      xi.noalias() += A.transpose()*vp1;
+      ui.noalias() += B.transpose()*vp1;
+    } else if(a == -1.0){
+      xi.noalias() -= A.transpose()*vp1;
+      ui.noalias() -= B.transpose()*vp1;
+    } else{
+      xi.noalias() += a * A.transpose().lazyProduct(vp1);
+    }
   }
   // The i = N step of the recursion.
   w.block(0, N_, nx_, 1).noalias() += -a * v.col(N_);
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::gemvAT(const Eigen::VectorXd& x, double a, double b,
                      Eigen::VectorXd* y) const {
+
   #ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
+    Eigen::internal::set_is_malloc_allowed(false);
   #endif
   if (x.size() != nv_ || y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::gemvAT.");
@@ -261,16 +285,31 @@ void MPCData::gemvAT(const Eigen::VectorXd& x, double a, double b,
 
     const auto vi = v.col(i);
     // x(i) += a*E(i)' * v(i)
-    xi.noalias() += a * E.transpose().lazyProduct(vi);
     // u(i) += a*L(i)' * v(i)
-    ui.noalias() += a * L.transpose().lazyProduct(vi);
+    if(a == 1.0){
+      xi.noalias() += E.transpose()*vi;
+      ui.noalias() += L.transpose()*vi;
+    } else if(a == -1.0){
+      xi.noalias() -= E.transpose()*vi;
+      ui.noalias() -= L.transpose()*vi;
+    } else {
+      ui.noalias() += a * L.transpose().lazyProduct(vi);
+      xi.noalias() += a * E.transpose().lazyProduct(vi);
+    }
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::axpyf(double a, Eigen::VectorXd* y) const {
   if (y->size() != nz_) {
     throw std::runtime_error("Size mismatch in MPCData::axpyf.");
   }
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   // Create reshaped view of the input vector.
   Map w(y->data(), nx_ + nu_, N_ + 1);
 
@@ -281,12 +320,19 @@ void MPCData::axpyf(double a, Eigen::VectorXd* y) const {
     xi.noalias() += a * q_->at(i);
     ui.noalias() += a * r_->at(i);
   }
+
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::axpyh(double a, Eigen::VectorXd* y) const {
   if (y->size() != nl_) {
     throw std::runtime_error("Size mismatch in MPCData::axpyh.");
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   // Create reshaped view of the input vector.
   Map w(y->data(), nx_, N_ + 1);
   w.col(0) += -a * (*x0_);
@@ -294,18 +340,27 @@ void MPCData::axpyh(double a, Eigen::VectorXd* y) const {
   for (int i = 1; i < N_ + 1; i++) {
     w.col(i) += -a * c_->at(i - 1);
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::axpyb(double a, Eigen::VectorXd* y) const {
   if (y->size() != nv_) {
     throw std::runtime_error("Size mismatch in MPCData::axpyb.");
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(false);
+  #endif
   // Create reshaped view of the input vector.
   Map w(y->data(), nc_, N_ + 1);
 
   for (int i = 0; i < N_ + 1; i++) {
     w.col(i).noalias() += -a * d_->at(i);
   }
+  #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+  #endif
 }
 
 void MPCData::validate_length() const {

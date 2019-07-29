@@ -3,7 +3,6 @@
 #include <iostream>
 #include <vector>
 
-#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
@@ -39,6 +38,9 @@ class MPCComponentUnitTests {
    * https://arxiv.org/pdf/1901.04046.pdf Eq. (29) or in mpc_data.h.
    */
   MPCComponentUnitTests() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     int N = 2;  // Use a horizon length of 2 throughout.
 
     MatrixXd Q(2, 2);
@@ -100,6 +102,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVH() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nz = data.nz_;
 
@@ -124,6 +129,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVA() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nv = data.nv_;
     int nz = data.nz_;
@@ -148,6 +156,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVG() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nl = data.nl_;
     int nz = data.nz_;
@@ -172,6 +183,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVGT() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nl = data.nl_;
     int nz = data.nz_;
@@ -196,6 +210,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVAT() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nv = data.nv_;
     int nz = data.nz_;
@@ -220,6 +237,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void AXPYF() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nz = data.nz_;
 
@@ -239,6 +259,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void AXPYH() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nl = data.nl_;
 
@@ -258,6 +281,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void AXPYB() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
     int nv = data.nv_;
 
@@ -278,6 +304,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void Variable() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
     MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
@@ -317,6 +346,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void InnerResidual() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
     MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
@@ -360,6 +392,9 @@ class MPCComponentUnitTests {
   // Checks to make sure the the feasibility routine
   // executes correctly and with false positives.
   void FeasibilitySanityCheck() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
     MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
@@ -387,6 +422,9 @@ class MPCComponentUnitTests {
   // See (28) in https://arxiv.org/pdf/1901.04046.pdf
   // for more details.
   void RicattiRecursion() {
+    #ifdef EIGEN_RUNTIME_NO_MALLOC
+    Eigen::internal::set_is_malloc_allowed(true);
+    #endif
     MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
     MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);

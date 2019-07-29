@@ -30,7 +30,8 @@ cc_library(
         ],
         exclude = ["**/CMakeLists.txt"],
     ),
-    defines = ["EIGEN_MPL2_ONLY"],
+    defines = ["EIGEN_MPL2_ONLY",
+                "EIGEN_RUNTIME_NO_MALLOC"],
     includes = ["."],
 )
 

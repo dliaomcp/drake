@@ -1,6 +1,5 @@
 #pragma once
 
-#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Dense>
 
 #include "drake/common/drake_copyable.h"
