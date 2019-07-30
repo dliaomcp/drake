@@ -48,11 +48,11 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc) {
       linear_solver_.get(), feasibility_checker_.get());
 }
 
-SolverOut FBstabMPC::Solve(const QPDataMPC& qp, const QPVariableMPC& x,
+SolverOut FBstabMPC::Solve(const QPData& qp, const QPVariable* x,
                            bool use_initial_guess) {
   MPCData data(qp.Q, qp.R, qp.S, qp.q, qp.r, qp.A, qp.B, qp.c, qp.E, qp.L, qp.d,
                qp.x0);
-  MPCVariable x0(x.z, x.l, x.v, x.y);
+  MPCVariable x0(x->z, x->l, x->v, x->y);
 
   if (data.N_ != N_ || data.nx_ != nx_ || data.nu_ != nu_ || data.nc_ != nc_) {
     throw std::runtime_error(

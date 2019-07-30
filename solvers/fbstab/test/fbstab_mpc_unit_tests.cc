@@ -18,14 +18,14 @@ GTEST_TEST(FBstabMPC, DoubleIntegrator) {
   // Get the problem data.
   OCPGenerator ocp;
   ocp.DoubleIntegrator(2);  // horizon length of 2
-  QPDataMPC data = ocp.GetFBstabInput();
+  FBstabMPC::QPData data = ocp.GetFBstabInput();
 
   // Set up the initial guess.
   VectorXd z = VectorXd::Zero(ocp.nz());
   VectorXd l = VectorXd::Zero(ocp.nl());
   VectorXd v = VectorXd::Zero(ocp.nv());
   VectorXd y = VectorXd::Zero(ocp.nv());
-  QPVariableMPC x = {&z, &l, &v, &y};
+  FBstabMPC::QPVariable x = {&z, &l, &v, &y};
 
   // Call the solver.
   Eigen::Vector4d size = ocp.ProblemSize();
@@ -33,7 +33,7 @@ GTEST_TEST(FBstabMPC, DoubleIntegrator) {
 
   solver.UpdateOption("abs_tol", 1e-6);
   solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
-  SolverOut out = solver.Solve(data, x);
+  SolverOut out = solver.Solve(data, &x);
 
   ASSERT_EQ(out.eflag, SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
@@ -70,14 +70,14 @@ GTEST_TEST(FBstabMPC, DoubleIntegratorLongHorizon) {
   // Get the problem data.
   OCPGenerator ocp;
   ocp.DoubleIntegrator(20);  // horizon length of 20
-  QPDataMPC data = ocp.GetFBstabInput();
+  FBstabMPC::QPData data = ocp.GetFBstabInput();
 
   // Set up the initial guess.
   VectorXd z = VectorXd::Zero(ocp.nz());
   VectorXd l = VectorXd::Zero(ocp.nl());
   VectorXd v = VectorXd::Zero(ocp.nv());
   VectorXd y = VectorXd::Zero(ocp.nv());
-  QPVariableMPC x = {&z, &l, &v, &y};
+  FBstabMPC::QPVariable x = {&z, &l, &v, &y};
 
   // Call the solver.
   Eigen::Vector4d size = ocp.ProblemSize();
@@ -85,7 +85,7 @@ GTEST_TEST(FBstabMPC, DoubleIntegratorLongHorizon) {
 
   solver.UpdateOption("abs_tol", 1e-6);
   solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
-  SolverOut out = solver.Solve(data, x);
+  SolverOut out = solver.Solve(data, &x);
 
   ASSERT_EQ(out.eflag, SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
@@ -95,14 +95,14 @@ GTEST_TEST(FBstabMPC, ServoMotor) {
   // Get the problem data.
   OCPGenerator ocp;
   ocp.ServoMotor(25);  // horizon length of 25
-  QPDataMPC data = ocp.GetFBstabInput();
+  FBstabMPC::QPData data = ocp.GetFBstabInput();
 
   // Set up the initial guess.
   VectorXd z = VectorXd::Zero(ocp.nz());
   VectorXd l = VectorXd::Zero(ocp.nl());
   VectorXd v = VectorXd::Zero(ocp.nv());
   VectorXd y = VectorXd::Zero(ocp.nv());
-  QPVariableMPC x = {&z, &l, &v, &y};
+  FBstabMPC::QPVariable x = {&z, &l, &v, &y};
 
   // Call the solver.
   Eigen::Vector4d size = ocp.ProblemSize();
@@ -110,7 +110,7 @@ GTEST_TEST(FBstabMPC, ServoMotor) {
 
   solver.UpdateOption("abs_tol", 1e-6);
   solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
-  SolverOut out = solver.Solve(data, x);
+  SolverOut out = solver.Solve(data, &x);
 
   ASSERT_EQ(out.eflag, SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
@@ -120,14 +120,14 @@ GTEST_TEST(FBstabMPC, SpacecraftRelativeMotion) {
   // Get the problem data.
   OCPGenerator ocp;
   ocp.SpacecraftRelativeMotion(40);  // horizon length of 40
-  QPDataMPC data = ocp.GetFBstabInput();
+  FBstabMPC::QPData data = ocp.GetFBstabInput();
 
   // Set up the initial guess.
   VectorXd z = VectorXd::Zero(ocp.nz());
   VectorXd l = VectorXd::Zero(ocp.nl());
   VectorXd v = VectorXd::Zero(ocp.nv());
   VectorXd y = VectorXd::Zero(ocp.nv());
-  QPVariableMPC x = {&z, &l, &v, &y};
+  FBstabMPC::QPVariable x = {&z, &l, &v, &y};
 
   // Call the solver.
   Eigen::Vector4d size = ocp.ProblemSize();
@@ -135,7 +135,32 @@ GTEST_TEST(FBstabMPC, SpacecraftRelativeMotion) {
 
   solver.UpdateOption("abs_tol", 1e-6);
   solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
-  SolverOut out = solver.Solve(data, x);
+  SolverOut out = solver.Solve(data, &x);
+
+  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_LE(out.residual, 1e-6);
+}
+
+GTEST_TEST(FBstabMPC, CopolymerizationReactor) {
+  // Get the problem data.
+  OCPGenerator ocp;
+  ocp.CopolymerizationReactor(80);  // horizon length of 80
+  FBstabMPC::QPData data = ocp.GetFBstabInput();
+
+  // Set up the initial guess.
+  VectorXd z = VectorXd::Zero(ocp.nz());
+  VectorXd l = VectorXd::Zero(ocp.nl());
+  VectorXd v = VectorXd::Zero(ocp.nv());
+  VectorXd y = VectorXd::Zero(ocp.nv());
+  FBstabMPC::QPVariable x = {&z, &l, &v, &y};
+
+  // Call the solver.
+  Eigen::Vector4d size = ocp.ProblemSize();
+  FBstabMPC solver(size(0), size(1), size(2), size(3));
+
+  solver.UpdateOption("abs_tol", 1e-6);
+  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  SolverOut out = solver.Solve(data, &x);
 
   ASSERT_EQ(out.eflag, SUCCESS);
   ASSERT_LE(out.residual, 1e-6);

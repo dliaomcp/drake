@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+
 #include "drake/common/drake_copyable.h"
 #include "drake/solvers/fbstab/fbstab_mpc.h"
 
@@ -22,11 +23,27 @@ class OCPGenerator {
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(OCPGenerator);
   OCPGenerator();
 
-  // Returns a structure ready to be fed into FBstab.
-  QPDataMPC GetFBstabInput() const;
+  /**
+   * Returns problem data in the form accepted by FBstab.
+   * @return [description]
+   */
+  FBstabMPC::QPData GetFBstabInput() const;
 
-
-  // void Copolymerization(int N)
+  /**
+   * Fills internal storage with data
+   * for a copolymerization reactor control problem.
+   *
+   * The example is from:
+   *
+   * Congalidis, John P., John R. Richards, and W. Harmon Ray.
+   * "Modeling and control of a copolymerization reactor."
+   * 1986 American Control Conference. IEEE, 1986.
+   *
+   * See https://arxiv.org/pdf/1901.04046.pdf for more details.
+   *
+   * @param N prediction horizon length
+   */
+  void CopolymerizationReactor(int N = 70);
 
   /**
    * Fills internal storage with data
