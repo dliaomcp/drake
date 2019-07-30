@@ -75,17 +75,35 @@ class OCPGenerator {
    */
   void SpacecraftRelativeMotion(int N = 40);
 
-  // Fills internal storage with data
-  // for a constrained double integrator
-  // problem with horizon N.
+  /**
+   * Fills internal storage with data
+   * for a constrained double integrator problem.
+   *
+   * @param[in] N prediction horizon length
+   */
   void DoubleIntegrator(int N = 10);
 
+  /**
+   * Get a summary of the problem size,
+   * in the following order:
+   * - N
+   * - nx
+   * - nu
+   * - nc
+   *
+   * @return vector of problem sizes
+   */
   Eigen::Vector4d ProblemSize();
+
+  /** Number of decision variables. */
   int nz() const { return nz_; }
+  /** Number of equality duals. */
   int nl() const { return nl_; }
+  /** Number of inequality duals. */
   int nv() const { return nv_; }
 
  private:
+  // Repeats the given matrices into N or N+1 length vectors.
   void ExtendOverHorizon(const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R,
                          const Eigen::MatrixXd& S, const Eigen::VectorXd& q,
                          const Eigen::VectorXd& r, const Eigen::MatrixXd& A,

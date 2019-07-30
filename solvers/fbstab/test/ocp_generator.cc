@@ -45,10 +45,9 @@ FBstabMPC::QPData OCPGenerator::GetFBstabInput() const {
 }
 
 void OCPGenerator::CopolymerizationReactor(int N) {
-  // This model is a modal realization of the following 4 x 5 transfer function.
-  // Which is then converted to discrete time using a zero order hold
-  // approximation.
-  /*
+  /* This model is a modal realization of the following 4 x 5 transfer function.
+   * Which is then converted to discrete time using a zero order hold
+   * approximation.
    * G(1,1) = 0.34/(0.85*s+1)
    * G(1,2) = 0.21/(0.42*s+1)
    * G(1,3) = 0.5*(0.5*s+1)/(12*s^2+0.4*s+1)
@@ -66,14 +65,14 @@ void OCPGenerator::CopolymerizationReactor(int N) {
    */
 
   MatrixXd A = MatrixXd::Zero(18, 18);
-  Eigen::VectorXi i(22);
+  Eigen::VectorXi i(26);
   i << 1, 2, 3, 4, 5, 6, 7, 8, 7, 8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 15,
       16, 17, 18, 17, 18;
 
-  Eigen::VectorXi j(22);
+  Eigen::VectorXi j(26);
   j << 1, 2, 3, 4, 5, 6, 7, 7, 8, 8, 9, 10, 11, 12, 12, 13, 13, 14, 15, 15, 16,
       16, 17, 17, 18, 18;
-  VectorXd v(22);
+  VectorXd v(26);
   v << 0.55531, 0.81264, 0.82131, 0.30408, 0.71811, 0.72276, 0.97319, 0.12353,
       -0.16471, 0.98966, 0.70834, 0.69048, 0.83152, -0.016569, 0.07277,
       -0.040608, 0.17835, 0.53526, -0.015422, 0.04805, -0.093847, 0.2924,
