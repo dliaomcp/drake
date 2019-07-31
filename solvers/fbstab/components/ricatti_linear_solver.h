@@ -77,7 +77,7 @@ class RicattiLinearSolver {
    * Throws a runtime_error if x and xbar aren't the correct size,
    * sigma is negative or the problem data isn't linked.
    */
-  bool Factor(const MPCVariable& x, const MPCVariable& xbar, double sigma);
+  bool Initialize(const MPCVariable& x, const MPCVariable& xbar, double sigma);
 
   /**
    * Solves the system V*x = r and stores the result in x.

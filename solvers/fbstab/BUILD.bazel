@@ -4,13 +4,12 @@ load(
     "drake_cc_library",
 )
 
-package(default_visibility = ["//visibility:public"])
+package(default_visibility = ["//visibility:private"])
 
 drake_cc_library(
     name = "fbstab_dense",
     srcs = [
         "fbstab_algorithm.h",
-        "fbstab_algorithm-inl.h",
         "fbstab_dense.cc",
     ],
     hdrs = ["fbstab_dense.h"],
@@ -29,7 +28,6 @@ drake_cc_library(
     name = "fbstab_mpc",
     srcs = [
         "fbstab_algorithm.h",
-        "fbstab_algorithm-inl.h",
         "fbstab_mpc.cc",
     ],
     hdrs = ["fbstab_mpc.h"],

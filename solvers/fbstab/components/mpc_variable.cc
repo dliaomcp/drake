@@ -95,7 +95,7 @@ void MPCVariable::InitializeConstraintMargin() {
   data_->gemvA(*z_, -1.0, 1.0, y_);
 }
 
-void MPCVariable::axpy(const MPCVariable& x, double a) {
+void MPCVariable::axpy(double a, const MPCVariable& x) {
   if (data_ == nullptr) {
     throw std::runtime_error(
         "Cannot call MPCVariable::axpy unless data is linked.");

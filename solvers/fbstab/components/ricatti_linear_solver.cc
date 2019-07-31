@@ -88,7 +88,7 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
 #endif
 }
 
-bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
+bool RicattiLinearSolver::Initialize(const MPCVariable& x, const MPCVariable& xbar,
                                  double sigma) {
 #ifdef EIGEN_RUNTIME_NO_MALLOC
   Eigen::internal::set_is_malloc_allowed(false);
@@ -144,6 +144,12 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
   // Base case: L(0) = chol(sigma*I).
   L_[0] = sqrt(sigma) * MatrixXd::Identity(nx_, nx_);
 
+  #define FBSTAB_LLT_CHECK(llt) {     \
+    if(llt.info() != Eigen::Success){ \
+      return false;                   \
+    }                                 \
+  }
+
   for (int i = 0; i < N_; i++) {
     // Compute inv(L(i)).
     Linv_ = MatrixXd::Identity(nx_, nx_);
@@ -153,6 +159,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
     // then factor M = chol(QQ) in place.
     M_[i].noalias() = Q_[i] + Linv_.transpose() * Linv_;
     Eigen::LLT<Eigen::Ref<MatrixXd> > llt1(M_[i]);
+    FBSTAB_LLT_CHECK(llt1);
 
     // Compute AM = A*inv(M)'.
     AM_[i] = data->A_->at(i);
@@ -171,6 +178,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
     // Factor SG = chol(R - SM*SM') in place.
     SG_[i].noalias() = R_[i] - SM_[i] * SM_[i].transpose();
     Eigen::LLT<Eigen::Ref<MatrixXd> > llt2(SG_[i]);
+    FBSTAB_LLT_CHECK(llt2);
 
     // Compute P = (A*inv(QQ)S' - B)*inv(SG)',
     //           = (AM*SM' - B)*inv(SG)'.
@@ -187,6 +195,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
     L_[i + 1].noalias() += P_[i] * P_[i].transpose();
     L_[i + 1].noalias() += AM_[i] * AM_[i].transpose();
     Eigen::LLT<Eigen::Ref<MatrixXd> > llt3(L_[i + 1]);
+    FBSTAB_LLT_CHECK(llt3);
   }
 
   // Finish the recursion, i.e., perform the i = N step.
@@ -196,6 +205,7 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
   // Compute M = chol(Q + inv(L*L')).
   M_[N_].noalias() = Q_[N_] + Linv_.transpose() * Linv_;
   Eigen::LLT<Eigen::Ref<MatrixXd> > llt4(M_[N_]);
+  FBSTAB_LLT_CHECK(llt4);
 
   // Compute SM = S*inv(M)'.
   SM_[N_] = S_[N_];
@@ -207,7 +217,9 @@ bool RicattiLinearSolver::Factor(const MPCVariable& x, const MPCVariable& xbar,
   // Compute SG = chol(R - SM*SM').
   SG_[N_].noalias() = R_[N_] - SM_[N_] * SM_[N_].transpose();
   Eigen::LLT<Eigen::Ref<MatrixXd> > llt5(SG_[N_]);
+  FBSTAB_LLT_CHECK(llt5);
 
+  #undef FBSTAB_LLT_CHECK
 #ifdef EIGEN_RUNTIME_NO_MALLOC
   Eigen::internal::set_is_malloc_allowed(true);
 #endif

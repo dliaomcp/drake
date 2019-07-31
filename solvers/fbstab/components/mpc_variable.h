@@ -22,10 +22,10 @@ class MPCComponentUnitTests;
  * Stores variables and defines methods implementing useful operations.
  *
  * Primal-dual variables have 4 fields:
- * z: Decision variables (x0,u0,x1,u1, ... xN,uN)
- * l: Co-states/equality duals (l0, ... ,lN)
- * v: Inequality duals (v0, ..., vN)
- * y: Inequality margins (y0, ..., yN)
+ * - z: Decision variables (x0,u0,x1,u1, ... xN,uN)
+ * - l: Co-states/equality duals (l0, ... ,lN)
+ * - v: Inequality duals (v0, ..., vN)
+ * - y: Inequality margins (y0, ..., yN)
  *
  * length(z) = nz = (nx*nu)*(N+1)
  * length(l) = nl = nx*(N+1)
@@ -35,7 +35,6 @@ class MPCComponentUnitTests;
 class MPCVariable {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCVariable);
-
   /**
    * Allocates memory for a primal-dual variable.
    *
@@ -76,18 +75,17 @@ class MPCVariable {
   void InitializeConstraintMargin();
 
   /**
-   * Performs the operation u <- a*x + u
-   * (where u is this object).
+   * Performs the operation *this <- a*x + *this.
    * This is a level 1 BLAS operation for this object;
    * see http://www.netlib.org/blas/blasqr.pdf.
    *
-   * @param[in] x the other variable
    * @param[in] a scalar
+   * @param[in] x vector
    *
    * Note that this handles the constraint margin correctly, i.e., after the
    * operation u.y = b - A*(u.z + a*x.z).
    */
-  void axpy(const MPCVariable& x, double a);
+  void axpy(double a, const MPCVariable& x);
 
   /**
    * Deep copies x into this.
@@ -145,6 +143,7 @@ class MPCVariable {
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
   const MPCData* data_ = nullptr;
+
   // Getter for data_ with a nullptr check.
   const MPCData* data() const;
 

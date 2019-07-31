@@ -81,8 +81,12 @@ void FBstabMPC::UpdateOption(const char* option, bool value) {
   algorithm_->UpdateOption(option, value);
 }
 void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level) {
-  algorithm_->display_level() = level;
+  algorithm_->set_display_level(level);
 }
+
+// Explicit instantiation.
+template class FBstabAlgorithm<MPCVariable, MPCResidual, MPCData,
+                               RicattiLinearSolver, MPCFeasibility>;
 
 }  // namespace fbstab
 }  // namespace solvers

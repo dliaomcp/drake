@@ -317,7 +317,7 @@ class MPCComponentUnitTests {
     x.Fill(1.0);
     y.Fill(1.0);
 
-    x.axpy(y, -2.0);
+    x.axpy(-2.0, y);
 
     VectorXd z_expected(data.nz_);
     VectorXd l_expected(data.nl_);
@@ -446,7 +446,7 @@ class MPCComponentUnitTests {
     double sigma = 1.0;
 
     RicattiLinearSolver ls(data.N_, data.nx_, data.nu_, data.nc_);
-    ls.Factor(x, y, sigma);
+    ls.Initialize(x, y, sigma);
 
     // Create the residual then solve.
     MPCResidual r(data.N_, data.nx_, data.nu_, data.nc_);

@@ -16,24 +16,28 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
+/** Convenience type for the templated dense version of the algorithm. */
+using FBstabAlgoDense = FBstabAlgorithm<DenseVariable, DenseResidual, DenseData,
+                                        DenseLinearSolver, DenseFeasibility>;
+
 /**
- * @ file FBstabDense implements the Proximally Stabilized Semismooth Algorithm
+ * FBstabDense implements the Proximally Stabilized Semismooth Algorithm
  * for solving convex quadratic programs of the following form (1):
  *
- * min.    1/2  z'Hz + f'z
- * s.t.         Az <= b
+ *     min.    1/2  z'Hz + f'z
+ *     s.t.         Az <= b
  *
  * where H is symmetric and positive semidefinite and its dual
  *
- * min.   1/2  z'Hz + b'v
- * s.t.   Hz + f + A'v = 0
- *        v >= 0.
+ *     min.   1/2  z'Hz + b'v
+ *     s.t.   Hz + f + A'v = 0
+ *            v >= 0.
  *
  * Or equivalently for solving its KKT system
  *
- * Hz + f + A' v = 0
- * Az <= b, v >= 0
- * (b - Az)' v = 0
+ *     Hz + f + A' v = 0
+ *     Az <= b, v >= 0
+ *     (b - Az)' v = 0
  *
  * where v is a dual variable.
  *
@@ -58,60 +62,49 @@ namespace fbstab {
  * f << 1,-1;
  * b << 0;
  *
- * DenseQPData data = {&H, &A, &f, &b};
+ * FBstabDense::QPData data = {&H, &A, &f, &b};
  *
  * VectorXd x0 = VectorXd::Zero(2);
  * VectorXd v0 = VectorXd::Zero(1);
  * VectorXd y0 = VectorXd::Zero(1);
  *
- * DenseQPVariable x = {&x0, &v0, &y0};
+ * FBstabDense::QPVariable x = {&x0, &v0, &y0};
  *
  * FBstabDense solver(2,1);
  * solver.Solve(data,x); // x is used as an initial guess then overwritten
  * @endcode
  */
-
-/**
- * Structure to hold the problem data.
- * Fields:
- * - H \in \reals^{nx x nx} is the Hessian
- * - A \in \reals^{nv x nx} is the constraint matrix
- * - f \in \reals^nx is the linear term
- * - b \in \reals^nv is the constraint vector
- */
-struct DenseQPData {
-  const Eigen::MatrixXd* H = nullptr;
-  const Eigen::MatrixXd* A = nullptr;
-  const Eigen::VectorXd* f = nullptr;
-  const Eigen::VectorXd* b = nullptr;
-};
-
-/**
- * Structure to hold the initial guess.
- * The vectors pointed to by z, v, and y WILL BE OVERWRITTEN
- * with the solution.
- *
- * Fields:
- * - z \in \reals^nz are the decision variables
- * - v \in \reals^nv are the inequality duals
- * - y \in \reals^nv are the constraint margins, i.e., y = b - Az
- */
-struct DenseQPVariable {
-  Eigen::VectorXd* z = nullptr;
-  Eigen::VectorXd* v = nullptr;
-  Eigen::VectorXd* y = nullptr;
-};
-
-// Convenience type for the templated dense version of the algorithm.
-using FBstabAlgoDense = FBstabAlgorithm<DenseVariable, DenseResidual, DenseData,
-                                        DenseLinearSolver, DenseFeasibility>;
-
 class FBstabDense {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(FBstabDense);
+  /** Structure to hold the problem data. */
+  struct QPData {
+    /// nz x nz real positive semidefinite Hessian matrix.
+    const Eigen::MatrixXd* H = nullptr;
+    /// nv x nz real constraint Jacobian.
+    const Eigen::MatrixXd* A = nullptr;
+    /// nz real linear cost.
+    const Eigen::VectorXd* f = nullptr;
+    /// nv real constraint rhs.
+    const Eigen::VectorXd* b = nullptr;
+  };
+
+  /**
+   * Structure to hold the initial guess.
+   * The vectors pointed to by z, v, and y WILL BE OVERWRITTEN
+   * with the solution.
+   */
+  struct QPVariable {
+    /// Decision variables in \reals^nz.
+    Eigen::VectorXd* z = nullptr;
+    /// Inequality duals in \reals^nv.
+    Eigen::VectorXd* v = nullptr;
+    /// Constraint margin, i.e., y = b-Az, in \reals^nv.
+    Eigen::VectorXd* y = nullptr;
+  };
   /**
    * Allocates needed workspace given the dimensions of the QPs to
-   * be solved.
+   * be solved. Throws a runtime_error if any inputs are non-positive.
    *
    * @param[in] num_variables
    * @param[in] num_constraints
@@ -123,25 +116,19 @@ class FBstabDense {
    *
    * @param[in]   qp  problem data
    *
-   * @param[both] x   initial guess, overwritten with the solution
+   * @param[in,out] x   initial guess, overwritten with the solution
    *
    * @param[in] use_initial_guess if false the solver is initialized at the
    * origin.
    *
-   * @return 	summary of the optimizer output. Has the following fields:
-   *
-   * - eflag: ExitFlag enum (see fbstab_algorithm.h) indicating success or
-   * failure
-   * - residual: Norm of the KKT residual
-   * - newton_iters: Number of Newton steps
-   * - prox_iters: Number of proximal iterations
+   * @return Summary of the optimizer output, see fbstab_algorithm.h.
    */
-  SolverOut Solve(const DenseQPData& qp, const DenseQPVariable& x,
+  SolverOut Solve(const QPData& qp, const QPVariable* x,
                   bool use_initial_guess = true);
 
   /**
    * Allows for setting of solver options. See fbstab_algorithm.h for
-   * a list of adjustable options
+   * a list of adjustable options.
    * @param[in] option Option name
    * @param[in] value  New value
    */
@@ -151,15 +138,8 @@ class FBstabDense {
 
   /**
    * Controls the verbosity of the algorithm.
+   * See fbstab_algorithm.h for details.
    * @param[in] level new display level
-   *
-   * Possible values are:
-   * - OFF: Silent operation
-   * - FINAL: Prints a summary at the end
-   * - ITER: Major iterations details
-   * - ITER_DETAILED: Major and minor iteration details
-   *
-   * The default value is FINAL.
    */
   void SetDisplayLevel(FBstabAlgoDense::Display level);
 

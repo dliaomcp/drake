@@ -1,17 +1,3 @@
-#include "drake/solvers/fbstab/fbstab_dense.h"
-
-#include <cmath>
-#include <Eigen/Dense>
-#include <gtest/gtest.h>
-
-namespace drake {
-namespace solvers {
-namespace fbstab {
-namespace test {
-
-using MatrixXd = Eigen::MatrixXd;
-using VectorXd = Eigen::VectorXd;
-
 /**
  * @file Unit tests for FBstabDense
  * which is designed to solve QPs of the form:
@@ -20,6 +6,20 @@ using VectorXd = Eigen::VectorXd;
  * s.t. Az <= b
  *
  */
+#include <cmath>
+
+#include <Eigen/Dense>
+#include <gtest/gtest.h>
+
+#include "drake/solvers/fbstab/fbstab_dense.h"
+
+namespace drake {
+namespace solvers {
+namespace fbstab {
+namespace test {
+
+using MatrixXd = Eigen::MatrixXd;
+using VectorXd = Eigen::VectorXd;
 
 /**
  * Tests FBstab with
@@ -48,7 +48,7 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
   int n = f.size();
   int q = b.size();
 
-  DenseQPData data;
+  FBstabDense::QPData data;
   data.H = &H;
   data.f = &f;
   data.A = &A;
@@ -58,17 +58,17 @@ GTEST_TEST(FBstabDense, FeasibleQP) {
   VectorXd v0 = Eigen::VectorXd::Zero(q);
   VectorXd y0 = Eigen::VectorXd::Zero(q);
 
-  DenseQPVariable x0;
+  FBstabDense::QPVariable x0;
   x0.z = &z0;
   x0.v = &v0;
   x0.y = &y0;
 
   FBstabDense solver(n, q);
   solver.UpdateOption("abs_tol", 1e-8);
-  solver.SetDisplayLevel(FBstabAlgoDense::OFF);
-  SolverOut out = solver.Solve(data, x0);
+  solver.SetDisplayLevel(FBstabAlgoDense::Display::OFF);
+  SolverOut out = solver.Solve(data, &x0);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
 
   VectorXd zopt(2);
   VectorXd vopt(2);
@@ -114,7 +114,7 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
   int n = f.size();
   int q = b.size();
 
-  DenseQPData data;
+  FBstabDense::QPData data;
   data.H = &H;
   data.f = &f;
   data.A = &A;
@@ -124,19 +124,25 @@ GTEST_TEST(FBstabDense, DegenerateQP) {
   VectorXd v0 = Eigen::VectorXd::Zero(q);
   VectorXd y0 = Eigen::VectorXd::Zero(q);
 
-  DenseQPVariable x0;
+  FBstabDense::QPVariable x0;
   x0.z = &z0;
   x0.v = &v0;
   x0.y = &y0;
 
   FBstabDense solver(n, q);
   solver.UpdateOption("abs_tol", 1e-8);
-  solver.SetDisplayLevel(FBstabAlgoDense::OFF);
-  SolverOut out = solver.Solve(data, x0);
+  solver.SetDisplayLevel(FBstabAlgoDense::Display::OFF);
+  SolverOut out = solver.Solve(data, &x0);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
   EXPECT_NEAR(z0(0), 1, 1e-8);
   EXPECT_TRUE((z0(1) >= 1) && (z0(1) <= 3));
+
+  // Check satisfaction of KKT conditions.
+  VectorXd r1 = H * z0 + f + A.transpose() * v0;
+  VectorXd r2 = y0.cwiseMin(v0);
+
+  ASSERT_NEAR(r1.norm() + r2.norm(), 0, 1e-6);
 }
 
 /**
@@ -170,7 +176,7 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
   int n = f.size();
   int q = b.size();
 
-  DenseQPData data;
+  FBstabDense::QPData data;
   data.H = &H;
   data.f = &f;
   data.A = &A;
@@ -180,17 +186,17 @@ GTEST_TEST(FBstabDense, InfeasibleQP) {
   VectorXd v0 = Eigen::VectorXd::Zero(q);
   VectorXd y0 = Eigen::VectorXd::Zero(q);
 
-  DenseQPVariable x0;
+  FBstabDense::QPVariable x0;
   x0.z = &z0;
   x0.v = &v0;
   x0.y = &y0;
 
   FBstabDense solver(n, q);
   solver.UpdateOption("abs_tol", 1e-8);
-  solver.SetDisplayLevel(FBstabAlgoDense::OFF);
-  SolverOut out = solver.Solve(data, x0);
+  solver.SetDisplayLevel(FBstabAlgoDense::Display::OFF);
+  SolverOut out = solver.Solve(data, &x0);
 
-  ASSERT_EQ(out.eflag, PRIMAL_INFEASIBLE);
+  ASSERT_EQ(out.eflag, ExitFlag::PRIMAL_INFEASIBLE);
 }
 
 /**
@@ -223,7 +229,7 @@ GTEST_TEST(FBstabDense, UnboundedQP) {
   int n = f.size();
   int q = b.size();
 
-  DenseQPData data;
+  FBstabDense::QPData data;
   data.H = &H;
   data.f = &f;
   data.A = &A;
@@ -233,17 +239,17 @@ GTEST_TEST(FBstabDense, UnboundedQP) {
   VectorXd v0 = Eigen::VectorXd::Zero(q);
   VectorXd y0 = Eigen::VectorXd::Zero(q);
 
-  DenseQPVariable x0;
+  FBstabDense::QPVariable x0;
   x0.z = &z0;
   x0.v = &v0;
   x0.y = &y0;
 
   FBstabDense solver(n, q);
   solver.UpdateOption("abs_tol", 1e-8);
-  solver.SetDisplayLevel(FBstabAlgoDense::OFF);
-  SolverOut out = solver.Solve(data, x0);
+  solver.SetDisplayLevel(FBstabAlgoDense::Display::OFF);
+  SolverOut out = solver.Solve(data, &x0);
 
-  ASSERT_EQ(out.eflag, DUAL_INFEASIBLE);
+  ASSERT_EQ(out.eflag, ExitFlag::DUAL_INFEASIBLE);
 }
 
 }  // namespace test

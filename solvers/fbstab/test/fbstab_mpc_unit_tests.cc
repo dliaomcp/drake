@@ -32,10 +32,10 @@ GTEST_TEST(FBstabMPC, DoubleIntegrator) {
   FBstabMPC solver(size(0), size(1), size(2), size(3));
 
   solver.UpdateOption("abs_tol", 1e-6);
-  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  solver.SetDisplayLevel(FBstabAlgoMPC::Display::ITER);
   SolverOut out = solver.Solve(data, &x);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
 
   VectorXd zopt(ocp.nz());
@@ -84,10 +84,10 @@ GTEST_TEST(FBstabMPC, DoubleIntegratorLongHorizon) {
   FBstabMPC solver(size(0), size(1), size(2), size(3));
 
   solver.UpdateOption("abs_tol", 1e-6);
-  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  solver.SetDisplayLevel(FBstabAlgoMPC::Display::ITER);
   SolverOut out = solver.Solve(data, &x);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
 }
 
@@ -109,10 +109,10 @@ GTEST_TEST(FBstabMPC, ServoMotor) {
   FBstabMPC solver(size(0), size(1), size(2), size(3));
 
   solver.UpdateOption("abs_tol", 1e-6);
-  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  solver.SetDisplayLevel(FBstabAlgoMPC::Display::ITER);
   SolverOut out = solver.Solve(data, &x);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
 }
 
@@ -134,10 +134,10 @@ GTEST_TEST(FBstabMPC, SpacecraftRelativeMotion) {
   FBstabMPC solver(size(0), size(1), size(2), size(3));
 
   solver.UpdateOption("abs_tol", 1e-6);
-  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  solver.SetDisplayLevel(FBstabAlgoMPC::Display::ITER);
   SolverOut out = solver.Solve(data, &x);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
 }
 
@@ -159,10 +159,10 @@ GTEST_TEST(FBstabMPC, CopolymerizationReactor) {
   FBstabMPC solver(size(0), size(1), size(2), size(3));
 
   solver.UpdateOption("abs_tol", 1e-6);
-  solver.SetDisplayLevel(FBstabAlgoMPC::ITER);
+  solver.SetDisplayLevel(FBstabAlgoMPC::Display::ITER);
   SolverOut out = solver.Solve(data, &x);
 
-  ASSERT_EQ(out.eflag, SUCCESS);
+  ASSERT_EQ(out.eflag, ExitFlag::SUCCESS);
   ASSERT_LE(out.residual, 1e-6);
 }
 
