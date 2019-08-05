@@ -18,9 +18,9 @@ namespace fbstab {
  * or primal infeasibility. It implements
  * Algorithm 3 of https://arxiv.org/pdf/1901.04046.pdf.
  */
-class MPCFeasibility {
+class MpcFeasibility {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCFeasibility);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MpcFeasibility);
   /**
    * Allocates workspace memory.
    *
@@ -29,7 +29,7 @@ class MPCFeasibility {
    * @param[in] nu number of control input
    * @param[in] nc number of constraints per stage
    */
-  MPCFeasibility(int N, int nx, int nu, int nc);
+  MpcFeasibility(int N, int nx, int nu, int nc);
 
   /**
    * Checks to see if x is an infeasibility certificate for the QP and stores
@@ -40,7 +40,7 @@ class MPCFeasibility {
    * Throws a runtime_error if x and *this aren't the same size
    * or if the problem data hasn't been linked.
    */
-  void ComputeFeasibility(const MPCVariable& x, double tol);
+  void ComputeFeasibility(const MpcVariable& x, double tol);
 
   /**
    * Retrieve the result of the last infeasibility check.

@@ -12,15 +12,12 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-MPCResidual::MPCResidual(int N, int nx, int nu, int nc) {
+MpcResidual::MpcResidual(int N, int nx, int nu, int nc) {
   if (N <= 0 || nx <= 0 || nu <= 0 || nc <= 0) {
     throw std::runtime_error(
-        "All inputs to MPCResidual::MPCResidual must be >= 1.");
+        "All inputs to MpcResidual::MpcResidual must be >= 1.");
   }
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(true);
-#endif
   N_ = N;
   nx_ = nx;
   nu_ = nu;
@@ -33,47 +30,41 @@ MPCResidual::MPCResidual(int N, int nx, int nu, int nc) {
   l_.resize(nl_);
   v_.resize(nv_);
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-#endif
-
   z_.setConstant(0.0);
   l_.setConstant(0.0);
   v_.setConstant(0.0);
 }
 
-void MPCResidual::Fill(double a) {
+void MpcResidual::Fill(double a) {
   z_.setConstant(a);
   l_.setConstant(a);
   v_.setConstant(a);
 }
 
-void MPCResidual::Negate() {
+void MpcResidual::Negate() {
   z_ *= -1;
   l_ *= -1;
   v_ *= -1;
 }
 
-double MPCResidual::Norm() const {
+double MpcResidual::Norm() const {
   return sqrt(znorm_ * znorm_ + lnorm_ * lnorm_ + vnorm_ * vnorm_);
 }
 
-double MPCResidual::Merit() const {
+double MpcResidual::Merit() const {
   const double temp = this->Norm();
   return 0.5 * temp * temp;
 }
 
-void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
+void MpcResidual::InnerResidual(const MpcVariable& x, const MpcVariable& xbar,
                                 double sigma) {
-  const MPCData* const data = x.data();
+  const MpcData* const data = x.data();
   if (xbar.data_ != data) {
     throw std::runtime_error(
-        "In MPCResidual::InnerResidual: x and xbar have mismatched problem "
+        "In MpcResidual::InnerResidual: x and xbar have mismatched problem "
         "data.");
   }
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-#endif
+
   // r.z = H*z + f + G'*l + A'*v + sigma*(z-zbar)
   z_.setConstant(0.0);
   data->axpyf(1.0, &z_);
@@ -98,8 +89,8 @@ void MPCResidual::InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
   vnorm_ = v_.norm();
 }
 
-void MPCResidual::NaturalResidual(const MPCVariable& x) {
-  const MPCData* const data = x.data();
+void MpcResidual::NaturalResidual(const MpcVariable& x) {
+  const MpcData* const data = x.data();
   // r.z = H*z + f + G'*l + A'*v
   z_.setConstant(0.0);
   data->axpyf(1.0, &z_);
@@ -121,8 +112,8 @@ void MPCResidual::NaturalResidual(const MPCVariable& x) {
   vnorm_ = v_.norm();
 }
 
-void MPCResidual::PenalizedNaturalResidual(const MPCVariable& x) {
-  const MPCData* const data = x.data();
+void MpcResidual::PenalizedNaturalResidual(const MpcVariable& x) {
+  const MpcData* const data = x.data();
   // r.z = H*z + f + G'*l + A'*v
   z_.setConstant(0.0);
   data->axpyf(1.0, &z_);
@@ -145,7 +136,7 @@ void MPCResidual::PenalizedNaturalResidual(const MPCVariable& x) {
   vnorm_ = v_.norm();
 }
 
-double MPCResidual::pfb(double a, double b, double alpha) {
+double MpcResidual::pfb(double a, double b, double alpha) {
   double fb = a + b - sqrt(a * a + b * b);
   return alpha * fb + (1.0 - alpha) * max(0, a) * max(0, b);
 }

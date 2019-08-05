@@ -15,7 +15,7 @@ namespace fbstab {
 
 // Forward declaration of testing class to enable a friend declaration.
 namespace test {
-class MPCComponentUnitTests;
+class MpcComponentUnitTests;
 }  // namespace test
 
 /**
@@ -77,7 +77,7 @@ class RicattiLinearSolver {
    * Throws a runtime_error if x and xbar aren't the correct size,
    * sigma is negative or the problem data isn't linked.
    */
-  bool Initialize(const MPCVariable& x, const MPCVariable& xbar, double sigma);
+  bool Initialize(const MpcVariable& x, const MpcVariable& xbar, double sigma);
 
   /**
    * Solves the system V*x = r and stores the result in x.
@@ -91,7 +91,7 @@ class RicattiLinearSolver {
    * Throws a runtime_error if x and r aren't the correct sizes,
    * if x is null or if the problem data isn't linked.
    */
-  bool Solve(const MPCResidual& r, MPCVariable* dx) const;
+  bool Solve(const MpcResidual& r, MpcVariable* dx) const;
 
  private:
   // Workspace matrices.
@@ -137,7 +137,7 @@ class RicattiLinearSolver {
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
 
-  const MPCData* data_ = nullptr;
+  const MpcData* data_ = nullptr;
   const double zero_tolerance_ = 1e-13;
   double alpha_ = 0.95;
 
@@ -146,7 +146,7 @@ class RicattiLinearSolver {
   // See section 3.3.
   Eigen::Vector2d PFBGradient(double a, double b) const;
 
-  friend class test::MPCComponentUnitTests;
+  friend class test::MpcComponentUnitTests;
 };
 
 }  // namespace fbstab

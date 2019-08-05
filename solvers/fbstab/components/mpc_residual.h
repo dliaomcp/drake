@@ -12,7 +12,7 @@ namespace fbstab {
 
 // Forward declaration of testing class to enable a friend declaration.
 namespace test {
-class MPCComponentUnitTests;
+class MpcComponentUnitTests;
 }  // namespace test
 
 /**
@@ -24,9 +24,9 @@ class MPCComponentUnitTests;
  * l: Equality residual
  * v: Inequality/complimentarity residual
  */
-class MPCResidual {
+class MpcResidual {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MPCResidual);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MpcResidual);
   /**
    * Allocates memory for the residual.
    *
@@ -35,7 +35,7 @@ class MPCResidual {
    * @param[in] nu number of control input
    * @param[in] nc number of constraints per stage
    */
-  MPCResidual(int N, int nx, int nu, int nc);
+  MpcResidual(int N, int nx, int nu, int nc);
 
   /**
    * Sets the value of alpha used in residual computations,
@@ -75,7 +75,7 @@ class MPCResidual {
    * @param[in] xbar  outer iterate for evaluating the residual
    * @param[in] sigma regularization strength
    */
-  void InnerResidual(const MPCVariable& x, const MPCVariable& xbar,
+  void InnerResidual(const MpcVariable& x, const MpcVariable& xbar,
                      double sigma);
 
   /**
@@ -84,14 +84,14 @@ class MPCResidual {
    * Corresponds to (23) in https://arxiv.org/pdf/1901.04046.pdf
    * @param[in] x primal-dual point to evaluate the KKT conditions
    */
-  void NaturalResidual(const MPCVariable& x);
+  void NaturalResidual(const MpcVariable& x);
 
   /**
    * Computes the penalized natural residual of the KKT conditions at x
    * Overwrites internal storage
    * @param[in] x primal-dual point to evaluate the KKT conditions
    */
-  void PenalizedNaturalResidual(const MPCVariable& x);
+  void PenalizedNaturalResidual(const MpcVariable& x);
 
   // Accessor for z.
   Eigen::VectorXd& z() { return z_; }

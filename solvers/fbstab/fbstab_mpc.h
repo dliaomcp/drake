@@ -18,8 +18,8 @@ namespace solvers {
 namespace fbstab {
 
 /** Conveience typedef for the templated version of the algorithm.*/
-using FBstabAlgoMPC = FBstabAlgorithm<MPCVariable, MPCResidual, MPCData,
-                                      RicattiLinearSolver, MPCFeasibility>;
+using FBstabAlgoMPC = FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
+                                      RicattiLinearSolver, MpcFeasibility>;
 
 /**
  * FBstabMPC implements the Proximally Stabilized Semismooth Method for
@@ -159,14 +159,14 @@ class FBstabMPC {
   int nv_ = 0;  // number of inequality duals
 
   std::unique_ptr<FBstabAlgoMPC> algorithm_;
-  std::unique_ptr<MPCVariable> x1_;
-  std::unique_ptr<MPCVariable> x2_;
-  std::unique_ptr<MPCVariable> x3_;
-  std::unique_ptr<MPCVariable> x4_;
-  std::unique_ptr<MPCResidual> r1_;
-  std::unique_ptr<MPCResidual> r2_;
+  std::unique_ptr<MpcVariable> x1_;
+  std::unique_ptr<MpcVariable> x2_;
+  std::unique_ptr<MpcVariable> x3_;
+  std::unique_ptr<MpcVariable> x4_;
+  std::unique_ptr<MpcResidual> r1_;
+  std::unique_ptr<MpcResidual> r2_;
   std::unique_ptr<RicattiLinearSolver> linear_solver_;
-  std::unique_ptr<MPCFeasibility> feasibility_checker_;
+  std::unique_ptr<MpcFeasibility> feasibility_checker_;
 };
 
 }  // namespace fbstab

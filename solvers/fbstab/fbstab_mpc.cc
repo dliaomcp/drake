@@ -31,17 +31,17 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc) {
   nv_ = nc * (N + 1);
 
   // create the components
-  x1_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
-  x2_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
-  x3_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
-  x4_ = std::make_unique<MPCVariable>(N, nx, nu, nc);
+  x1_ = std::make_unique<MpcVariable>(N, nx, nu, nc);
+  x2_ = std::make_unique<MpcVariable>(N, nx, nu, nc);
+  x3_ = std::make_unique<MpcVariable>(N, nx, nu, nc);
+  x4_ = std::make_unique<MpcVariable>(N, nx, nu, nc);
 
-  r1_ = std::make_unique<MPCResidual>(N, nx, nu, nc);
-  r2_ = std::make_unique<MPCResidual>(N, nx, nu, nc);
+  r1_ = std::make_unique<MpcResidual>(N, nx, nu, nc);
+  r2_ = std::make_unique<MpcResidual>(N, nx, nu, nc);
 
   linear_solver_ = std::make_unique<RicattiLinearSolver>(N, nx, nu, nc);
 
-  feasibility_checker_ = std::make_unique<MPCFeasibility>(N, nx, nu, nc);
+  feasibility_checker_ = std::make_unique<MpcFeasibility>(N, nx, nu, nc);
 
   algorithm_ = std::make_unique<FBstabAlgoMPC>(
       x1_.get(), x2_.get(), x3_.get(), x4_.get(), r1_.get(), r2_.get(),
@@ -50,9 +50,9 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc) {
 
 SolverOut FBstabMPC::Solve(const QPData& qp, const QPVariable* x,
                            bool use_initial_guess) {
-  MPCData data(qp.Q, qp.R, qp.S, qp.q, qp.r, qp.A, qp.B, qp.c, qp.E, qp.L, qp.d,
+  MpcData data(qp.Q, qp.R, qp.S, qp.q, qp.r, qp.A, qp.B, qp.c, qp.E, qp.L, qp.d,
                qp.x0);
-  MPCVariable x0(x->z, x->l, x->v, x->y);
+  MpcVariable x0(x->z, x->l, x->v, x->y);
 
   if (data.N_ != N_ || data.nx_ != nx_ || data.nu_ != nu_ || data.nc_ != nc_) {
     throw std::runtime_error(
@@ -85,8 +85,8 @@ void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level) {
 }
 
 // Explicit instantiation.
-template class FBstabAlgorithm<MPCVariable, MPCResidual, MPCData,
-                               RicattiLinearSolver, MPCFeasibility>;
+template class FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
+                               RicattiLinearSolver, MpcFeasibility>;
 
 }  // namespace fbstab
 }  // namespace solvers

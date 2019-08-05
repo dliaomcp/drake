@@ -11,7 +11,7 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-MPCFeasibility::MPCFeasibility(int N, int nx, int nu, int nc) {
+MpcFeasibility::MpcFeasibility(int N, int nx, int nu, int nc) {
   nx_ = nx;
   nu_ = nu;
   nc_ = nc;
@@ -21,23 +21,16 @@ MPCFeasibility::MPCFeasibility(int N, int nx, int nu, int nc) {
   nl_ = nx_ * (N_ + 1);
   nv_ = nc_ * (N_ + 1);
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(true);
-#endif
   tz_.resize(nz_);
   tl_.resize(nl_);
   tv_.resize(nv_);
-
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-#endif
 }
 
-void MPCFeasibility::ComputeFeasibility(const MPCVariable& x, double tol) {
-  const MPCData* const data = x.data();
+void MpcFeasibility::ComputeFeasibility(const MpcVariable& x, double tol) {
+  const MpcData* const data = x.data();
   if (x.N_ != N_ || x.nx_ != nx_ || x.nu_ != nu_ || x.nc_ != nc_) {
     throw std::runtime_error(
-        "In MPCFeasibility::ComputeFeasibility: size mismatch between *this "
+        "In MpcFeasibility::ComputeFeasibility: size mismatch between *this "
         "and x.");
   }
 

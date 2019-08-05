@@ -35,9 +35,6 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
   int nl = nl_;
   int nv = nv_;
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(true);
-#endif
   Q_.resize(N + 1);
   S_.resize(N + 1);
   R_.resize(N + 1);
@@ -82,25 +79,17 @@ RicattiLinearSolver::RicattiLinearSolver(int N, int nx, int nu, int nc) {
   r1_.resize(nz);
   r2_.resize(nl);
   r3_.resize(nv);
-
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-#endif
 }
 
-bool RicattiLinearSolver::Initialize(const MPCVariable& x, const MPCVariable& xbar,
-                                 double sigma) {
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-#endif
-
-  const MPCData* const data = x.data();
+bool RicattiLinearSolver::Initialize(const MpcVariable& x,
+                                     const MpcVariable& xbar, double sigma) {
+  const MpcData* const data = x.data();
   if (xbar.data_ != data) {
     throw std::runtime_error(
         "In RicattiLinearSolver::Factor: x and xbar have mismatched problem "
         "data.");
   }
-  if (!MPCVariable::SameSize(x, xbar)) {
+  if (!MpcVariable::SameSize(x, xbar)) {
     throw std::runtime_error(
         "In RicattiLinearSolver::Factor: x and xbar are not the same size.");
   }
@@ -144,10 +133,11 @@ bool RicattiLinearSolver::Initialize(const MPCVariable& x, const MPCVariable& xb
   // Base case: L(0) = chol(sigma*I).
   L_[0] = sqrt(sigma) * MatrixXd::Identity(nx_, nx_);
 
-  #define FBSTAB_LLT_CHECK(llt) {     \
-    if(llt.info() != Eigen::Success){ \
-      return false;                   \
-    }                                 \
+#define FBSTAB_LLT_CHECK(llt)           \
+  {                                     \
+    if (llt.info() != Eigen::Success) { \
+      return false;                     \
+    }                                   \
   }
 
   for (int i = 0; i < N_; i++) {
@@ -219,15 +209,12 @@ bool RicattiLinearSolver::Initialize(const MPCVariable& x, const MPCVariable& xb
   Eigen::LLT<Eigen::Ref<MatrixXd> > llt5(SG_[N_]);
   FBSTAB_LLT_CHECK(llt5);
 
-  #undef FBSTAB_LLT_CHECK
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(true);
-#endif
+#undef FBSTAB_LLT_CHECK
   return true;
 }
 
-bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
-  const MPCData* const data = dx->data();
+bool RicattiLinearSolver::Solve(const MpcResidual& r, MpcVariable* dx) const {
+  const MpcData* const data = dx->data();
   if (r.nz_ != dx->nz_ || r.nl_ != dx->nl_ || r.nv_ != dx->nv_) {
     throw std::runtime_error(
         "In RicattiLinearSolver::Solve: r and dx size mismatch.");
@@ -242,9 +229,6 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
   Eigen::Map<MatrixXd> r1(r1_.data(), nx_ + nu_, N_ + 1);
   Eigen::Map<MatrixXd> r2(r2_.data(), nx_, N_ + 1);
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(false);
-#endif
   // Begin the vector portion of the Ricatti recursion.
   // Base case: theta(0) = -rl(0), h(0) = inv(L*L')*theta(0) - rx(0).
   th_[0] = r2.col(0);
@@ -358,9 +342,6 @@ bool RicattiLinearSolver::Solve(const MPCResidual& r, MPCVariable* dx) const {
   data->gemvA(dx->z(), -1.0, 0.0, &dy);
   data->axpyb(1.0, &dy);
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-  Eigen::internal::set_is_malloc_allowed(true);
-#endif
   return true;
 }
 

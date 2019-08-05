@@ -22,13 +22,13 @@ using VectorXd = Eigen::VectorXd;
 
 /**
  * This class implements unit tests for the following classes:
- * MPCData
- * MPCVariable
- * MPCResidual
- * MPCFeasibiity
+ * MpcData
+ * MpcVariable
+ * MpcResidual
+ * MpcFeasibility
  * RicattiLinearSolver
  */
-class MPCComponentUnitTests {
+class MpcComponentUnitTests {
  public:
   /**
    * Sets up the optimal control problem
@@ -37,10 +37,7 @@ class MPCComponentUnitTests {
    * The mathematical format can be found in
    * https://arxiv.org/pdf/1901.04046.pdf Eq. (29) or in mpc_data.h.
    */
-  MPCComponentUnitTests() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
+  MpcComponentUnitTests() {
     int N = 2;  // Use a horizon length of 2 throughout.
 
     MatrixXd Q(2, 2);
@@ -102,11 +99,8 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVH() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nz = data.nz_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nz = data.nz_;
 
     VectorXd z(nz);
     for (int i = 0; i < nz; i++) {
@@ -129,12 +123,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVA() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nv = data.nv_;
-    int nz = data.nz_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nv = data.nv_;
+    const int nz = data.nz_;
 
     VectorXd z(nz);
     for (int i = 0; i < nz; i++) {
@@ -156,12 +147,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVG() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nl = data.nl_;
-    int nz = data.nz_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nl = data.nl_;
+    const int nz = data.nz_;
 
     VectorXd z(nz);
     for (int i = 0; i < nz; i++) {
@@ -183,12 +171,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVGT() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nl = data.nl_;
-    int nz = data.nz_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nl = data.nl_;
+    const int nz = data.nz_;
 
     VectorXd l(nl);
     for (int i = 0; i < nl; i++) {
@@ -210,12 +195,9 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void GEMVAT() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nv = data.nv_;
-    int nz = data.nz_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nv = data.nv_;
+    const int nz = data.nz_;
 
     VectorXd v(nv);
     for (int i = 0; i < nv; i++) {
@@ -237,11 +219,8 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void AXPYF() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nz = data.nz_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nz = data.nz_;
 
     VectorXd y(nz);
     y << 5, 2, 10, 14, 5, 22, 23, 8, 34;
@@ -259,11 +238,8 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void AXPYH() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nl = data.nl_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nl = data.nl_;
 
     VectorXd y(nl);
     y << -1, -2, -1, 0, 2, 3;
@@ -281,11 +257,8 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void AXPYB() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
-    int nv = data.nv_;
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    const int nv = data.nv_;
 
     VectorXd y(nv);
     y << -1, -2, 1, 2, -3, 3, -4, -5, 4, 5, -6, 6, -7, -8, 7, 8, -9, 9;
@@ -304,13 +277,10 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void Variable() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
-    MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
-    MPCVariable y(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable x(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable y(data.N_, data.nx_, data.nu_, data.nc_);
     x.LinkData(&data);
     y.LinkData(&data);
 
@@ -346,13 +316,10 @@ class MPCComponentUnitTests {
    * Tests against hand calculations.
    */
   void InnerResidual() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
-    MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
-    MPCVariable y(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable x(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable y(data.N_, data.nx_, data.nu_, data.nc_);
     x.LinkData(&data);
     y.LinkData(&data);
 
@@ -361,7 +328,7 @@ class MPCComponentUnitTests {
 
     double sigma = 1.0;
 
-    MPCResidual r(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcResidual r(data.N_, data.nx_, data.nu_, data.nc_);
     r.InnerResidual(x, y, sigma);
 
     VectorXd rz_expected(data.nz_);
@@ -392,17 +359,14 @@ class MPCComponentUnitTests {
   // Checks to make sure the the feasibility routine
   // executes correctly and with false positives.
   void FeasibilitySanityCheck() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
-    MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable x(data.N_, data.nx_, data.nu_, data.nc_);
     x.LinkData(&data);
     x.Fill(0);
     x.InitializeConstraintMargin();
 
-    MPCFeasibility f(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcFeasibility f(data.N_, data.nx_, data.nu_, data.nc_);
 
     f.ComputeFeasibility(x, 1e-8);
 
@@ -422,13 +386,10 @@ class MPCComponentUnitTests {
   // See (28) in https://arxiv.org/pdf/1901.04046.pdf
   // for more details.
   void RicattiRecursion() {
-    #ifdef EIGEN_RUNTIME_NO_MALLOC
-    Eigen::internal::set_is_malloc_allowed(true);
-    #endif
-    MPCData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
+    MpcData data(&Q_, &R_, &S_, &q_, &r_, &A_, &B_, &c_, &E_, &L_, &d_, &x0_);
 
-    MPCVariable x(data.N_, data.nx_, data.nu_, data.nc_);
-    MPCVariable y(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable x(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable y(data.N_, data.nx_, data.nu_, data.nc_);
     x.LinkData(&data);
     y.LinkData(&data);
 
@@ -449,10 +410,10 @@ class MPCComponentUnitTests {
     ls.Initialize(x, y, sigma);
 
     // Create the residual then solve.
-    MPCResidual r(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcResidual r(data.N_, data.nx_, data.nu_, data.nc_);
     r.Fill(2.50);  // arbitrary
 
-    MPCVariable dx(data.N_, data.nx_, data.nu_, data.nc_);
+    MpcVariable dx(data.N_, data.nx_, data.nu_, data.nc_);
     dx.LinkData(&data);
     ls.Solve(r, &dx);
 

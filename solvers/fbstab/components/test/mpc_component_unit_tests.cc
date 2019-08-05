@@ -13,62 +13,62 @@ namespace test {
  * mpc_component_unit_tests.h for documentation.
  */
 GTEST_TEST(MPCData, GEMVH) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.GEMVH();
 }
 
 GTEST_TEST(MPCData, GEMVA) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.GEMVA();
 }
 
 GTEST_TEST(MPCData, GEMVG) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.GEMVG();
 }
 
 GTEST_TEST(MPCData, GEMVGT) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.GEMVGT();
 }
 
 GTEST_TEST(MPCData, GEMVAT) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.GEMVAT();
 }
 
 GTEST_TEST(MPCData, AXPYF) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.AXPYF();
 }
 
 GTEST_TEST(MPCData, AXPYH) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.AXPYH();
 }
 
 GTEST_TEST(MPCData, AXPYB) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.AXPYB();
 }
 
 GTEST_TEST(MPCVariable, AXPY) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.Variable();
 }
 
 GTEST_TEST(MPCResidual, InnerResidual) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.InnerResidual();
 }
 
 GTEST_TEST(MPCFeasibility, SanityCheck) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.FeasibilitySanityCheck();
 }
 
 GTEST_TEST(MPCLinearSolver, RicattiRecursion) {
-  MPCComponentUnitTests test;
+  MpcComponentUnitTests test;
   test.RicattiRecursion();
 }
 
