@@ -18,15 +18,16 @@ using VectorXd = Eigen::VectorXd;
 using MatrixXd = Eigen::MatrixXd;
 
 OCPGenerator::OCPGenerator() {}
+
 // Returns a structure ready to be fed into FBstab.
-FBstabMPC::QPData OCPGenerator::GetFBstabInput() const {
+FBstabMpc::QPData OCPGenerator::GetFBstabInput() const {
   if (!data_populated_) {
     throw std::runtime_error(
         "In OCPGenerator::GetFBstabInput: Call a problem creator method "
         "first.");
   }
 
-  FBstabMPC::QPData s;
+  FBstabMpc::QPData s;
 
   s.Q = &Q_;
   s.R = &R_;
@@ -42,6 +43,18 @@ FBstabMPC::QPData OCPGenerator::GetFBstabInput() const {
   s.x0 = &x0_;
 
   return s;
+}
+
+OCPGenerator::SimulationInputs OCPGenerator::GetSimulationInputs() const {
+  SimulationInputs out;
+  out.x0 = x0_;
+  out.A = Asim_;
+  out.B = Bsim_;
+  out.C = Csim_;
+  out.D = Dsim_;
+  out.T = T_;
+
+  return out;
 }
 
 void OCPGenerator::CopolymerizationReactor(int N) {
@@ -129,7 +142,14 @@ void OCPGenerator::CopolymerizationReactor(int N) {
   VectorXd d = -umax * VectorXd::Ones(10);
 
   ExtendOverHorizon(Q, R, S, q, r, A, B, c, E, L, d, x0, N);
+
+  // Simulation data.
+  Asim_ = A;
+  Bsim_ = B;
+  Csim_ = C;
+  Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
 }
+
 void OCPGenerator::SpacecraftRelativeMotion(int N) {
   // Model parameters.
   const double mu = 398600.4418;  // gravitational constant
@@ -192,6 +212,12 @@ void OCPGenerator::SpacecraftRelativeMotion(int N) {
   d << -umax * VectorXd::Ones(6), -vmax * VectorXd::Ones(6);
 
   ExtendOverHorizon(Q, R, S, q, r, A, B, c, E, L, d, x0, N);
+
+  // Simulation data.
+  Asim_ = A;
+  Bsim_ = B;
+  Csim_ = C;
+  Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
 }
 void OCPGenerator::ServoMotor(int N) {
   // Model parameters.
@@ -253,6 +279,12 @@ void OCPGenerator::ServoMotor(int N) {
   d << -ymax, -ymax, -umax, -umax;
 
   ExtendOverHorizon(Q, R, S, q, r, A, B, c, E, L, d, x0, N);
+
+  // Simulation data.
+  Asim_ = A;
+  Bsim_ = B;
+  Csim_ = C;
+  Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
 }
 // Fills internal storage with data
 // for a double integrator problem with horizon N.
@@ -290,6 +322,12 @@ void OCPGenerator::DoubleIntegrator(int N) {
   x0 << 0, 0;
 
   ExtendOverHorizon(Q, R, S, q, r, A, B, c, E, L, d, x0, N);
+
+  // Simulation data.
+  Asim_ = A;
+  Bsim_ = B;
+  Csim_ = MatrixXd::Identity(2, 2);
+  Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
 }
 
 void OCPGenerator::ExtendOverHorizon(const MatrixXd& Q, const MatrixXd& R,

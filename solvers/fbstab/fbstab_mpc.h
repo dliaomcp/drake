@@ -18,11 +18,11 @@ namespace solvers {
 namespace fbstab {
 
 /** Conveience typedef for the templated version of the algorithm.*/
-using FBstabAlgoMPC = FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
+using FBstabAlgoMpc = FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
                                       RicattiLinearSolver, MpcFeasibility>;
 
 /**
- * FBstabMPC implements the Proximally Stabilized Semismooth Method for
+ * FBstabMpc implements the Proximally Stabilized Semismooth Method for
  * solving the following quadratic programming problem (1):
  *
  *     min.  \sum_{i=0}^N 1/2 [x(i)]' * [Q(i) S(i)'] [x(i)] + [q(i)]'*[x(i)]
@@ -58,9 +58,9 @@ using FBstabAlgoMPC = FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
  * This method can detect unboundedness/infeasibility
  * and exploit arbitrary initial guesses.
  */
-class FBstabMPC {
+class FBstabMpc {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(FBstabMPC);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(FBstabMpc);
   /**
    * Structure to hold the problem data.
    * See the class documentation or (29) in https://arxiv.org/pdf/1901.04046.pdf
@@ -118,7 +118,7 @@ class FBstabMPC {
    *
    * Throws a runtime_error if any inputs are negative.
    */
-  FBstabMPC(int N, int nx, int nu, int nc);
+  FBstabMpc(int N, int nx, int nu, int nc);
 
   /**
    * Solves an instance of (1)
@@ -147,7 +147,7 @@ class FBstabMPC {
    * see fbstab_algorithm.h for details.
    * @param level new display level
    */
-  void SetDisplayLevel(FBstabAlgoMPC::Display level);
+  void SetDisplayLevel(FBstabAlgoMpc::Display level);
 
  private:
   int N_ = 0;   // horizon length
@@ -158,7 +158,7 @@ class FBstabMPC {
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
 
-  std::unique_ptr<FBstabAlgoMPC> algorithm_;
+  std::unique_ptr<FBstabAlgoMpc> algorithm_;
   std::unique_ptr<MpcVariable> x1_;
   std::unique_ptr<MpcVariable> x2_;
   std::unique_ptr<MpcVariable> x3_;

@@ -20,14 +20,36 @@ namespace test {
  */
 class OCPGenerator {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(OCPGenerator);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(OCPGenerator)
+
+  /**
+   * Represents data needed to simulate the system
+   *
+   *     x(i+1) = Ax(i) + Bu(i)
+   *     y(i) = Cx(i) + Du(i)
+   *
+   * for T steps starting from x(0) = x0.
+   */
+  struct SimulationInputs {
+    Eigen::VectorXd x0;
+    Eigen::MatrixXd A;
+    Eigen::MatrixXd B;
+    Eigen::MatrixXd C;
+    Eigen::MatrixXd D;
+    int T = 0;
+  };
+
   OCPGenerator();
 
   /**
    * Returns problem data in the form accepted by FBstab.
-   * @return [description]
    */
-  FBstabMPC::QPData GetFBstabInput() const;
+  FBstabMpc::QPData GetFBstabInput() const;
+
+  /**
+   * Returns data needed to perform a simulation.
+   */
+  SimulationInputs GetSimulationInputs() const;
 
   /**
    * Fills internal storage with data
@@ -127,6 +149,13 @@ class OCPGenerator {
   std::vector<Eigen::VectorXd> d_;
 
   Eigen::VectorXd x0_;
+
+  Eigen::MatrixXd Asim_;
+  Eigen::MatrixXd Bsim_;
+  Eigen::MatrixXd Csim_;
+  Eigen::MatrixXd Dsim_;
+
+  int T_ = 0;  // Simulation length.
 
   int nz_ = 0;
   int nl_ = 0;

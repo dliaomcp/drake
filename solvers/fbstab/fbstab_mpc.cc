@@ -16,10 +16,10 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc) {
+FBstabMpc::FBstabMpc(int N, int nx, int nu, int nc) {
   if (N < 1 || nx < 1 || nu < 1 || nc < 1) {
     throw std::runtime_error(
-        "In FBstabMPC::FBstabMPC: problem sizes must be positive.");
+        "In FBstabMpc::FBstabMpc: problem sizes must be positive.");
   }
 
   N_ = N;
@@ -43,12 +43,12 @@ FBstabMPC::FBstabMPC(int N, int nx, int nu, int nc) {
 
   feasibility_checker_ = std::make_unique<MpcFeasibility>(N, nx, nu, nc);
 
-  algorithm_ = std::make_unique<FBstabAlgoMPC>(
+  algorithm_ = std::make_unique<FBstabAlgoMpc>(
       x1_.get(), x2_.get(), x3_.get(), x4_.get(), r1_.get(), r2_.get(),
       linear_solver_.get(), feasibility_checker_.get());
 }
 
-SolverOut FBstabMPC::Solve(const QPData& qp, const QPVariable* x,
+SolverOut FBstabMpc::Solve(const QPData& qp, const QPVariable* x,
                            bool use_initial_guess) {
   MpcData data(qp.Q, qp.R, qp.S, qp.q, qp.r, qp.A, qp.B, qp.c, qp.E, qp.L, qp.d,
                qp.x0);
@@ -56,11 +56,11 @@ SolverOut FBstabMPC::Solve(const QPData& qp, const QPVariable* x,
 
   if (data.N_ != N_ || data.nx_ != nx_ || data.nu_ != nu_ || data.nc_ != nc_) {
     throw std::runtime_error(
-        "In FBstabMPC::Solve: mismatch between *this and data dimensions.");
+        "In FBstabMpc::Solve: mismatch between *this and data dimensions.");
   }
   if (x0.nz_ != nz_ || x0.nl_ != nl_ || x0.nv_ != nv_) {
     throw std::runtime_error(
-        "In FBstabMPC::Solve: mismatch between *this and initial guess "
+        "In FBstabMpc::Solve: mismatch between *this and initial guess "
         "dimensions.");
   }
 
@@ -71,16 +71,16 @@ SolverOut FBstabMPC::Solve(const QPData& qp, const QPVariable* x,
   return algorithm_->Solve(&data, &x0);
 }
 
-void FBstabMPC::UpdateOption(const char* option, double value) {
+void FBstabMpc::UpdateOption(const char* option, double value) {
   algorithm_->UpdateOption(option, value);
 }
-void FBstabMPC::UpdateOption(const char* option, int value) {
+void FBstabMpc::UpdateOption(const char* option, int value) {
   algorithm_->UpdateOption(option, value);
 }
-void FBstabMPC::UpdateOption(const char* option, bool value) {
+void FBstabMpc::UpdateOption(const char* option, bool value) {
   algorithm_->UpdateOption(option, value);
 }
-void FBstabMPC::SetDisplayLevel(FBstabAlgoMPC::Display level) {
+void FBstabMpc::SetDisplayLevel(FBstabAlgoMpc::Display level) {
   algorithm_->set_display_level(level);
 }
 
