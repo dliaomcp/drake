@@ -15,7 +15,7 @@ namespace drake {
 namespace solvers {
 namespace fbstab {
 
-// Return codes for the solver.
+/** Return codes for the solver. */
 enum class ExitFlag {
   SUCCESS = 0,
   DIVERGENCE = 1,

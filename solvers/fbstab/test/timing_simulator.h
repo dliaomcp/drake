@@ -19,9 +19,9 @@ namespace test {
  * This class is used to perform closed-loop simulations
  * of MPC controllers using various solvers for benchmarking purposes.
  *
- * Its templated on a controller object which contains the solver
+ * Its templated on a controller object which wraps the solver
  */
-template <Controller>
+template <class Controller>
 class TimingSimulator {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(TimingSimulator)

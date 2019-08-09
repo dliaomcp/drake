@@ -20,7 +20,7 @@ namespace test {
  */
 class OCPGenerator {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(OCPGenerator)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(OCPGenerator)
 
   /**
    * Represents data needed to simulate the system
@@ -39,7 +39,7 @@ class OCPGenerator {
     int T = 0;
   };
 
-  OCPGenerator();
+  OCPGenerator() {}
 
   /**
    * Returns problem data in the form accepted by FBstab.
@@ -104,6 +104,9 @@ class OCPGenerator {
    * @param[in] N prediction horizon length
    */
   void DoubleIntegrator(int N = 10);
+
+  // TODO(dliaomcp@umich.edu) Add a random system generator.
+  // void RandomSystem(int N = 10);
 
   /**
    * Get a summary of the problem size,
