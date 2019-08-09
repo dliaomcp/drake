@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cmath>
+#include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -15,23 +17,48 @@ namespace solvers {
 namespace fbstab {
 namespace test {
 
+/**
+ * This class implements prediction horizon scaling benchmarking/timing for
+ * optimal control problems.
+ *
+ * @tparam SolverWrapper This class wraps the solver with a unified interface to
+ * enable easy testing of multiple solvers.
+ */
 template <class SolverWrapper>
 class ScalingBenchmark {
  public:
-  // example can be any of the ones in ocp generator
-  ScalingBenchmark(Eigen::VectorXi N, string example) {
-    int n = N.size();
-    horizon_length_ = N;
-    num_averaging_steps_ = Eigen::VectorXi::Ones(n);
-    problem_instances_.reserve(n);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(ScalingBenchmark)
 
-    t_average_.resize(n);
-    t_max_.resize(n);
-    t_std_.resize(n);
+  /**
+   * Sets up the scaling benchmark, i.e., creates a series of optimal control
+   * problems of increasing dimension. This class uses OcpGenerator to create
+   * the OCPs, see ocp_generator.h for details about which problems are
+   * available.
+   *
+   * @param[in] N vector of horizon lengths, e.g., [10,100,100]
+   * @param[in] example, a string corresponding to any of the problem creation
+   * methods in OcpGenerator, e.g., "ServoMotor".
+   *
+   * Throws a runtime_error if N.size() == 0, any min(N) <= 0 or if example
+   * doesn't correspond to a valid method in OcpGenerator.
+   */
+  ScalingBenchmark(const Eigen::VectorXi& N, std::string example) {
+    if (N.minCoeff() <= 0) {
+      throw std::runtime_error(
+          "In ScalingBenchmark::ScalingBenchmark: All entries in N must be > "
+          "0.");
+    }
+    if (N.size() == 0) {
+      throw std::runtime_error(
+          "In ScalingBenchmark::ScalingBenchmark: length(N) == 0.");
+    }
 
     // Create the examples.
+    int n = N.size();
+    problem_instances_.reserve(n);
+
     for (int i = 0; i < n; i++) {
-      problem_instances_.push_back(OCPGenerator());
+      problem_instances_.push_back(OcpGenerator());
 
       if (example == "DoubleIntegrator") {
         problem_instances_[i].DoubleIntegrator(N(i));
@@ -49,13 +76,13 @@ class ScalingBenchmark {
         throw runtime_error(example + " is not a valid example.");
       }
     }
-  }
 
-  void UpdateAveragingVector(Eigen::VectorXi nave) {
-    if (nave.size() != horizon_length_.size()) {
-      throw std::runtime_error("nave.size() != N.size()")
-    }
-    num_averaging_steps_ = nave;
+    t_average_.resize(n);
+    t_max_.resize(n);
+    t_std_.resize(n);
+
+    horizon_length_ = N;
+    num_averaging_steps_ = Eigen::VectorXi::Ones(n);
   }
 
   // runs the timing and stores the result internally
@@ -64,9 +91,12 @@ class ScalingBenchmark {
 
     for (int i = 0; i < n; i++) {
       // Create the controller.
-      OCPGenerator& ocp = problem_instances_.at(i);
+      OcpGenerator& ocp = problem_instances_.at(i);
       FBstabMpc::QPData data = ocp.GetFBstabInput();
       SolverWrapper solver(data);
+      if (i == 0) {
+        solver_name_ = solver.SolverName();
+      }
 
       // Create initial guess, for scaling tests everything is initialized at
       // the origin.
@@ -98,7 +128,63 @@ class ScalingBenchmark {
       t_std_(i) /= (num_averaging_steps_(i) - 1);
       t_std_(i) = sqrt(t_std_(i));
     }
+
+    data_available_ = true;
   }
+
+  void UpdateAveragingVector(Eigen::VectorXi nave) {
+    if (nave.size() != horizon_length_.size()) {
+      throw std::runtime_error("nave.size() != N.size()")
+    }
+    num_averaging_steps_ = nave;
+  }
+
+  /**
+   * Writes stored results to the specified text file in CSV format.
+   *
+   * @param[in] filename
+   * @return true if the operation was successful, false otherwise
+   */
+  bool WriteResultsToFile(std::string filename) {
+    if (!data_available_) {
+      throw std::runtime_error("Can't write non-existent data to file.");
+    }
+
+    const std::ofstream file(filename, std::ios_base::out);
+    if (!file.is_open()) {
+      return false;
+    }
+
+    // Write header.
+    file << "Solver: " << solver_name_ << " Example: " << example_name_
+         << std::endl;
+    file << "Horizon Length, TAVE, TMAX, TSTD" << std::endl;
+
+    // Concatenate the data then use Eigen formatting tools.
+    // T = [tave,tmax,tstd].
+    Eigen::MatrixXd T(horizon_length_.size(), 4);
+    T.col(0) = horizon_length_.cast<double>;
+    T.col(1) = t_average_;
+    T.col(2) = t_max_;
+    T.col(3) = t_std_;
+
+    std::cout << T << "\n";
+
+    Eigen::IOFormat CSV(Eigen::FullPrecision, 0, ", ");
+    file << T.format(CSV);
+    file.close();
+
+    return true;
+  }
+
+  Eigen::VectorXd GetAverageResults() {
+    // TODO(dliaomcp@umich.edu) Check that data is ready.
+    return t_average_;
+  }
+
+  Eigen::VectorXd GetMaxResults() { return t_max_; }
+
+  Eigen::VectorXd GetStdResults() { return t_std_; }
 
   /**
    * Create a vector of (approximately) logarithmically spaced vectors on the
@@ -119,18 +205,23 @@ class ScalingBenchmark {
     for (int i = 0; i < l.size(); i++) {
       out(i) = static_cast<int>(ceil(l(i)));
     }
+
     return out;
   }
 
  private:
-  std::vector<OCPGenerator> problem_instances_;
+  std::vector<OcpGenerator> problem_instances_;
   Eigen::VectorXi num_averaging_steps_;
   Eigen::VectorXi horizon_length_;
+  std::string example_name_;
+  std::string solver_name_;
 
   // Average, max and standard deviations.
   Eigen::VectorXd t_average_;
   Eigen::VectorXd t_max_;
   Eigen::VectorXd t_std_;
+
+  bool data_available_ = false;
 };
 
 }  // namespace test

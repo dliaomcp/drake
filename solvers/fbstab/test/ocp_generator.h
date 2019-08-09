@@ -18,9 +18,9 @@ namespace test {
  * to FBstab. Make sure these pointers are valid for the length
  * of the solve.
  */
-class OCPGenerator {
+class OcpGenerator {
  public:
-  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(OCPGenerator)
+  DRAKE_DEFAULT_COPY_AND_MOVE_AND_ASSIGN(OcpGenerator)
 
   /**
    * Represents data needed to simulate the system
@@ -39,7 +39,7 @@ class OCPGenerator {
     int T = 0;
   };
 
-  OCPGenerator() {}
+  OcpGenerator() {}
 
   /**
    * Returns problem data in the form accepted by FBstab.

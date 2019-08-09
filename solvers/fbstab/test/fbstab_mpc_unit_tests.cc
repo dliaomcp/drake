@@ -16,7 +16,7 @@ using VectorXd = Eigen::VectorXd;
 
 GTEST_TEST(FBstabMpc, DoubleIntegrator) {
   // Get the problem data.
-  OCPGenerator ocp;
+  OcpGenerator ocp;
   ocp.DoubleIntegrator(2);  // horizon length of 2
   FBstabMpc::QPData data = ocp.GetFBstabInput();
 
@@ -68,7 +68,7 @@ GTEST_TEST(FBstabMpc, DoubleIntegrator) {
 
 GTEST_TEST(FBstabMpc, DoubleIntegratorLongHorizon) {
   // Get the problem data.
-  OCPGenerator ocp;
+  OcpGenerator ocp;
   ocp.DoubleIntegrator(20);  // horizon length of 20
   FBstabMpc::QPData data = ocp.GetFBstabInput();
 
@@ -93,7 +93,7 @@ GTEST_TEST(FBstabMpc, DoubleIntegratorLongHorizon) {
 
 GTEST_TEST(FBstabMpc, ServoMotor) {
   // Get the problem data.
-  OCPGenerator ocp;
+  OcpGenerator ocp;
   ocp.ServoMotor(25);  // horizon length of 25
   FBstabMpc::QPData data = ocp.GetFBstabInput();
 
@@ -118,7 +118,7 @@ GTEST_TEST(FBstabMpc, ServoMotor) {
 
 GTEST_TEST(FBstabMpc, SpacecraftRelativeMotion) {
   // Get the problem data.
-  OCPGenerator ocp;
+  OcpGenerator ocp;
   ocp.SpacecraftRelativeMotion(40);  // horizon length of 40
   FBstabMpc::QPData data = ocp.GetFBstabInput();
 
@@ -143,7 +143,7 @@ GTEST_TEST(FBstabMpc, SpacecraftRelativeMotion) {
 
 GTEST_TEST(FBstabMpc, CopolymerizationReactor) {
   // Get the problem data.
-  OCPGenerator ocp;
+  OcpGenerator ocp;
   ocp.CopolymerizationReactor(80);  // horizon length of 80
   FBstabMpc::QPData data = ocp.GetFBstabInput();
 

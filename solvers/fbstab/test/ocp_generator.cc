@@ -17,13 +17,11 @@ namespace test {
 using VectorXd = Eigen::VectorXd;
 using MatrixXd = Eigen::MatrixXd;
 
-OCPGenerator::OCPGenerator() {}
-
 // Returns a structure ready to be fed into FBstab.
-FBstabMpc::QPData OCPGenerator::GetFBstabInput() const {
+FBstabMpc::QPData OcpGenerator::GetFBstabInput() const {
   if (!data_populated_) {
     throw std::runtime_error(
-        "In OCPGenerator::GetFBstabInput: Call a problem creator method "
+        "In OcpGenerator::GetFBstabInput: Call a problem creator method "
         "first.");
   }
 
@@ -45,7 +43,7 @@ FBstabMpc::QPData OCPGenerator::GetFBstabInput() const {
   return s;
 }
 
-OCPGenerator::SimulationInputs OCPGenerator::GetSimulationInputs() const {
+OcpGenerator::SimulationInputs OcpGenerator::GetSimulationInputs() const {
   SimulationInputs out;
   out.x0 = x0_;
   out.A = Asim_;
@@ -57,7 +55,7 @@ OCPGenerator::SimulationInputs OCPGenerator::GetSimulationInputs() const {
   return out;
 }
 
-void OCPGenerator::CopolymerizationReactor(int N) {
+void OcpGenerator::CopolymerizationReactor(int N) {
   /* This model is a modal realization of the following 4 x 5 transfer function.
    * Which is then converted to discrete time using a zero order hold
    * approximation.
@@ -148,9 +146,10 @@ void OCPGenerator::CopolymerizationReactor(int N) {
   Bsim_ = B;
   Csim_ = C;
   Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
+  T_ = 200;
 }
 
-void OCPGenerator::SpacecraftRelativeMotion(int N) {
+void OcpGenerator::SpacecraftRelativeMotion(int N) {
   // Model parameters.
   const double mu = 398600.4418;  // gravitational constant
   const double Re = 6371;         // radius of the earth
@@ -218,8 +217,9 @@ void OCPGenerator::SpacecraftRelativeMotion(int N) {
   Bsim_ = B;
   Csim_ = C;
   Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
+  T_ = 100;
 }
-void OCPGenerator::ServoMotor(int N) {
+void OcpGenerator::ServoMotor(int N) {
   // Model parameters.
   const double kt = 10.0;
   const double bl = 25.0;
@@ -285,10 +285,11 @@ void OCPGenerator::ServoMotor(int N) {
   Bsim_ = B;
   Csim_ = C;
   Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
+  T_ = 40;
 }
 // Fills internal storage with data
 // for a double integrator problem with horizon N.
-void OCPGenerator::DoubleIntegrator(int N) {
+void OcpGenerator::DoubleIntegrator(int N) {
   MatrixXd Q(2, 2);
   MatrixXd R(1, 1);
   MatrixXd S(1, 2);
@@ -328,9 +329,10 @@ void OCPGenerator::DoubleIntegrator(int N) {
   Bsim_ = B;
   Csim_ = MatrixXd::Identity(2, 2);
   Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
+  T_ = 40;
 }
 
-void OCPGenerator::ExtendOverHorizon(const MatrixXd& Q, const MatrixXd& R,
+void OcpGenerator::ExtendOverHorizon(const MatrixXd& Q, const MatrixXd& R,
                                      const MatrixXd& S, const VectorXd& q,
                                      const VectorXd& r, const MatrixXd& A,
                                      const MatrixXd& B, const VectorXd& c,
@@ -371,7 +373,7 @@ void OCPGenerator::ExtendOverHorizon(const MatrixXd& Q, const MatrixXd& R,
   data_populated_ = true;
 }
 
-Eigen::Vector4d OCPGenerator::ProblemSize() {
+Eigen::Vector4d OcpGenerator::ProblemSize() {
   Eigen::Vector4d out;
   out << N_, nx_, nu_, nc_;
   return out;
