@@ -2,6 +2,7 @@ load(
     "@drake//tools/skylark:drake_cc.bzl",
     "drake_cc_googletest",
     "drake_cc_library",
+    "drake_cc_binary",
 )
 
 package(default_visibility = ["//visibility:private"])
@@ -38,6 +39,26 @@ drake_cc_library(
         "//solvers/fbstab/components:mpc_residual",
         "//solvers/fbstab/components:mpc_variable",
         "//solvers/fbstab/components:ricatti_linear_solver",
+        "@eigen",
+    ],
+)
+
+drake_cc_library(
+    name = "scaling_class",
+    srcs = ["test/solver_wrappers.h"],
+    hdrs = ["test/scaling_benchmark.h", "test/solver_wrappers.h"],
+    deps = [
+        "//common:essential",
+        "@eigen",
+        ":ocp_generator",
+    ],
+)
+
+drake_cc_binary(
+    name = "scaling_benchmark",
+    srcs = ["test/scaling_benchmarks_main.cc"],
+    deps = [
+        ":scaling_class",
         "@eigen",
     ],
 )

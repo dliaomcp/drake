@@ -27,7 +27,7 @@ struct WrapperOutput {
   Eigen::VectorXd v;  // inequality duals
 
   Eigen::VectorXd u;  // Control signal.
-}
+};
 
 // TODO(dliaomcp@umich.edu) write an abstract wrapper class to define the
 // interface.
@@ -49,14 +49,14 @@ class FBstabWrapper {
     solver_ = std::make_unique<FBstabMpc>(N, nx, nu, nc);
     solver_->UpdateOption("abs_tol", 1e-6);
     solver_->UpdateOption("check_feasibility", false);
-    solver_->SetDisplayLevel(FBstabAlgoMpc::Display::FINAL);
+    solver_->SetDisplayLevel(FBstabAlgoMpc::Display::OFF);
 
     // Copy the problem data.
     data_ = data;
   }
 
   /** Returns the name of the solver. */
-  string SolverName() { return "fbstab"; }
+  std::string SolverName() { return "fbstab"; }
 
   /**
    * Updates the parameter x0 using the measured state then runs the solver,
@@ -81,7 +81,7 @@ class FBstabWrapper {
     FBstabMpc::QPVariable x = {&z_, &l_, &v_, &y_};
 
     // Call the solver.
-    SolverOut out = solver_->solve(data, x);
+    SolverOut out = solver_->Solve(data_, &x);
 
     // Populate the output struct.
     WrapperOutput w;
@@ -101,8 +101,8 @@ class FBstabWrapper {
 
     // Extract the control signal u0 from the decision variables, recall that
     // z = (x0,u0,x1,u1....).
-    const int nx = data.B->at(0).rows();
-    const int nu = data.B->at(0).cols();
+    const int nx = data_.B->at(0).rows();
+    const int nu = data_.B->at(0).cols();
     w.u = z_.segment(nx, nu);
 
     return w;
@@ -124,9 +124,7 @@ class QpOasesWrapper {};
 // Wraps ECOS
 class EcosWrapper {};
 
-// Wraps MathematicalProgram
-// which can then call OSQP, MOSEK, and Gurobi.
-class MathProgramWrapper {};
+class MosekWrapper {};
 
 }  // namespace test
 }  // namespace fbstab

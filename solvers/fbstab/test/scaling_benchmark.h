@@ -11,6 +11,7 @@
 
 #include "drake/common/drake_copyable.h"
 #include "drake/solvers/fbstab/test/ocp_generator.h"
+#include "drake/solvers/fbstab/test/solver_wrappers.h"
 
 namespace drake {
 namespace solvers {
@@ -73,7 +74,7 @@ class ScalingBenchmark {
         problem_instances_[i].CopolymerizationReactor(N(i));
 
       } else {
-        throw runtime_error(example + " is not a valid example.");
+        throw std::runtime_error(example + " is not a valid example.");
       }
     }
 
@@ -106,6 +107,9 @@ class ScalingBenchmark {
 
       Eigen::VectorXd texe(num_averaging_steps_(i));
 
+      std::cout << "Running: " << solver.SolverName()
+                << " N = " << horizon_length_(i);
+      std::cout << " ...";
       for (int j = 0; j < num_averaging_steps_(i); j++) {
         // Call the solver, for these tests we use the default value of x0 given
         // by the OCP generator.
@@ -117,16 +121,19 @@ class ScalingBenchmark {
         }
       }
 
+      std::cout << " done." << std::endl;
       // Compute execution time statistics.
       t_average_(i) = texe.mean();
       t_max_(i) = texe.maxCoeff();
 
       t_std_(i) = 0.0;
-      for (int j = 0; j < num_averaging_steps_(i)) {
-        t_std_(i) += pow(texe(j) - t_average_(i), 2);
+      if (num_averaging_steps_(i) > 1) {
+        for (int j = 0; j < num_averaging_steps_(i); j++) {
+          t_std_(i) += pow(texe(j) - t_average_(i), 2);
+        }
+        t_std_(i) /= (num_averaging_steps_(i) - 1);
+        t_std_(i) = sqrt(t_std_(i));
       }
-      t_std_(i) /= (num_averaging_steps_(i) - 1);
-      t_std_(i) = sqrt(t_std_(i));
     }
 
     data_available_ = true;
@@ -134,7 +141,7 @@ class ScalingBenchmark {
 
   void UpdateAveragingVector(Eigen::VectorXi nave) {
     if (nave.size() != horizon_length_.size()) {
-      throw std::runtime_error("nave.size() != N.size()")
+      throw std::runtime_error("nave.size() != N.size()");
     }
     num_averaging_steps_ = nave;
   }
@@ -150,7 +157,7 @@ class ScalingBenchmark {
       throw std::runtime_error("Can't write non-existent data to file.");
     }
 
-    const std::ofstream file(filename, std::ios_base::out);
+    std::ofstream file(filename, std::ios_base::out);
     if (!file.is_open()) {
       return false;
     }
@@ -163,12 +170,10 @@ class ScalingBenchmark {
     // Concatenate the data then use Eigen formatting tools.
     // T = [tave,tmax,tstd].
     Eigen::MatrixXd T(horizon_length_.size(), 4);
-    T.col(0) = horizon_length_.cast<double>;
+    T.col(0) = horizon_length_.cast<double>();
     T.col(1) = t_average_;
     T.col(2) = t_max_;
     T.col(3) = t_std_;
-
-    std::cout << T << "\n";
 
     Eigen::IOFormat CSV(Eigen::FullPrecision, 0, ", ");
     file << T.format(CSV);
@@ -197,8 +202,9 @@ class ScalingBenchmark {
    */
   static Eigen::VectorXi logspace(double a, double b, int n) {
     // Create a logspaced vector of doubles.
-    Eigen::VectorXd l = Eigen::VectorXd::Linspaced(n, a, b);
-    l = l.array().exp();
+    Eigen::VectorXd l = Eigen::VectorXd::LinSpaced(n, a, b);
+    Eigen::VectorXd ten = 10 * Eigen::VectorXd::Ones(n);
+    l = ten.array().pow(l.array());
 
     // Round to the nearest integer.
     Eigen::VectorXi out = Eigen::VectorXi::Zero(l.size());
