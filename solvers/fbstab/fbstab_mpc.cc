@@ -39,7 +39,7 @@ FBstabMpc::FBstabMpc(int N, int nx, int nu, int nc) {
   r1_ = std::make_unique<MpcResidual>(N, nx, nu, nc);
   r2_ = std::make_unique<MpcResidual>(N, nx, nu, nc);
 
-  linear_solver_ = std::make_unique<RicattiLinearSolver>(N, nx, nu, nc);
+  linear_solver_ = std::make_unique<RiccatiLinearSolver>(N, nx, nu, nc);
 
   feasibility_checker_ = std::make_unique<MpcFeasibility>(N, nx, nu, nc);
 
@@ -86,7 +86,7 @@ void FBstabMpc::SetDisplayLevel(FBstabAlgoMpc::Display level) {
 
 // Explicit instantiation.
 template class FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
-                               RicattiLinearSolver, MpcFeasibility>;
+                               RiccatiLinearSolver, MpcFeasibility>;
 
 }  // namespace fbstab
 }  // namespace solvers

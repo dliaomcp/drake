@@ -146,7 +146,7 @@ class MpcResidual {
   /** Scalar min operator. */
   double min(double a, double b) { return a < b ? a : b; }
 
-  friend class RicattiLinearSolver;
+  friend class RiccatiLinearSolver;
 };
 
 }  // namespace fbstab

@@ -19,7 +19,7 @@ class MpcComponentUnitTests;
 }  // namespace test
 
 /**
- * Implements a Ricatti recursion based method for solving linear systems of
+ * Implements a Riccati recursion based method for solving linear systems of
  * equations that arise when solving MPC form QPs (see mpc_data.h) using FBstab.
  * The equations are of the form
  *
@@ -33,7 +33,7 @@ class MpcComponentUnitTests;
  *
  * In compact form: V(x,xbar,sigma)*dx = r.
  *
- * This classes uses a Ricatti recursion like the one in
+ * This classes uses a Riccati recursion like the one in
  *
  * Rao, Christopher V., Stephen J. Wright, and James B. Rawlings.
  * "Application of interior-point methods to model predictive control."
@@ -42,9 +42,9 @@ class MpcComponentUnitTests;
  * to perform the factorization efficiently. This class contains workspace
  * memory and methods for setting up and solving the linear systems.
  */
-class RicattiLinearSolver {
+class RiccatiLinearSolver {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RicattiLinearSolver);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RiccatiLinearSolver);
   /**
    * Allocates workspace memory.
    *
@@ -53,7 +53,7 @@ class RicattiLinearSolver {
    * @param[in] nu number of control input
    * @param[in] nc number of constraints per stage
    */
-  RicattiLinearSolver(int N, int nx, int nu, int nc);
+  RiccatiLinearSolver(int N, int nx, int nu, int nc);
 
   /**
    * Sets a parameter used in the algorithm, see (19)
@@ -63,7 +63,7 @@ class RicattiLinearSolver {
   void SetAlpha(double alpha) { alpha_ = alpha; };
 
   /**
-   * Factors the matrix V(x,xbar,sigma) using a Ricatti
+   * Factors the matrix V(x,xbar,sigma) using a Riccati
    * recursion.
    *
    * The matrix V is computed as described in

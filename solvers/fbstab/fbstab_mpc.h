@@ -19,7 +19,7 @@ namespace fbstab {
 
 /** Conveience typedef for the templated version of the algorithm.*/
 using FBstabAlgoMpc = FBstabAlgorithm<MpcVariable, MpcResidual, MpcData,
-                                      RicattiLinearSolver, MpcFeasibility>;
+                                      RiccatiLinearSolver, MpcFeasibility>;
 
 /**
  * FBstabMpc implements the Proximally Stabilized Semismooth Method for
@@ -165,7 +165,7 @@ class FBstabMpc {
   std::unique_ptr<MpcVariable> x4_;
   std::unique_ptr<MpcResidual> r1_;
   std::unique_ptr<MpcResidual> r2_;
-  std::unique_ptr<RicattiLinearSolver> linear_solver_;
+  std::unique_ptr<RiccatiLinearSolver> linear_solver_;
   std::unique_ptr<MpcFeasibility> feasibility_checker_;
 };
 
