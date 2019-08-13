@@ -1,11 +1,13 @@
 load(
     "@drake//tools/skylark:drake_cc.bzl",
+    "drake_cc_binary",
     "drake_cc_googletest",
     "drake_cc_library",
-    "drake_cc_binary",
 )
 
 package(default_visibility = ["//visibility:private"])
+
+# libraries
 
 drake_cc_library(
     name = "fbstab_dense",
@@ -45,22 +47,25 @@ drake_cc_library(
 
 drake_cc_library(
     name = "scaling_class",
-    srcs = ["test/solver_wrappers.h"],
-    hdrs = ["test/scaling_benchmark.h", "test/solver_wrappers.h"],
+    hdrs = ["test/scaling_benchmark.h"],
     deps = [
-        "//common:essential",
-        "@eigen",
-        "//solvers:mathematical_program_lite",
         ":ocp_generator",
+        ":solver_wrappers",
+        "//common:essential",
+        "//solvers:mathematical_program_lite",
+        "@eigen",
     ],
 )
 
-drake_cc_binary(
-    name = "scaling_benchmark",
-    srcs = ["test/scaling_benchmarks_main.cc"],
+drake_cc_library(
+    name = "solver_wrappers",
+    srcs = ["test/solver_wrappers.h"],
+    hdrs = ["test/solver_wrappers.h"],
     deps = [
-        ":scaling_class",
+        ":ocp_generator",
+        "//common:essential",
         "//solvers:mathematical_program_lite",
+        "//solvers:mosek_solver",
         "@eigen",
     ],
 )
@@ -75,6 +80,29 @@ drake_cc_library(
         ":fbstab_mpc",
         "//common:essential",
         "@eigen",
+    ],
+)
+
+# binaries
+drake_cc_binary(
+    name = "scaling_benchmark",
+    srcs = ["test/scaling_benchmarks_main.cc"],
+    deps = [
+        ":ocp_generator",
+        ":scaling_class",
+        "//solvers:mathematical_program_lite",
+        "@eigen",
+    ],
+)
+
+# tests
+drake_cc_googletest(
+    name = "wrapper_unit_tests",
+    srcs = ["test/solver_wrapper_unit_tests.cc"],
+    deps = [
+        "fbstab_mpc",
+        ":ocp_generator",
+        ":solver_wrappers",
     ],
 )
 

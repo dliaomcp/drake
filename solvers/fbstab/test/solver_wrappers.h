@@ -1,9 +1,12 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include <Eigen/Dense>
+#include <drake/solvers/mosek_solver.h>
 
 #include "drake/solvers/fbstab/fbstab_mpc.h"
 #include "drake/solvers/mathematical_program.h"
@@ -35,6 +38,75 @@ struct WrapperOutput {
 
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
+
+// Builds a MathematicalProgram object from MPC problem data.
+// Returns a binding object for the constraint x0 = x(0) that can be used to
+// update the parameter.
+Binding<LinearEqualityConstraint> BuildMathematicalProgram(
+    const FBstabMpc::QPData& data, MathematicalProgram* mp) {
+  // Extract size data.
+  const int N = data.B->size();
+  const int nx = data.B->at(0).rows();
+  const int nu = data.B->at(0).cols();
+  const int nc = data.E->at(0).rows();
+
+  // Set up the mathematical program.
+  auto x = mp->NewContinuousVariables((N + 1) * nx, "x");
+  auto u = mp->NewContinuousVariables((N + 1) * nu, "u");
+
+  // Add linear-quadratic cost and inequality constraints.
+  MatrixXd H(nx + nu, nx + nu);
+  MatrixXd G(nc, nx + nu);
+  VectorXd f(nx + nu);
+  VectorXd d(nc);
+
+  for (int i = 0; i <= N; i++) {
+    // Get the variables of interest.
+    auto xi = x.segment(i * nx, nx);
+    auto ui = u.segment(i * nu, nu);
+
+    VectorXDecisionVariable z(nx + nu);
+    z << xi, ui;
+
+    // The cost is 0.5 x(i)'*Q*x(i) + u(i)'*S(i)*x(i) + 0.5 u(i)'*R(i)*u(i)
+    // + q(i)'*x(i) + r(i)'*u(i).
+    H << data.Q->at(i), data.S->at(i).transpose(), data.S->at(i), data.R->at(i);
+    f << data.q->at(i), data.r->at(i);
+    mp->AddQuadraticCost(H, f, z);
+
+    // Inequalities: E(i)*x(i) + L(i)*u(i) <= d(i).
+    // MathProg wants the form lb <= Ax <= ub.
+    G << data.E->at(i), data.L->at(i);
+    d = -data.d->at(i);
+
+    // There is no lower bound so set lb = -inf.
+    VectorXd lb = -1.0 / 0.0 * VectorXd::Ones(nc);
+    mp->AddLinearConstraint(G, lb, d, z);
+  }
+
+  // Initial state constraint.
+  auto x0 = x.segment(0, nx);
+  Binding<LinearEqualityConstraint> x0_cstr =
+      mp->AddLinearEqualityConstraint(MatrixXd::Identity(nx, nx), *data.x0, x0);
+
+  // Dynamic constraints:
+  // x(i+1) = A(i)*x(i) + B(i)*u(i) + c(i).
+  for (int i = 0; i < N; i++) {
+    auto xip1 = x.segment((i + 1) * nx, nx);
+    auto xi = x.segment(i * nx, nx);
+    auto ui = u.segment(i * nu, nu);
+
+    auto A = data.A->at(i).cast<symbolic::Expression>();
+    auto B = data.B->at(i).cast<symbolic::Expression>();
+    auto temp = xip1.cast<symbolic::Expression>() -
+                A * xi.cast<symbolic::Expression>() -
+                B * ui.cast<symbolic::Expression>();
+
+    mp->AddLinearEqualityConstraint(temp, data.c->at(i));
+  }
+
+  return x0_cstr;
+}
 
 /**
  * This class wraps FBstab and implements a standardized interface to enable
@@ -124,67 +196,58 @@ class FBstabWrapper {
 
 class MosekWrapper {
  public:
-  MosekWrapper(FBstabMpc::QPData data) {
-    // Extract size data.
-    const int N = data.B->size();
-    const int nx = data.B->at(0).rows();
-    const int nu = data.B->at(0).cols();
-    const int nc = data.E->at(0).rows();
+  MosekWrapper(const FBstabMpc::QPData& data) {
+    // Build a MathProg object form the MPC problem data.
+    // TODO(dliaomcp@umich.ed) Record this setup time.
+    auto x0_cstr = BuildMathematicalProgram(data, &mp_);
 
-    // Set up the mathematical program.
-    auto x = mp_.NewContinuousVariables((N + 1) * nx, "x");
-    auto u = mp_.NewContinuousVariables((N + 1) * nu, "u");
+    // This binding will be used to adjust the rhs of the constraint
+    // x0 = x(t).
+    x0_constraint_ =
+        std::make_unique<Binding<LinearEqualityConstraint>>(x0_cstr);
 
-    // Add linear-quadratic cost and inequality constraints.
-    MatrixXd H(nx + nu, nx + nu);
-    MatrixXd G(nc, nx + nu);
-    VectorXd f(nx + nu);
-    VectorXd d(nc);
+    data_ = data;
+  }
 
-    for (int i = 0; i <= N; i++) {
-      // Get the variables of interest
-      auto xi = x.segment(i * nx, nx);
-      auto ui = u.segment(i * nu, nu);
+  std::string SolverName() { return "mosek"; }
 
-      VectorXDecisionVariable z(nx + nu);
-      z << xi, ui;
-
-      // Cost 0.5 z'Hz + f'z
-      H << data.Q->at(i), data.S->at(i).transpose(), data.S->at(i),
-          data.R->at(i);
-      f << data.q->at(i), data.r->at(i);
-
-      mp_.AddQuadraticCost(H, f, z);
-
-      // Inequalities Ex + Lu <= d
-      G << data.E->at(i), data.L->at(i);
-      d = -data.d->at(i);
-
-      mp_.AddLinearConstraint((G * z).array() <= d.array());
+  WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
+                        const Eigen::VectorXd& l, const Eigen::VectorXd& v) {
+    // Mosek doesn't accept an initial guess so the arguments are unused.
+    MosekSolver solver;
+    if (!solver.available()) {
+      throw std::runtime_error("Mosek is not available.");
     }
 
-    // Initial state constraint.
-    auto x0 = x.segment(0, nx);
-    mp_.AddLinearEqualityConstraint(MatrixXd::Identity(nx, nx), *data.x0, x0);
+    const int N = data_.B->size();
+    const int nx = data_.B->at(0).rows();
+    const int nu = data_.B->at(0).cols();
 
-    // Dynamic constraints
-    for (int i = 0; i < N; i++) {
-      auto xip1 = x.segment((i + 1) * nx, nx);
-      auto xi = x.segment(i * nx, nx);
-      auto ui = u.segment(i * nu, nu);
+    // Update the rhs of the constraint equation I*x0 = x(t).
+    MatrixXd I = MatrixXd::Identity(nx, nx);
+    x0_constraint_->evaluator()->UpdateCoefficients(I, xt);
 
-      auto A = data.A->at(i).cast<symbolic::Expression>();
-      auto B = data.B->at(i).cast<symbolic::Expression>();
-      auto temp = xip1.cast<symbolic::Expression>() -
-                  A * xi.cast<symbolic::Expression>() -
-                  B * ui.cast<symbolic::Expression>();
+    // Solve.
+    MathematicalProgramResult out = solver.Solve(mp_, {}, {});
+    const MosekSolverDetails& details = out.get_solver_details<MosekSolver>();
 
-      mp_.AddLinearEqualityConstraint(temp, data.c->at(i));
-    }
+    // Return output.
+    WrapperOutput s;
+    s.solve_time = details.optimizer_time;
+    s.setup_time = 0.0;
+    s.success = out.is_success();
+    s.z = out.GetSolution();
+    s.l = l;
+    s.v = v;
+    s.u = s.z.segment((N + 1) * nx, nu);
+
+    return s;
   }
 
  private:
   MathematicalProgram mp_;
+  std::unique_ptr<Binding<LinearEqualityConstraint>> x0_constraint_;
+  FBstabMpc::QPData data_;
 };
 
 // Wraps qpOASES
