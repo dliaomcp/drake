@@ -40,7 +40,7 @@ drake_cc_library(
         "//solvers/fbstab/components:mpc_feasibility",
         "//solvers/fbstab/components:mpc_residual",
         "//solvers/fbstab/components:mpc_variable",
-        "//solvers/fbstab/components:ricatti_linear_solver",
+        "//solvers/fbstab/components:riccati_linear_solver",
         "@eigen",
     ],
 )
