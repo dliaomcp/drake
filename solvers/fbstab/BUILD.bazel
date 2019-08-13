@@ -50,6 +50,7 @@ drake_cc_library(
     deps = [
         "//common:essential",
         "@eigen",
+        "//solvers:mathematical_program_lite",
         ":ocp_generator",
     ],
 )
@@ -59,6 +60,7 @@ drake_cc_binary(
     srcs = ["test/scaling_benchmarks_main.cc"],
     deps = [
         ":scaling_class",
+        "//solvers:mathematical_program_lite",
         "@eigen",
     ],
 )
