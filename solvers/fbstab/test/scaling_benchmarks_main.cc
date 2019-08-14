@@ -1,30 +1,67 @@
 #include "drake/solvers/fbstab/test/scaling_benchmark.h"
 
 #include <iostream>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include <Eigen/Dense>
 
 #include "drake/solvers/fbstab/test/ocp_generator.h"
 #include "drake/solvers/fbstab/test/solver_wrappers.h"
-#include "drake/solvers/mathematical_program.h"
 
 using string = std::string;
 namespace test = drake::solvers::fbstab::test;
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
-using expr = drake::symbolic::Expression;
+using VectorXi = Eigen::VectorXi;
 
 int main(void) {
-  // Scaling horizon.
-  // Eigen::VectorXi N(4);
-  // N << 2, 5, 10, 100;
+  // Setup data
+  VectorXi N2 = test::logspace(1, 3, 10);
+  VectorXi N1(5);
+  N1 << 1, 3, 5, 7, 9;
 
-  // string example = "ServoMotor";
-  // test::ScalingBenchmark<test::FBstabWrapper> s(N, example);
-  // s.RunTiming();
+  const int n = N1.size() + N2.size();
+  VectorXi N(n);
+  N << N1, N2;
 
-  // std::cout << s.WriteResultsToFile("test.csv");
+  VectorXi nave(n);
+  nave << 50 * VectorXi::Ones(n);
+
+  std::vector<string> examples{"DoubleIntegrator", "ServoMotor",
+                               "CopolymerizationReactor"};
+
+  // Loop over examples.
+  for (int i = 0; i < static_cast<int>(examples.size()); i++) {
+    std::cout << "\n  " + examples.at(i) << "\n"
+              << "-----------------------------\n";
+    // Setup each solver.
+    test::ScalingBenchmark<test::FBstabWrapper> fbstab(N, examples.at(i));
+    test::ScalingBenchmark<test::MosekWrapper> mosek(N, examples.at(i));
+    test::ScalingBenchmark<test::GurobiWrapper> gurobi(N, examples.at(i));
+    test::ScalingBenchmark<test::OsqpWrapper> osqp(N, examples.at(i));
+
+    // update averaging vector
+    fbstab.UpdateAveragingVector(nave);
+    mosek.UpdateAveragingVector(nave);
+    gurobi.UpdateAveragingVector(nave);
+    osqp.UpdateAveragingVector(nave);
+
+    // Run timings.
+    fbstab.RunTiming();
+    mosek.RunTiming();
+    gurobi.RunTiming();
+    osqp.RunTiming();
+
+    // Write to file
+    fbstab.WriteResultsToFile("fbstab_" + examples.at(i) + ".csv");
+    mosek.WriteResultsToFile("mosek_" + examples.at(i) + ".csv");
+    gurobi.WriteResultsToFile("gurobi_" + examples.at(i) + ".csv");
+    osqp.WriteResultsToFile("osqp_" + examples.at(i) + ".csv");
+
+    std::cout << "---------------------------\n";
+  }
 
   return 0;
 }

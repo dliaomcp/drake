@@ -19,6 +19,31 @@ namespace fbstab {
 namespace test {
 
 /**
+ * Create a vector of (approximately since they're integers) logarithmically
+ * spaced vectors on the interval [10^a,10^b]. E.g., logspace(0,3,4) =
+ * [1,10,100,1000].
+ *
+ * @param[in]  a
+ * @param[in]  b
+ * @param[in]  n number of points
+ * @return   logspace vector
+ */
+Eigen::VectorXi logspace(double a, double b, int n) {
+  // Create a logspaced vector of doubles.
+  Eigen::VectorXd l = Eigen::VectorXd::LinSpaced(n, a, b);
+  Eigen::VectorXd ten = 10 * Eigen::VectorXd::Ones(n);
+  l = ten.array().pow(l.array());
+
+  // Round to the nearest integer.
+  Eigen::VectorXi out = Eigen::VectorXi::Zero(l.size());
+  for (int i = 0; i < l.size(); i++) {
+    out(i) = static_cast<int>(ceil(l(i)));
+  }
+
+  return out;
+}
+
+/**
  * This class implements prediction horizon scaling benchmarking/timing for
  * optimal control problems.
  *
@@ -78,9 +103,13 @@ class ScalingBenchmark {
       }
     }
 
+    example_name_ = example;
     t_average_.resize(n);
     t_max_.resize(n);
     t_std_.resize(n);
+    iters_.resize(n);
+    residual_.resize(n);
+    success_.resize(n);
 
     horizon_length_ = N;
     num_averaging_steps_ = Eigen::VectorXi::Ones(n);
@@ -115,9 +144,16 @@ class ScalingBenchmark {
         // by the OCP generator.
         WrapperOutput out = solver.Compute(*data.x0, z0, l0, v0);
         texe(j) = out.solve_time;
+        if (j == 0) {
+          iters_(i) = out.major_iters;
+          residual_(i) = out.residual;
+          success_(i) = out.success ? 1 : 0;
+        }
         if (out.success == false) {
-          throw std::runtime_error("In ScalingBenchmark::RunTiming: Solver " +
-                                   solver.SolverName() + " failed.");
+          std::cout << "Warning: Solver " + solver.SolverName() + " failed.";
+          // No use continuing, just repeat the existing number.
+          texe = Eigen::VectorXd::Ones(texe.size()) * texe(0);
+          break;
         }
       }
 
@@ -165,15 +201,18 @@ class ScalingBenchmark {
     // Write header.
     file << "Solver: " << solver_name_ << " Example: " << example_name_
          << std::endl;
-    file << "Horizon Length, TAVE, TMAX, TSTD" << std::endl;
+    file << "Horizon Length, TAVE, TMAX, TSTD, RES, ITER, SUCCESS" << std::endl;
 
     // Concatenate the data then use Eigen formatting tools.
     // T = [tave,tmax,tstd].
-    Eigen::MatrixXd T(horizon_length_.size(), 4);
+    Eigen::MatrixXd T(horizon_length_.size(), 7);
     T.col(0) = horizon_length_.cast<double>();
     T.col(1) = t_average_;
     T.col(2) = t_max_;
     T.col(3) = t_std_;
+    T.col(4) = residual_;
+    T.col(5) = iters_.cast<double>();
+    T.col(6) = success_.cast<double>();
 
     Eigen::IOFormat CSV(Eigen::FullPrecision, 0, ", ");
     file << T.format(CSV);
@@ -191,30 +230,6 @@ class ScalingBenchmark {
 
   Eigen::VectorXd GetStdResults() { return t_std_; }
 
-  /**
-   * Create a vector of (approximately) logarithmically spaced vectors on the
-   * interval [10^a,10^b]. E.g., logspace(0,3,4) = [1,10,100,1000].
-   *
-   * @param[in]  a
-   * @param[in]  b
-   * @param[in]  n number of points
-   * @return   logspace vector
-   */
-  static Eigen::VectorXi logspace(double a, double b, int n) {
-    // Create a logspaced vector of doubles.
-    Eigen::VectorXd l = Eigen::VectorXd::LinSpaced(n, a, b);
-    Eigen::VectorXd ten = 10 * Eigen::VectorXd::Ones(n);
-    l = ten.array().pow(l.array());
-
-    // Round to the nearest integer.
-    Eigen::VectorXi out = Eigen::VectorXi::Zero(l.size());
-    for (int i = 0; i < l.size(); i++) {
-      out(i) = static_cast<int>(ceil(l(i)));
-    }
-
-    return out;
-  }
-
  private:
   std::vector<OcpGenerator> problem_instances_;
   Eigen::VectorXi num_averaging_steps_;
@@ -226,6 +241,9 @@ class ScalingBenchmark {
   Eigen::VectorXd t_average_;
   Eigen::VectorXd t_max_;
   Eigen::VectorXd t_std_;
+  Eigen::VectorXi iters_;
+  Eigen::VectorXd residual_;
+  Eigen::VectorXi success_;
 
   bool data_available_ = false;
 };
