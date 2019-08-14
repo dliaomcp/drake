@@ -27,7 +27,7 @@ int main(void) {
   N << N1, N2;
 
   VectorXi nave(n);
-  nave << 50 * VectorXi::Ones(n);
+  nave << 100 * VectorXi::Ones(12), 25 * VectorXi::Ones(3);
 
   std::vector<string> examples{"DoubleIntegrator", "ServoMotor",
                                "CopolymerizationReactor"};
