@@ -6,7 +6,9 @@
 #include <string>
 
 #include <Eigen/Dense>
+#include <drake/solvers/gurobi_solver.h>
 #include <drake/solvers/mosek_solver.h>
+#include <drake/solvers/osqp_solver.h>
 
 #include "drake/solvers/fbstab/fbstab_mpc.h"
 #include "drake/solvers/mathematical_program.h"
@@ -194,9 +196,9 @@ class FBstabWrapper {
   Eigen::VectorXd y_;
 };
 
-class MosekWrapper {
+class MathProgWrapper {
  public:
-  MosekWrapper(const FBstabMpc::QPData& data) {
+  MathProgWrapper(const FBstabMpc::QPData& data) {
     // Build a MathProg object form the MPC problem data.
     // TODO(dliaomcp@umich.ed) Record this setup time.
     auto x0_cstr = BuildMathematicalProgram(data, &mp_);
@@ -209,6 +211,24 @@ class MosekWrapper {
     data_ = data;
   }
 
+  virtual ~MathProgWrapper(){};
+  virtual std::string SolverName() = 0;
+
+  virtual WrapperOutput Compute(const Eigen::VectorXd& xt,
+                                const Eigen::VectorXd& z,
+                                const Eigen::VectorXd& l,
+                                const Eigen::VectorXd& v) = 0;
+
+ protected:
+  MathematicalProgram mp_;
+  std::unique_ptr<Binding<LinearEqualityConstraint>> x0_constraint_;
+  FBstabMpc::QPData data_;
+};
+
+class MosekWrapper : public MathProgWrapper {
+ public:
+  MosekWrapper(const FBstabMpc::QPData& data) : MathProgWrapper(data){};
+
   std::string SolverName() { return "mosek"; }
 
   WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
@@ -216,7 +236,7 @@ class MosekWrapper {
     // Mosek doesn't accept an initial guess so the arguments are unused.
     MosekSolver solver;
     if (!solver.available()) {
-      throw std::runtime_error("Mosek is not available.");
+      throw std::runtime_error(SolverName() + " is not available.");
     }
 
     const int N = data_.B->size();
@@ -243,11 +263,87 @@ class MosekWrapper {
 
     return s;
   }
+};
 
- private:
-  MathematicalProgram mp_;
-  std::unique_ptr<Binding<LinearEqualityConstraint>> x0_constraint_;
-  FBstabMpc::QPData data_;
+class OsqpWrapper : public MathProgWrapper {
+ public:
+  OsqpWrapper(const FBstabMpc::QPData& data) : MathProgWrapper(data){};
+
+  std::string SolverName() { return "osqp"; }
+
+  WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
+                        const Eigen::VectorXd& l, const Eigen::VectorXd& v) {
+    OsqpSolver solver;
+    if (!solver.available()) {
+      throw std::runtime_error("OSQP is not available.");
+    }
+
+    const int N = data_.B->size();
+    const int nx = data_.B->at(0).rows();
+    const int nu = data_.B->at(0).cols();
+
+    // Update the rhs of the constraint equation I*x0 = x(t).
+    MatrixXd I = MatrixXd::Identity(nx, nx);
+    x0_constraint_->evaluator()->UpdateCoefficients(I, xt);
+
+    // Solve.
+    // TODO(dliaomcp@umich.edu)
+    MathematicalProgramResult out = solver.Solve(mp_, z, {});
+    const OsqpSolverDetails& details = out.get_solver_details<OsqpSolver>();
+
+    // Return output.
+    WrapperOutput s;
+    s.solve_time = details.solve_time + details.polish_time;
+    s.setup_time = details.setup_time;
+    s.success = out.is_success();
+    s.major_iters = details.iter;
+    s.residual = details.dual_res > details.primal_res ? details.dual_res
+                                                       : details.primal_res;
+    s.z = out.GetSolution();
+    s.l = l;
+    s.v = v;
+    s.u = s.z.segment((N + 1) * nx, nu);
+
+    return s;
+  }
+};
+
+class GurobiWrapper : public MathProgWrapper {
+ public:
+  GurobiWrapper(const FBstabMpc::QPData& data) : MathProgWrapper(data){};
+
+  std::string SolverName() { return "gurobi"; }
+
+  WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
+                        const Eigen::VectorXd& l, const Eigen::VectorXd& v) {
+    GurobiSolver solver;
+    if (!solver.available()) {
+      throw std::runtime_error("gurobi is not available.");
+    }
+
+    const int N = data_.B->size();
+    const int nx = data_.B->at(0).rows();
+    const int nu = data_.B->at(0).cols();
+
+    // Update the rhs of the constraint equation I*x0 = x(t).
+    MatrixXd I = MatrixXd::Identity(nx, nx);
+    x0_constraint_->evaluator()->UpdateCoefficients(I, xt);
+
+    // Solve.
+    MathematicalProgramResult out = solver.Solve(mp_, z, {});
+    const GurobiSolverDetails& details = out.get_solver_details<GurobiSolver>();
+
+    // Return output.
+    WrapperOutput s;
+    s.solve_time = details.optimizer_time;
+    s.success = out.is_success();
+    s.z = out.GetSolution();
+    s.l = l;
+    s.v = v;
+    s.u = s.z.segment((N + 1) * nx, nu);
+
+    return s;
+  }
 };
 
 // Wraps qpOASES

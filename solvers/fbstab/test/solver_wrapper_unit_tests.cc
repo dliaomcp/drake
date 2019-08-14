@@ -12,6 +12,8 @@ namespace fbstab {
 namespace test {
 namespace {
 
+// TODO(dliaomcp@umich.edu) Remove the boilerplate code.
+
 GTEST_TEST(SolverWrappers, FBstab) {
   OcpGenerator ocp;
   ocp.ServoMotor();
@@ -26,6 +28,10 @@ GTEST_TEST(SolverWrappers, FBstab) {
 
   WrapperOutput out = w.Compute(xt, z0, l0, v0);
 
+  std::cout << "Residual: " << out.residual << std::endl;
+  std::cout << "Solve time: " << out.solve_time << std::endl;
+  std::cout << "iters: " << out.minor_iters << std::endl;
+  std::cout << "u: " << out.u << std::endl;
   ASSERT_TRUE(out.success);
 }
 
@@ -42,7 +48,50 @@ GTEST_TEST(SolverWrappers, Mosek) {
   Eigen::VectorXd xt = *data.x0;
 
   WrapperOutput out = w.Compute(xt, z0, l0, v0);
+  std::cout << "Residual: " << out.residual << std::endl;
+  std::cout << "Solve time: " << out.solve_time << std::endl;
+  std::cout << "iters: " << out.major_iters << std::endl;
+  std::cout << "u: " << out.u << std::endl;
+  ASSERT_TRUE(out.success);
+}
 
+GTEST_TEST(SolverWrappers, Osqp) {
+  OcpGenerator ocp;
+  ocp.ServoMotor();
+
+  FBstabMpc::QPData data = ocp.GetFBstabInput();
+  OsqpWrapper w(data);
+
+  Eigen::VectorXd z0 = Eigen::VectorXd::Zero(ocp.nz());
+  Eigen::VectorXd l0 = Eigen::VectorXd::Zero(ocp.nl());
+  Eigen::VectorXd v0 = Eigen::VectorXd::Zero(ocp.nv());
+  Eigen::VectorXd xt = *data.x0;
+
+  WrapperOutput out = w.Compute(xt, z0, l0, v0);
+  std::cout << "Residual: " << out.residual << std::endl;
+  std::cout << "Solve time: " << out.solve_time << std::endl;
+  std::cout << "iters: " << out.major_iters << std::endl;
+  std::cout << "u: " << out.u << std::endl;
+  ASSERT_TRUE(out.success);
+}
+
+GTEST_TEST(SolverWrappers, Gurobi) {
+  OcpGenerator ocp;
+  ocp.ServoMotor();
+
+  FBstabMpc::QPData data = ocp.GetFBstabInput();
+  GurobiWrapper w(data);
+
+  Eigen::VectorXd z0 = Eigen::VectorXd::Zero(ocp.nz());
+  Eigen::VectorXd l0 = Eigen::VectorXd::Zero(ocp.nl());
+  Eigen::VectorXd v0 = Eigen::VectorXd::Zero(ocp.nv());
+  Eigen::VectorXd xt = *data.x0;
+
+  WrapperOutput out = w.Compute(xt, z0, l0, v0);
+  std::cout << "Residual: " << out.residual << std::endl;
+  std::cout << "Solve time: " << out.solve_time << std::endl;
+  std::cout << "iters: " << out.major_iters << std::endl;
+  std::cout << "u: " << out.u << std::endl;
   ASSERT_TRUE(out.success);
 }
 

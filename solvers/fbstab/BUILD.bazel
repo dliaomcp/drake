@@ -66,6 +66,8 @@ drake_cc_library(
         "//common:essential",
         "//solvers:mathematical_program_lite",
         "//solvers:mosek_solver",
+        "//solvers:osqp_solver",
+        "//solvers:gurobi_solver",
         "@eigen",
     ],
 )
