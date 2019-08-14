@@ -12,42 +12,42 @@ namespace test {
  * Runs unit tests for the MPC components. See
  * mpc_component_unit_tests.h for documentation.
  */
-GTEST_TEST(MPCData, GEMVH) {
+GTEST_TEST(MpcData, GEMVH) {
   MpcComponentUnitTests test;
   test.GEMVH();
 }
 
-GTEST_TEST(MPCData, GEMVA) {
+GTEST_TEST(MpcData, GEMVA) {
   MpcComponentUnitTests test;
   test.GEMVA();
 }
 
-GTEST_TEST(MPCData, GEMVG) {
+GTEST_TEST(MpcData, GEMVG) {
   MpcComponentUnitTests test;
   test.GEMVG();
 }
 
-GTEST_TEST(MPCData, GEMVGT) {
+GTEST_TEST(MpcData, GEMVGT) {
   MpcComponentUnitTests test;
   test.GEMVGT();
 }
 
-GTEST_TEST(MPCData, GEMVAT) {
+GTEST_TEST(MpcData, GEMVAT) {
   MpcComponentUnitTests test;
   test.GEMVAT();
 }
 
-GTEST_TEST(MPCData, AXPYF) {
+GTEST_TEST(MpcData, AXPYF) {
   MpcComponentUnitTests test;
   test.AXPYF();
 }
 
-GTEST_TEST(MPCData, AXPYH) {
+GTEST_TEST(MpcData, AXPYH) {
   MpcComponentUnitTests test;
   test.AXPYH();
 }
 
-GTEST_TEST(MPCData, AXPYB) {
+GTEST_TEST(MpcData, AXPYB) {
   MpcComponentUnitTests test;
   test.AXPYB();
 }

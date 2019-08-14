@@ -22,11 +22,11 @@ using VectorXd = Eigen::VectorXd;
 
 /**
  * This class implements unit tests for the following classes:
- * MpcData
- * MpcVariable
- * MpcResidual
- * MpcFeasibility
- * RiccatiLinearSolver
+ * - MpcData
+ * - MpcVariable
+ * - MpcResidual
+ * - MpcFeasibiity
+ * - RiccatiLinearSolver
  */
 class MpcComponentUnitTests {
  public:

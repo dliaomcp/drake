@@ -20,13 +20,13 @@ class MpcComponentUnitTests;
  * for the mathematical description.
  *
  * Residuals have 3 components:
- * z: Optimality residual
- * l: Equality residual
- * v: Inequality/complimentarity residual
+ * - z: Stationarity residual
+ * - l: Equality residual
+ * - v: Inequality/complimentarity residual
  */
 class MpcResidual {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MpcResidual);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MpcResidual)
   /**
    * Allocates memory for the residual.
    *
@@ -34,6 +34,9 @@ class MpcResidual {
    * @param[in] nx number of states
    * @param[in] nu number of control input
    * @param[in] nc number of constraints per stage
+   *
+   * Throws a runtime_error if any of the inputs
+   * are non-positive.
    */
   MpcResidual(int N, int nx, int nu, int nc);
 
@@ -51,65 +54,79 @@ class MpcResidual {
   void Fill(double a);
 
   /**
-   * Sets y <- -1*y where y is *this.
+   * Sets *this <- -1* *this.
    */
   void Negate();
 
   /**
-   * @return Euclidean norm of the residual
+   * @return Euclidean norm of the residual.
    */
   double Norm() const;
 
   /**
-   * Computes the merit function 0.5 ||F||^2_2
    * @return 0.5*Norm()^2
    */
   double Merit() const;
 
   /**
-   * Computes the proximal subproblem residual at the point x
-   * relative to the reference point xbar with regularization strength sigma.
-   * Corresponds to (20) in https://arxiv.org/pdf/1901.04046.pdf
-   * Overwrites internal storage
-   * @param[in] x     inner iterate for evaluating the residual
-   * @param[in] xbar  outer iterate for evaluating the residual
-   * @param[in] sigma regularization strength
+   * Computes R(x,xbar,sigma), the residual of a proximal subproblem
+   * and stores the result internally.
+   * R(x,xbar,sigma) = 0 if and only if x = P(xbar,sigma)
+   * where P is the proximal operator.
+   *
+   * See (11) and (20) in https://arxiv.org/pdf/1901.04046.pdf
+   * for a mathematical description.
+   *
+   * @param[in] x      Inner loop variable
+   * @param[in] xbar   Outer loop variable
+   * @param[in] sigma  Regularization strength > 0
+   *
+   * Throws a runtime_error if sigma isn't positive,
+   * or if x and xbar aren't the same size.
    */
   void InnerResidual(const MpcVariable& x, const MpcVariable& xbar,
                      double sigma);
 
   /**
-   * Computes the natural residual of the KKT conditions at x.
-   * Overwrites internal storage.
-   * Corresponds to (23) in https://arxiv.org/pdf/1901.04046.pdf
-   * @param[in] x primal-dual point to evaluate the KKT conditions
+   * Computes π(x): the natural residual of the QP
+   * at the primal-dual point x and stores the result internally.
+   * See (17) in https://arxiv.org/pdf/1901.04046.pdf
+   * for a mathematical definition.
+   *
+   * @param[in] x Evaluation point.
    */
   void NaturalResidual(const MpcVariable& x);
 
   /**
-   * Computes the penalized natural residual of the KKT conditions at x
-   * Overwrites internal storage
-   * @param[in] x primal-dual point to evaluate the KKT conditions
+   * Computes the natural residual function augmented with
+   * penalty terms, it is analogous to (18) in
+   * https://arxiv.org/pdf/1901.04046.pdf,
+   * and stores the result internally.
+   *
+   * @param[in] x Evaluation point.
    */
   void PenalizedNaturalResidual(const MpcVariable& x);
 
-  // Accessor for z.
+  /** Accessor for stationarity residual. */
   Eigen::VectorXd& z() { return z_; }
-  // Accessor for z.
+  /** Accessor for stationarity residual. */
   const Eigen::VectorXd& z() const { return z_; }
 
-  // Accessor for l.
+  /** Accessor for the equality residual. */
   Eigen::VectorXd& l() { return l_; }
-  // Accessor for l.
+  /** Accessor for the equality residual. */
   const Eigen::VectorXd& l() const { return l_; }
 
-  // Accessor for v.
+  /** Accessor for complementarity residual. */
   Eigen::VectorXd& v() { return v_; }
-  // Accessor for v.
+  /** Accessor for complementarity residual. */
   const Eigen::VectorXd& v() const { return v_; }
 
+  /** Norm of the stationarity residual. */
   double z_norm() const { return znorm_; }
+  /** Norm of the equality residual. */
   double l_norm() const { return lnorm_; }
+  /** Norm of the complementarity residual. */
   double v_norm() const { return vnorm_; }
 
  private:
@@ -131,7 +148,7 @@ class MpcResidual {
   double lnorm_ = 0.0;  // cached norm of l_
   double vnorm_ = 0.0;  // cached norm of v_
 
-  /**
+  /*
    * Computes the penalized Fischer-Burmeister function pfb(a,b)
    * Equation (19) of https://arxiv.org/pdf/1901.04046.pdf.
    * @param[in]  a
@@ -140,11 +157,6 @@ class MpcResidual {
    * @return     pfb(a,b)
    */
   double pfb(double a, double b, double alpha);
-
-  /** Scalar max operator. */
-  double max(double a, double b) { return a > b ? a : b; }
-  /** Scalar min operator. */
-  double min(double a, double b) { return a < b ? a : b; }
 
   friend class RiccatiLinearSolver;
 };

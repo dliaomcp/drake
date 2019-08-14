@@ -1,5 +1,6 @@
 #include "drake/solvers/fbstab/components/mpc_residual.h"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -17,7 +18,6 @@ MpcResidual::MpcResidual(int N, int nx, int nu, int nc) {
     throw std::runtime_error(
         "All inputs to MpcResidual::MpcResidual must be >= 1.");
   }
-
   N_ = N;
   nx_ = nx;
   nu_ = nu;
@@ -30,9 +30,7 @@ MpcResidual::MpcResidual(int N, int nx, int nu, int nc) {
   l_.resize(nl_);
   v_.resize(nv_);
 
-  z_.setConstant(0.0);
-  l_.setConstant(0.0);
-  v_.setConstant(0.0);
+  Fill(0.0);
 }
 
 void MpcResidual::Fill(double a) {
@@ -105,7 +103,7 @@ void MpcResidual::NaturalResidual(const MpcVariable& x) {
 
   // rv = min(y,v)
   for (int i = 0; i < nv_; i++) {
-    v_(i) = min(x.y()(i), x.v()(i));
+    v_(i) = std::min(x.y()(i), x.v()(i));
   }
   znorm_ = z_.norm();
   lnorm_ = l_.norm();
@@ -113,23 +111,11 @@ void MpcResidual::NaturalResidual(const MpcVariable& x) {
 }
 
 void MpcResidual::PenalizedNaturalResidual(const MpcVariable& x) {
-  const MpcData* const data = x.data();
-  // r.z = H*z + f + G'*l + A'*v
-  z_.setConstant(0.0);
-  data->axpyf(1.0, &z_);
-  data->gemvH(x.z(), 1.0, 1.0, &z_);
-  data->gemvGT(x.l(), 1.0, 1.0, &z_);
-  data->gemvAT(x.v(), 1.0, 1.0, &z_);
+  NaturalResidual(x);
 
-  // r.l = h - G*z + sigma(l - lbar)
-  l_.setConstant(0.0);
-  data->axpyh(1.0, &l_);
-  data->gemvG(x.z(), -1.0, 1.0, &l_);
-
-  // rv = alpha*min(y,v) + (1-alpha)*max(0,v)*max(0,y)
   for (int i = 0; i < nv_; i++) {
-    const double nr = min(x.y()(i), x.v()(i));
-    v_(i) = alpha_ * nr + (1 - alpha_) * max(0.0, x.y()(i)) * max(0, x.v()(i));
+    v_(i) = alpha_ * v_(i) +
+            (1 - alpha_) * std::max(0.0, x.y()(i)) * std::max(0.0, x.v()(i));
   }
   znorm_ = z_.norm();
   lnorm_ = l_.norm();
@@ -138,7 +124,7 @@ void MpcResidual::PenalizedNaturalResidual(const MpcVariable& x) {
 
 double MpcResidual::pfb(double a, double b, double alpha) {
   double fb = a + b - sqrt(a * a + b * b);
-  return alpha * fb + (1.0 - alpha) * max(0, a) * max(0, b);
+  return alpha * fb + (1.0 - alpha) * std::max(0.0, a) * std::max(0.0, b);
 }
 
 }  // namespace fbstab

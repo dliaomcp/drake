@@ -1,5 +1,6 @@
 #include "drake/solvers/fbstab/components/mpc_feasibility.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 #include <Eigen/Dense>
@@ -12,6 +13,10 @@ namespace solvers {
 namespace fbstab {
 
 MpcFeasibility::MpcFeasibility(int N, int nx, int nu, int nc) {
+  if (N <= 0 || nx <= 0 || nu <= 0 || nc <= 0) {
+    throw std::runtime_error(
+        "All size inputs to MpcFeasibility::MpcFeasibility must be >= 1.");
+  }
   nx_ = nx;
   nu_ = nu;
   nc_ = nc;
@@ -33,10 +38,6 @@ void MpcFeasibility::ComputeFeasibility(const MpcVariable& x, double tol) {
         "In MpcFeasibility::ComputeFeasibility: size mismatch between *this "
         "and x.");
   }
-
-  primal_feasible_ = true;
-  dual_feasible_ = true;
-
   // The conditions for dual-infeasibility are:
   // max(Az) <= 0 and f'*z < 0 and |Hz| <= tol * |z| and |Gz| <= tol*|z|
 
@@ -81,8 +82,8 @@ void MpcFeasibility::ComputeFeasibility(const MpcVariable& x, double tol) {
   data->axpyh(1.0, &tl_);
   const double p2 = tl_.dot(x.l()) + tv_.dot(x.v());
 
-  const double u =
-      max(x.v().lpNorm<Eigen::Infinity>(), x.l().lpNorm<Eigen::Infinity>());
+  const double u = std::max(x.v().lpNorm<Eigen::Infinity>(),
+                            x.l().lpNorm<Eigen::Infinity>());
   if ((p1 <= tol * u) && (p2 < 0)) {
     primal_feasible_ = false;
   } else {

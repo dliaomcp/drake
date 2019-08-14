@@ -23,24 +23,31 @@ class MpcComponentUnitTests;
  * equations that arise when solving MPC form QPs (see mpc_data.h) using FBstab.
  * The equations are of the form
  *
- * [Hs  G' A'][dz] = [rz]
- * [-G  sI 0 ][dl] = [rl]
- * [-CA 0  D ][dv] = [rv]
+ *     [Hs  G' A'][dz] = [rz]
+ *     [-G  sI 0 ][dl] = [rl]
+ *     [-CA 0  D ][dv] = [rv]
  *
  * where s = sigma, C = diag(gamma), D = diag(mu + sigma*gamma).
  * The vectors gamma and mu are defined in (24) of
  * https://arxiv.org/pdf/1901.04046.pdf.
  *
- * In compact form: V(x,xbar,sigma)*dx = r.
+ * In compact form:
  *
- * This classes uses a Riccati recursion like the one in
+ *     V(x,xbar,sigma)*dx = r.
+ *
+ * The Riccati recursion used by this class is based on the one in:
  *
  * Rao, Christopher V., Stephen J. Wright, and James B. Rawlings.
  * "Application of interior-point methods to model predictive control."
  * Journal of optimization theory and applications 99.3 (1998): 723-757.
  *
- * to perform the factorization efficiently. This class contains workspace
- * memory and methods for setting up and solving the linear systems.
+ * and is used to perform the factorization efficiently. This class also
+ * contains workspace memory and methods for setting up and solving the linear
+ * systems.
+ *
+ * There is an error on page 744 of the paper in the \Delta x_k equation, It's
+ * missing a residual term. This class contains mutable members as is thus not
+ * thread safe.
  */
 class RiccatiLinearSolver {
  public:
@@ -52,6 +59,8 @@ class RiccatiLinearSolver {
    * @param[in] nx number of states
    * @param[in] nu number of control input
    * @param[in] nc number of constraints per stage
+   *
+   * Throws a runtime_error if any of the inputs are non-positive.
    */
   RiccatiLinearSolver(int N, int nx, int nu, int nc);
 
@@ -60,10 +69,10 @@ class RiccatiLinearSolver {
    * in https://arxiv.org/pdf/1901.04046.pdf.
    * @param[in] alpha
    */
-  void SetAlpha(double alpha) { alpha_ = alpha; };
+  void SetAlpha(double alpha) { alpha_ = alpha; }
 
   /**
-   * Factors the matrix V(x,xbar,sigma) using a Riccati
+   * Computes then factors the matrix V(x,xbar,sigma) using a Riccati
    * recursion.
    *
    * The matrix V is computed as described in
@@ -143,7 +152,6 @@ class RiccatiLinearSolver {
 
   // Computes the gradient of the penalized fischer-burmeister (PFB)
   // function, (19) in https://arxiv.org/pdf/1901.04046.pdf.
-  // See section 3.3.
   Eigen::Vector2d PFBGradient(double a, double b) const;
 
   friend class test::MpcComponentUnitTests;

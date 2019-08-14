@@ -20,7 +20,7 @@ namespace fbstab {
  */
 class MpcFeasibility {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MpcFeasibility);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(MpcFeasibility)
   /**
    * Allocates workspace memory.
    *
@@ -28,6 +28,8 @@ class MpcFeasibility {
    * @param[in] nx number of states
    * @param[in] nu number of control input
    * @param[in] nc number of constraints per stage
+   *
+   * Throws a runtime_error if any inputs are non-positive.
    */
   MpcFeasibility(int N, int nx, int nu, int nc);
 
@@ -43,13 +45,13 @@ class MpcFeasibility {
   void ComputeFeasibility(const MpcVariable& x, double tol);
 
   /**
-   * Retrieve the result of the last infeasibility check.
+   * Retrieves the result of the last infeasibility check.
    * @return false if a dual infeasibility certificate was found, true otherwise
    */
-  bool IsDualFeasible() const { return dual_feasible_; };
+  bool IsDualFeasible() const { return dual_feasible_; }
 
   /**
-   * Retrieve the result of the last infeasibility check.
+   * Retrieves the result of the last infeasibility check.
    * @return false if a primal infeasibility certificate was found, true
    * otherwise
    */
@@ -71,8 +73,6 @@ class MpcFeasibility {
   int nz_ = 0;  // number of primal variables
   int nl_ = 0;  // number of equality duals
   int nv_ = 0;  // number of inequality duals
-
-  double max(double a, double b) { return (a > b) ? a : b; }
 };
 
 }  // namespace fbstab

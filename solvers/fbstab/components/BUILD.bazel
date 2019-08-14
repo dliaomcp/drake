@@ -2,12 +2,10 @@ load(
     "@drake//tools/skylark:drake_cc.bzl",
     "drake_cc_googletest",
     "drake_cc_library",
-    "drake_cc_binary"
 )
-
 load("//tools/lint:lint.bzl", "add_lint_tests")
 
-package(default_visibility = ["//visibility:public"])
+package(default_visibility = ["//solvers/fbstab:__pkg__"])
 
 drake_cc_library(
     name = "dense_data",
@@ -32,7 +30,9 @@ drake_cc_library(
 
 drake_cc_library(
     name = "dense_residual",
-    srcs = ["dense_residual.cc"],
+    srcs = [
+        "dense_residual.cc",
+    ],
     hdrs = ["dense_residual.h"],
     deps = [
         ":dense_data",
@@ -87,12 +87,10 @@ drake_cc_googletest(
     ],
 )
 
-# FBstab MPC *************************************
 drake_cc_library(
     name = "mpc_data",
     srcs = ["mpc_data.cc"],
     hdrs = ["mpc_data.h"],
-    copts = ["-UNDEBUG"],
     deps = [
         "//common:essential",
         "@eigen",
@@ -103,7 +101,6 @@ drake_cc_library(
     name = "mpc_variable",
     srcs = ["mpc_variable.cc"],
     hdrs = ["mpc_variable.h"],
-    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         "//common:essential",
@@ -115,7 +112,6 @@ drake_cc_library(
     name = "mpc_residual",
     srcs = ["mpc_residual.cc"],
     hdrs = ["mpc_residual.h"],
-    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_variable",
@@ -128,7 +124,6 @@ drake_cc_library(
     name = "mpc_feasibility",
     srcs = ["mpc_feasibility.cc"],
     hdrs = ["mpc_feasibility.h"],
-    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_variable",
@@ -141,7 +136,6 @@ drake_cc_library(
     name = "riccati_linear_solver",
     srcs = ["riccati_linear_solver.cc"],
     hdrs = ["riccati_linear_solver.h"],
-    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_residual",
@@ -157,7 +151,6 @@ drake_cc_googletest(
         "test/mpc_component_unit_tests.cc",
         "test/mpc_component_unit_tests.h",
     ],
-    copts = ["-UNDEBUG"],
     deps = [
         ":mpc_data",
         ":mpc_feasibility",
