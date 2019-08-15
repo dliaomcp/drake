@@ -116,7 +116,7 @@ class ScalingBenchmark {
   }
 
   // runs the timing and stores the result internally
-  void RunTiming() {
+  void RunTiming(bool warmstart = false) {
     int n = horizon_length_.size();
 
     for (int i = 0; i < n; i++) {
@@ -128,21 +128,34 @@ class ScalingBenchmark {
         solver_name_ = solver.SolverName();
       }
 
-      // Create initial guess, for scaling tests everything is initialized at
-      // the origin.
+      // If warmstarting is disabled everything begins at the origin.
       Eigen::VectorXd z0 = Eigen::VectorXd::Zero(ocp.nz());
       Eigen::VectorXd l0 = Eigen::VectorXd::Zero(ocp.nl());
       Eigen::VectorXd v0 = Eigen::VectorXd::Zero(ocp.nv());
+      Eigen::VectorXd xt = *data.x0;
 
-      Eigen::VectorXd texe(num_averaging_steps_(i));
+      if (warmstart) {
+        // Solve the original OCP then use the system dynamics to shift
+        // everything by one step to create a sucessor OCP.
+        WrapperOutput out = solver.Compute(xt, z0, l0, v0);
+        z0 = out.z;
+        l0 = out.l;
+        v0 = out.v;
 
+        OcpGenerator::SimulationInputs s = ocp.GetSimulationInputs();
+        xt = s.A * xt + s.B * out.u;
+      }
+
+      // Header.
       std::cout << "Running: " << solver.SolverName()
                 << " N = " << horizon_length_(i);
       std::cout << " ...";
+
+      // Averaging loop.
+      Eigen::VectorXd texe(num_averaging_steps_(i));
       for (int j = 0; j < num_averaging_steps_(i); j++) {
-        // Call the solver, for these tests we use the default value of x0 given
-        // by the OCP generator.
-        WrapperOutput out = solver.Compute(*data.x0, z0, l0, v0);
+        // Call the solver.
+        WrapperOutput out = solver.Compute(xt, z0, l0, v0);
         texe(j) = out.solve_time;
         if (j == 0) {
           iters_(i) = out.major_iters;
@@ -151,13 +164,14 @@ class ScalingBenchmark {
         }
         if (out.success == false) {
           std::cout << "Warning: Solver " + solver.SolverName() + " failed.";
-          // No use continuing, just repeat the existing number.
+          // No use continuing, just repeat the existing number a few more
+          // times.
           texe = Eigen::VectorXd::Ones(texe.size()) * texe(0);
           break;
         }
       }
-
       std::cout << " done." << std::endl;
+
       // Compute execution time statistics.
       t_average_(i) = texe.mean();
       t_max_(i) = texe.maxCoeff();
@@ -188,7 +202,7 @@ class ScalingBenchmark {
    * @param[in] filename
    * @return true if the operation was successful, false otherwise
    */
-  bool WriteResultsToFile(std::string filename) {
+  bool WriteResultsToFile(std::string filename) const {
     if (!data_available_) {
       throw std::runtime_error("Can't write non-existent data to file.");
     }
@@ -201,7 +215,7 @@ class ScalingBenchmark {
     // Write header.
     file << "Solver: " << solver_name_ << " Example: " << example_name_
          << std::endl;
-    file << "Horizon Length, TAVE, TMAX, TSTD, RES, ITER, SUCCESS" << std::endl;
+    file << "N, TAVE, TMAX, TSTD, RES, ITER, SUCCESS" << std::endl;
 
     // Concatenate the data then use Eigen formatting tools.
     // T = [tave,tmax,tstd].
@@ -221,14 +235,14 @@ class ScalingBenchmark {
     return true;
   }
 
-  Eigen::VectorXd GetAverageResults() {
+  Eigen::VectorXd GetAverageResults() const {
     // TODO(dliaomcp@umich.edu) Check that data is ready.
     return t_average_;
   }
 
-  Eigen::VectorXd GetMaxResults() { return t_max_; }
+  Eigen::VectorXd GetMaxResults() const { return t_max_; }
 
-  Eigen::VectorXd GetStdResults() { return t_std_; }
+  Eigen::VectorXd GetStdResults() const { return t_std_; }
 
  private:
   std::vector<OcpGenerator> problem_instances_;

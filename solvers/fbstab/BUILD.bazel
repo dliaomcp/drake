@@ -57,6 +57,7 @@ drake_cc_library(
     ],
 )
 
+
 drake_cc_library(
     name = "solver_wrappers",
     srcs = ["test/solver_wrappers.h"],
@@ -68,6 +69,17 @@ drake_cc_library(
         "//solvers:mosek_solver",
         "//solvers:osqp_solver",
         "//solvers:gurobi_solver",
+        "@eigen",
+    ],
+)
+
+drake_cc_library(
+    name = "timing_simulator",
+    hdrs = ["test/timing_simulator.h"],
+    deps = [
+        ":ocp_generator",
+        ":solver_wrappers",
+        "//common:essential",
         "@eigen",
     ],
 )
@@ -92,6 +104,17 @@ drake_cc_binary(
     deps = [
         ":ocp_generator",
         ":scaling_class",
+        "@eigen",
+    ],
+)
+
+drake_cc_binary(
+    name = "closed_loop_benchmark",
+    srcs = ["test/closed_loop_benchmarks.cc"],
+    deps = [
+        ":ocp_generator",
+        ":solver_wrappers",
+        ":timing_simulator",
         "@eigen",
     ],
 )

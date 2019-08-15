@@ -262,7 +262,7 @@ void OcpGenerator::ServoMotor(int N) {
 
   constexpr double pi = 3.1415926535897;
   VectorXd xtrg(4);
-  xtrg << 30 * pi / 180, 0, 0, 0;
+  xtrg << 30.0 * pi / 180.0, 0, 0, 0;
   VectorXd utrg(1);
   utrg << 0;
 
@@ -285,7 +285,7 @@ void OcpGenerator::ServoMotor(int N) {
   Bsim_ = B;
   Csim_ = C;
   Dsim_ = MatrixXd::Zero(Csim_.rows(), Bsim_.cols());
-  T_ = 40;
+  T_ = 50;
 }
 // Fills internal storage with data
 // for a double integrator problem with horizon N.

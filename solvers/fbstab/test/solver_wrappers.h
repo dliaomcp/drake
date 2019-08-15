@@ -69,7 +69,7 @@ class SolverWrapper {
 
 class FBstabWrapper : public SolverWrapper {
  public:
-  FBstabWrapper(FBstabMpc::QPData data) {
+  FBstabWrapper(const FBstabMpc::QPData& data) {
     // Extract size data.
     const int N = data.B->size();
     const int nx = data.B->at(0).rows();
@@ -219,7 +219,6 @@ class MathProgWrapper : public SolverWrapper {
     // x0 = x(t).
     x0_constraint_ =
         std::make_unique<Binding<LinearEqualityConstraint>>(x0_cstr);
-
     data_ = data;
   }
 

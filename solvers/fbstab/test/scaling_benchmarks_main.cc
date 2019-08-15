@@ -63,5 +63,36 @@ int main(void) {
     std::cout << "---------------------------\n";
   }
 
+  // Loop over examples.
+  for (int i = 0; i < static_cast<int>(examples.size()); i++) {
+    std::cout << "\n  " + examples.at(i) << "\n"
+              << "-----------------------------\n";
+    // Setup each solver.
+    test::ScalingBenchmark<test::FBstabWrapper> fbstab(N, examples.at(i));
+    test::ScalingBenchmark<test::MosekWrapper> mosek(N, examples.at(i));
+    test::ScalingBenchmark<test::GurobiWrapper> gurobi(N, examples.at(i));
+    test::ScalingBenchmark<test::OsqpWrapper> osqp(N, examples.at(i));
+
+    // update averaging vector
+    fbstab.UpdateAveragingVector(nave);
+    mosek.UpdateAveragingVector(nave);
+    gurobi.UpdateAveragingVector(nave);
+    osqp.UpdateAveragingVector(nave);
+
+    // Run timings.
+    fbstab.RunTiming(true);
+    mosek.RunTiming(true);
+    gurobi.RunTiming(true);
+    osqp.RunTiming(true);
+
+    // Write to file
+    fbstab.WriteResultsToFile("fbstab_warm_" + examples.at(i) + ".csv");
+    mosek.WriteResultsToFile("mosek_warm_" + examples.at(i) + ".csv");
+    gurobi.WriteResultsToFile("gurobi_warm_" + examples.at(i) + ".csv");
+    osqp.WriteResultsToFile("osqp_warm_" + examples.at(i) + ".csv");
+
+    std::cout << "---------------------------\n";
+  }
+
   return 0;
 }
