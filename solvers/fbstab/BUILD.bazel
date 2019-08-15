@@ -1,5 +1,6 @@
 load(
     "@drake//tools/skylark:drake_cc.bzl",
+    "drake_cc_binary",
     "drake_cc_googletest",
     "drake_cc_library",
 )
@@ -52,15 +53,55 @@ drake_cc_library(
     ],
 )
 
+# test libraries
 drake_cc_library(
     name = "ocp_generator",
-    testonly = 1,
     srcs = [
         "test/ocp_generator.cc",
     ],
     hdrs = ["test/ocp_generator.h"],
     deps = [
         ":fbstab_mpc",
+        "//common:essential",
+        "@eigen",
+    ],
+)
+
+
+drake_cc_library(
+    name = "scaling_class",
+    hdrs = ["test/scaling_benchmark.h"],
+    deps = [
+        ":ocp_generator",
+        ":solver_wrappers",
+        "//common:essential",
+        "//solvers:mathematical_program_lite",
+        "@eigen",
+    ],
+)
+
+
+drake_cc_library(
+    name = "solver_wrappers",
+    srcs = ["test/solver_wrappers.h"],
+    hdrs = ["test/solver_wrappers.h"],
+    deps = [
+        ":ocp_generator",
+        "//common:essential",
+        "//solvers:mathematical_program_lite",
+        "//solvers:mosek_solver",
+        "//solvers:osqp_solver",
+        "//solvers:gurobi_solver",
+        "@eigen",
+    ],
+)
+
+drake_cc_library(
+    name = "timing_simulator",
+    hdrs = ["test/timing_simulator.h"],
+    deps = [
+        ":ocp_generator",
+        ":solver_wrappers",
         "//common:essential",
         "@eigen",
     ],
@@ -82,6 +123,38 @@ drake_cc_googletest(
     deps = [
         ":fbstab_mpc",
         ":ocp_generator",
+        "@eigen",
+    ],
+)
+
+drake_cc_googletest(
+    name = "solver_wrapper_unit_tests",
+    srcs = ["test/solver_wrapper_unit_tests.cc"],
+    deps = [
+        "fbstab_mpc",
+        ":ocp_generator",
+        ":solver_wrappers",
+    ],
+)
+
+# binaries
+drake_cc_binary(
+    name = "scaling_benchmark",
+    srcs = ["test/scaling_benchmarks_main.cc"],
+    deps = [
+        ":ocp_generator",
+        ":scaling_class",
+        "@eigen",
+    ],
+)
+
+drake_cc_binary(
+    name = "closed_loop_benchmark",
+    srcs = ["test/closed_loop_benchmarks.cc"],
+    deps = [
+        ":ocp_generator",
+        ":solver_wrappers",
+        ":timing_simulator",
         "@eigen",
     ],
 )
