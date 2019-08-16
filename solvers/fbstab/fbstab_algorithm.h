@@ -37,6 +37,7 @@ struct SolverOut {
   int newton_iters = 0;
   int prox_iters = 0;
   double solve_time = 0.0;  /// CPU time in s.
+  double initial_residual = 0.0;
 };
 
 using clock = std::chrono::high_resolution_clock;
@@ -311,15 +312,15 @@ class FBstabAlgorithm {
    * @param[in] start time instant when the solve call started
    */
   SolverOut PrepareOutput(ExitFlag e, int prox_iters, int newton_iters,
-                          const Residual& r, time_point start) const {
+                          const Residual& r, time_point start,
+                          double initial_residual) const {
     struct SolverOut output = {
         ExitFlag::MAXITERATIONS,  // exit flag
         0.0,                      // residual
         0,                        // prox iters
         0,                        // newton iters
         -1.0 / 1000.0,            // solve time
-                                  // (-ve value indicates no timing data
-                                  // available)
+        0.0,                      // initial residual
     };
 
     if (record_solve_time_) {
@@ -331,6 +332,7 @@ class FBstabAlgorithm {
     output.residual = r.Norm();
     output.newton_iters = newton_iters;
     output.prox_iters = prox_iters;
+    output.initial_residual = initial_residual;
 
     // Printing is in ms.
     PrintFinal(prox_iters, newton_iters, e, r, 1000.0 * output.solve_time);
@@ -506,7 +508,7 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
   xi_->Copy(*x0);
   dx_->Fill(1.0);
 
-  rk_->NaturalResidual(*xk_);
+  rk_->PenalizedNaturalResidual(*xk_);
   ri_->Fill(0.0);
   double E0 = rk_->Norm();
   double Ek = E0;
@@ -528,7 +530,7 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
     if (Ek <= abs_tol_ + E0 * rel_tol_ || dx_->Norm() <= stall_tol_) {
       PrintIterLine(prox_iters_, newton_iters_, *rk_, *ri_, inner_tol);
       SolverOut output = PrepareOutput(ExitFlag::SUCCESS, prox_iters_,
-                                       newton_iters_, *rk_, start_time);
+                                       newton_iters_, *rk_, start_time, E0);
       x0->Copy(*xk_);
       return output;
     } else {
@@ -550,13 +552,13 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
       if (Eo < Ek) {
         x0->Copy(*xi_);
         SolverOut output = PrepareOutput(ExitFlag::MAXITERATIONS, prox_iters_,
-                                         newton_iters_, *rk_, start_time);
+                                         newton_iters_, *rk_, start_time, E0);
         return output;
       } else {
         x0->Copy(*xk_);
         rk_->PenalizedNaturalResidual(*xk_);
         SolverOut output = PrepareOutput(ExitFlag::MAXITERATIONS, prox_iters_,
-                                         newton_iters_, *rk_, start_time);
+                                         newton_iters_, *rk_, start_time, E0);
         return output;
       }
     }
@@ -571,19 +573,19 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
         if (status == InfeasibilityStatus::PRIMAL) {
           SolverOut output =
               PrepareOutput(ExitFlag::PRIMAL_INFEASIBLE, prox_iters_,
-                            newton_iters_, *rk_, start_time);
+                            newton_iters_, *rk_, start_time, E0);
           x0->Copy(*dx_);
           return output;
         } else if (status == InfeasibilityStatus::DUAL) {
           SolverOut output =
               PrepareOutput(ExitFlag::DUAL_INFEASIBLE, prox_iters_,
-                            newton_iters_, *rk_, start_time);
+                            newton_iters_, *rk_, start_time, E0);
           x0->Copy(*dx_);
           return output;
         } else {
           SolverOut output =
               PrepareOutput(ExitFlag::PRIMAL_DUAL_INFEASIBLE, prox_iters_,
-                            newton_iters_, *rk_, start_time);
+                            newton_iters_, *rk_, start_time, E0);
           x0->Copy(*dx_);
           return output;
         }
@@ -596,7 +598,7 @@ SolverOut FBstabAlgorithm<Variable, Residual, Data, LinearSolver,
 
   // Timeout exit.
   SolverOut output = PrepareOutput(ExitFlag::MAXITERATIONS, prox_iters_,
-                                   newton_iters_, *rk_, start_time);
+                                   newton_iters_, *rk_, start_time, E0);
   x0->Copy(*xk_);
   return output;
 }

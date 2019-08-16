@@ -16,11 +16,9 @@ using VectorXd = Eigen::VectorXd;
 using VectorXi = Eigen::VectorXi;
 
 int main(void) {
-  int nave = 1;
-  // std::vector<string> examples{"SpacecraftRelativeMotion", "ServoMotor",
-  //                              "CopolymerizationReactor"};
-
-  std::vector<string> examples{"ServoMotor"};
+  int nave = 25;
+  std::vector<string> examples{"SpacecraftRelativeMotion", "ServoMotor",
+                               "CopolymerizationReactor"};
 
   for (int i = 0; i < static_cast<int>(examples.size()); i++) {
     std::cout << "\n  " + examples.at(i) << "\n"

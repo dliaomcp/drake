@@ -27,6 +27,7 @@ struct WrapperOutput {
 
   bool success = false;
   double residual = 0.0;
+  double initial_residual = 0.0;
 
   Eigen::VectorXd z;  // Decision variable.
   Eigen::VectorXd l;  // co-state
@@ -110,6 +111,7 @@ class FBstabWrapper : public SolverWrapper {
     w.setup_time = 0.0;
     w.major_iters = out.newton_iters;
     w.minor_iters = out.prox_iters;
+    w.initial_residual = out.initial_residual;
     if (out.eflag == ExitFlag::SUCCESS) {
       w.success = true;
     } else {

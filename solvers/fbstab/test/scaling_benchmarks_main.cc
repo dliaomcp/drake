@@ -30,7 +30,8 @@ int main(void) {
   nave << 100 * VectorXi::Ones(12), 25 * VectorXi::Ones(3);
 
   std::vector<string> examples{"DoubleIntegrator", "ServoMotor",
-                               "CopolymerizationReactor"};
+                               "CopolymerizationReactor",
+                               "SpacecraftRelativeMotion"};
 
   // Loop over examples.
   for (int i = 0; i < static_cast<int>(examples.size()); i++) {
