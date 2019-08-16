@@ -78,6 +78,7 @@ class TimingSimulator {
     major_iters_.resize(s.T + 1);
     minor_iters_.resize(s.T + 1);
     residuals_.resize(s.T + 1);
+    initial_residuals_.resize(s.T + 1);
     success_.resize(s.T + 1);
 
     // Initial guess for the optimizer.
@@ -107,6 +108,7 @@ class TimingSimulator {
       minor_iters_(i) = w.minor_iters;
       residuals_(i) = w.residual;
       success_(i) = w.success ? 1 : 0;
+      initial_residuals_(i) = w.initial_residual;
 
       if (warmstart_solver) {
         z = w.z;
@@ -129,6 +131,7 @@ class TimingSimulator {
     major_iters_(s.T) = w.major_iters;
     minor_iters_(s.T) = w.minor_iters;
     residuals_(s.T) = w.residual;
+    initial_residuals_(s.T) = w.initial_residual;
     success_(s.T) = w.success ? 1 : 0;
 
     results_available_ = true;
@@ -157,7 +160,7 @@ class TimingSimulator {
     // Write header.
     file << "Solver: " << solver_name_ << " Example: " << example_name_
          << std::endl;
-    file << "t, imajor, iminor, tsolve, tsetup, RES, SUCCESS";
+    file << "t, imajor, iminor, tsolve, tsetup, RES, RES0, SUCCESS";
     for (int i = 1; i <= nx; i++) {
       file << ", x" + std::to_string(i);
     }
@@ -177,7 +180,7 @@ class TimingSimulator {
     for (int i = 0; i < n; i++) {
       file << i << "," << major_iters_(i) << "," << minor_iters_(i) << ","
            << solve_times_(i) << "," << setup_times_(i) << "," << residuals_(i)
-           << "," << success_(i);
+           << "," << initial_residuals_(i) << "," << success_(i);
 
       file << ", " << X_.col(i).transpose().format(CSV);
       file << ", " << U_.col(i).transpose().format(CSV);
@@ -202,6 +205,7 @@ class TimingSimulator {
   Eigen::VectorXd setup_times_;
 
   Eigen::VectorXd residuals_;
+  Eigen::VectorXd initial_residuals_;
   Eigen::VectorXi success_;
 
   // Many solvers have a major-minor iteration structure.

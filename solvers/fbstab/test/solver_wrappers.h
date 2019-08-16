@@ -241,6 +241,9 @@ class MosekWrapper : public MathProgWrapper {
   WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
                         const Eigen::VectorXd& l, const Eigen::VectorXd& v) {
     // Mosek doesn't accept an initial guess so the arguments are unused.
+    unused(z);
+    unused(l);
+    unused(v);
     MosekSolver solver;
     if (!solver.available()) {
       throw std::runtime_error(SolverName() + " is not available.");
@@ -280,6 +283,9 @@ class OsqpWrapper : public MathProgWrapper {
 
   WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
                         const Eigen::VectorXd& l, const Eigen::VectorXd& v) {
+    unused(l);
+    unused(v);
+
     OsqpSolver solver;
     if (!solver.available()) {
       throw std::runtime_error("OSQP is not available.");
@@ -323,6 +329,9 @@ class GurobiWrapper : public MathProgWrapper {
 
   WrapperOutput Compute(const Eigen::VectorXd& xt, const Eigen::VectorXd& z,
                         const Eigen::VectorXd& l, const Eigen::VectorXd& v) {
+    unused(z);
+    unused(l);
+    unused(v);
     GurobiSolver solver;
     if (!solver.available()) {
       throw std::runtime_error("gurobi is not available.");
